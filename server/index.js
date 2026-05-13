@@ -15,6 +15,7 @@ if (!process.env.PAYSTACK_SECRET_KEY) {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Required for rate limiting behind Render's load balancer
 
 // ─── Security Headers ─────────────────────────────────────────────────────────
 app.use(helmet());

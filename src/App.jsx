@@ -268,28 +268,32 @@ function App() {
         amount: PRICE_KES * 100, // Paystack popup expects kobo
         currency: 'KES',
         ref: reference,
-        callback: async (paystackResponse) => {
-          // Step 3: Verify with our backend
-          try {
-            setIsProcessing(true);
-            setProcessingMsg('Verifying payment…');
-            const verifyRes = await axios.get(
-              `${API_URL}/api/verify-payment/${paystackResponse.reference}`
-            );
-            if (verifyRes.data?.data?.status === 'success') {
-              setIsPaid(true);
-            } else {
-              setError('Payment was not confirmed. Please contact support if you were charged.');
+        callback: function (paystackResponse) {
+          // Paystack v1 script strictly checks for [object Function]
+          // so we cannot pass an AsyncFunction directly.
+          (async () => {
+            // Step 3: Verify with our backend
+            try {
+              setIsProcessing(true);
+              setProcessingMsg('Verifying payment…');
+              const verifyRes = await axios.get(
+                `${API_URL}/api/verify-payment/${paystackResponse.reference}`
+              );
+              if (verifyRes.data?.data?.status === 'success') {
+                setIsPaid(true);
+              } else {
+                setError('Payment was not confirmed. Please contact support if you were charged.');
+              }
+            } catch (err) {
+              setError(
+                err.response?.data?.error ||
+                'Payment verification failed. Contact support with your reference: ' + paystackResponse.reference
+              );
+            } finally {
+              setIsProcessing(false);
+              setProcessingMsg('');
             }
-          } catch (err) {
-            setError(
-              err.response?.data?.error ||
-              'Payment verification failed. Contact support with your reference: ' + paystackResponse.reference
-            );
-          } finally {
-            setIsProcessing(false);
-            setProcessingMsg('');
-          }
+          })();
         },
         onClose: () => {
           setIsPaying(false);
