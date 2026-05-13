@@ -292,6 +292,7 @@ function App() {
             } finally {
               setIsProcessing(false);
               setProcessingMsg('');
+              setIsPaying(false); // <--- THIS WAS MISSING
             }
           })();
         },
