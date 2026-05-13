@@ -590,12 +590,15 @@ function App() {
               </button>
 
               {!isPaid && (
-                <button
-                  onClick={reset}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem' }}
-                >
+                <label style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                   Try a different photo
-                </button>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display: 'none' }}
+                    onChange={handleFileSelect}
+                  />
+                </label>
               )}
             </div>
           </div>
