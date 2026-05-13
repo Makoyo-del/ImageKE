@@ -1,3 +1,23 @@
 User-agent: *
 Allow: /
-Sitemap: https://imageke.com/sitemap.xml
+
+# Specifically allow AI bots to crawl and index the site
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Omgili
+Allow: /
+
+Sitemap: https://duncanmakoyo.com/sitemap.xml
