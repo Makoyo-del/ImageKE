@@ -4,9 +4,10 @@ import { PRESETS, processImage } from './utils/imageProcessor';
 import axios from 'axios';
 
 // ─── Environment Config ────────────────────────────────────────────────────────
-// Empty string = same-origin in production (frontend served by the same Express server).
-// For local dev with `npm run dev`, set VITE_API_URL=http://localhost:5000 in .env
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+// Frontend is hosted on Hostinger, backend API is on Render (cross-origin).
+// Set VITE_API_URL to your Render service URL before building for production.
+// For local dev: VITE_API_URL=http://localhost:5000
+const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
 // Pricing (in KES) — matches server-side expectation

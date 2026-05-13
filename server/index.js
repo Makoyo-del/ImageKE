@@ -5,8 +5,6 @@ import axios from 'axios';
 import crypto from 'crypto';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { fileURLToPath } from 'url';
-import path from 'path';
 
 dotenv.config();
 
@@ -18,50 +16,21 @@ if (!process.env.PAYSTACK_SECRET_KEY) {
 
 const app = express();
 
-// ─── Static File Serving ──────────────────────────────────────────────────────
-// In production, this server serves the built React app from ../dist/
-// Run `npm run build` in the root before starting the server.
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DIST_DIR = path.join(__dirname, '..', 'dist');
-app.use(express.static(DIST_DIR));
+// ─── Security Headers ─────────────────────────────────────────────────────────
+app.use(helmet());
 
-// ─── Security Headers (Helmet) ────────────────────────────────────────────────
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          'https://js.paystack.co',  // Paystack inline JS
-        ],
-        connectSrc: [
-          "'self'",
-          'https://api.paystack.co', // Paystack API calls from browser
-        ],
-        imgSrc: ["'self'", 'data:', 'blob:'], // blob: needed for canvas preview
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        frameSrc: ["'none'"],
-      },
-    },
-    crossOriginEmbedderPolicy: false, // Needed for canvas/blob usage
-  })
-);
-
-// ─── Rate Limiting ─────────────────────────────────────────────────────────────
-// Only applied to /api/* routes, not static assets.
+// ─── Rate Limiting (API routes only) ─────────────────────────────────────────
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50,                   // max 50 requests per IP per window
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please wait a few minutes and try again.' },
 });
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// Since the frontend is served from the same origin, CORS is only needed
-// for local development where Vite (localhost:5173) calls the server (localhost:5000).
+// Frontend is hosted on Hostinger (cross-origin). ALLOWED_ORIGINS must include
+// your Hostinger domain, e.g.: https://imageke.com,https://www.imageke.com
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : ['http://localhost:5173'];
@@ -81,7 +50,7 @@ app.use(
 );
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
-// Captures raw body for Paystack webhook HMAC verification before JSON parsing.
+// Captures raw body before JSON parsing — required for Paystack webhook HMAC.
 app.use(
   express.json({
     limit: '50kb',
@@ -104,7 +73,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── API Routes (rate-limited) ─────────────────────────────────────────────────
+// ─── Initialize Payment ───────────────────────────────────────────────────────
 app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
   const { email, amount, metadata } = req.body;
 
@@ -134,6 +103,7 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
   }
 });
 
+// ─── Verify Payment ───────────────────────────────────────────────────────────
 app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
   const { reference } = req.params;
 
@@ -160,8 +130,8 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
 });
 
 // ─── Paystack Webhook ─────────────────────────────────────────────────────────
-// Register this URL in Paystack Dashboard → Settings → API Keys & Webhooks:
-//   https://imageke.onrender.com/api/paystack/webhook
+// Register in Paystack Dashboard → Settings → API Keys & Webhooks:
+//   https://imageke-api.onrender.com/api/paystack/webhook
 app.post('/api/paystack/webhook', (req, res) => {
   const signature = req.headers['x-paystack-signature'];
   if (!signature) return res.status(401).json({ error: 'Missing Paystack signature.' });
@@ -176,7 +146,6 @@ app.post('/api/paystack/webhook', (req, res) => {
     return res.status(401).json({ error: 'Invalid signature.' });
   }
 
-  // Respond 200 immediately — Paystack retries if it doesn't receive a fast response
   res.status(200).json({ received: true });
 
   const event = req.body;
@@ -185,14 +154,12 @@ app.post('/api/paystack/webhook', (req, res) => {
     console.log(
       `[Webhook] charge.success — ref: ${reference}, KES: ${amount / 100}, email: ${customer?.email}, preset: ${metadata?.preset}`
     );
-    // TODO: write to database here if you add persistence later
   }
 });
 
-// ─── SPA Catch-all ────────────────────────────────────────────────────────────
-// Any non-API route serves index.html so React Router works correctly.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(DIST_DIR, 'index.html'));
+// ─── 404 ──────────────────────────────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Not found.' });
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
@@ -204,6 +171,6 @@ app.use((err, _req, res, _next) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 app.listen(PORT, () => {
-  console.log(`[ImageKE] Running on port ${PORT}`);
-  console.log(`[ImageKE] Serving static files from: ${DIST_DIR}`);
+  console.log(`[ImageKE API] Running on port ${PORT}`);
+  console.log(`[ImageKE API] Allowed origins: ${allowedOrigins.join(', ')}`);
 });
