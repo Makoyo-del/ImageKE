@@ -15,4 +15,4 @@ services:
       - key: PAYSTACK_SECRET_KEY
         sync: false
       - key: ALLOWED_ORIGINS
-        value: https://imageke.com,https://www.imageke.com
+        value: https://duncanmakoyo.com,https://www.duncanmakoyo.com
