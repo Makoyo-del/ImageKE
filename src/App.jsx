@@ -607,21 +607,83 @@ function App() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: LEGAL PAGES
+  // ─────────────────────────────────────────────────────────────────────────────
+  const renderTerms = () => (
+    <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '800px' }}>
+      <button
+        onClick={() => setCurrentPath('home')}
+        className="btn"
+        style={{ background: 'none', color: 'var(--text-muted)', padding: 0, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+      >
+        <ArrowLeft size={18} /> Back to home
+      </button>
+      <h1>Terms of Use</h1>
+      <div style={{ marginTop: '2rem', lineHeight: 1.6, color: 'var(--text-muted)' }}>
+        <h3 style={{ color: 'var(--text)' }}>1. Acceptance of Terms</h3>
+        <p>By accessing and using ImageKE, you accept and agree to be bound by the terms and provision of this agreement.</p>
+        <h3 style={{ marginTop: '1.5rem', color: 'var(--text)' }}>2. Description of Service</h3>
+        <p>ImageKE provides client-side image resizing and compression services. The service does not guarantee acceptance by any third-party portal, though it aims to meet their published specifications.</p>
+        <h3 style={{ marginTop: '1.5rem', color: 'var(--text)' }}>3. Payments and Refunds</h3>
+        <p>Payments are processed securely via Paystack. Because the final watermarked preview is provided for your approval prior to payment, all sales are final. Refunds will only be considered in cases of technical failure on our end preventing the download of the clean image.</p>
+        <h3 style={{ marginTop: '1.5rem', color: 'var(--text)' }}>4. Limitation of Liability</h3>
+        <p>ImageKE shall not be liable for any indirect, incidental, special, consequential or punitive damages resulting from your use of or inability to use the service, including application rejections by government or visa portals.</p>
+      </div>
+    </div>
+  );
+
+  const renderPrivacy = () => (
+    <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '800px' }}>
+      <button
+        onClick={() => setCurrentPath('home')}
+        className="btn"
+        style={{ background: 'none', color: 'var(--text-muted)', padding: 0, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+      >
+        <ArrowLeft size={18} /> Back to home
+      </button>
+      <h1>Privacy Policy</h1>
+      <div style={{ marginTop: '2rem', lineHeight: 1.6, color: 'var(--text-muted)' }}>
+        <h3 style={{ color: 'var(--text)' }}>1. Client-Side Processing</h3>
+        <p>ImageKE is designed with privacy first. All image resizing and compression occurs entirely within your web browser (client-side). <b>Your photos are never uploaded to, stored on, or transmitted through our servers.</b></p>
+        <h3 style={{ marginTop: '1.5rem', color: 'var(--text)' }}>2. Data Collection</h3>
+        <p>We only collect the email address you provide during checkout for the sole purpose of payment verification and receipt generation via our payment partner, Paystack.</p>
+        <h3 style={{ marginTop: '1.5rem', color: 'var(--text)' }}>3. Payment Processing</h3>
+        <p>All financial transactions are handled securely by Paystack. ImageKE does not collect, store, or have access to your full payment details, card numbers, or mobile money PINs.</p>
+        <h3 style={{ marginTop: '1.5rem', color: 'var(--text)' }}>4. Analytics</h3>
+        <p>We may use privacy-friendly analytics to monitor website traffic and usage patterns without identifying individual users.</p>
+      </div>
+    </div>
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // ROOT
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <>
-      {isProcessing && <ProcessingOverlay message={processingMsg} />}
-      {showEmailModal && (
-        <EmailModal
-          onSubmit={initiatePayment}
-          onCancel={() => setShowEmailModal(false)}
-        />
-      )}
-      {currentPath === 'home' && renderHome()}
-      {currentPath === 'custom' && renderCustomPage()}
-      {currentPath === 'processor' && renderProcessor()}
-    </>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div style={{ flex: 1 }}>
+        {isProcessing && <ProcessingOverlay message={processingMsg} />}
+        {showEmailModal && (
+          <EmailModal
+            onSubmit={initiatePayment}
+            onCancel={() => setShowEmailModal(false)}
+          />
+        )}
+        {currentPath === 'home' && renderHome()}
+        {currentPath === 'custom' && renderCustomPage()}
+        {currentPath === 'processor' && renderProcessor()}
+        {currentPath === 'terms' && renderTerms()}
+        {currentPath === 'privacy' && renderPrivacy()}
+      </div>
+      <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+        <div className="container">
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} ImageKE. All rights reserved.</p>
+          <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+            <button onClick={() => setCurrentPath('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
+            <button onClick={() => setCurrentPath('privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
 
