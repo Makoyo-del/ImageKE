@@ -19,7 +19,7 @@ services:
         value: https://imageke.com,https://imageke-frontend.onrender.com
 
   # ─── Frontend (Static Site) ──────────────────────────────────────────────────
-  - type: static
+  - type: static_site
     name: imageke-frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
