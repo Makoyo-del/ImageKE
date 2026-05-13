@@ -1,10 +1,10 @@
 services:
-  # ─── Backend API ─────────────────────────────────────────────────────────────
+  # ─── Backend API (Node.js Web Service) ───────────────────────────────────────
   - type: web
     name: imageke-api
-    env: node
+    runtime: node
     plan: starter
-    rootDir: server           # Render runs npm install inside ./server/
+    rootDir: server
     buildCommand: npm install
     startCommand: node index.js
     healthCheckPath: /health
@@ -12,15 +12,16 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000          # Render always uses port 10000 internally
+        value: 10000
       - key: PAYSTACK_SECRET_KEY
-        sync: false           # Set manually in the Render Dashboard → Environment
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://imageke.com,https://imageke-frontend.onrender.com
 
   # ─── Frontend (Static Site) ──────────────────────────────────────────────────
-  - type: static_site
+  - type: web
     name: imageke-frontend
+    runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     routes:
@@ -31,4 +32,4 @@ services:
       - key: VITE_API_URL
         value: https://imageke-api.onrender.com
       - key: VITE_PAYSTACK_PUBLIC_KEY
-        sync: false           # Set manually in the Render Dashboard → Environment
+        sync: false
