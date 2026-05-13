@@ -4,7 +4,9 @@ import { PRESETS, processImage } from './utils/imageProcessor';
 import axios from 'axios';
 
 // ─── Environment Config ────────────────────────────────────────────────────────
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Empty string = same-origin in production (frontend served by the same Express server).
+// For local dev with `npm run dev`, set VITE_API_URL=http://localhost:5000 in .env
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
 // Pricing (in KES) — matches server-side expectation

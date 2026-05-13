@@ -3,6 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import crypto from 'crypto';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 dotenv.config();
 
@@ -14,7 +18,50 @@ if (!process.env.PAYSTACK_SECRET_KEY) {
 
 const app = express();
 
+// ─── Static File Serving ──────────────────────────────────────────────────────
+// In production, this server serves the built React app from ../dist/
+// Run `npm run build` in the root before starting the server.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DIST_DIR = path.join(__dirname, '..', 'dist');
+app.use(express.static(DIST_DIR));
+
+// ─── Security Headers (Helmet) ────────────────────────────────────────────────
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          'https://js.paystack.co',  // Paystack inline JS
+        ],
+        connectSrc: [
+          "'self'",
+          'https://api.paystack.co', // Paystack API calls from browser
+        ],
+        imgSrc: ["'self'", 'data:', 'blob:'], // blob: needed for canvas preview
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Needed for canvas/blob usage
+  })
+);
+
+// ─── Rate Limiting ─────────────────────────────────────────────────────────────
+// Only applied to /api/* routes, not static assets.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50,                   // max 50 requests per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait a few minutes and try again.' },
+});
+
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+// Since the frontend is served from the same origin, CORS is only needed
+// for local development where Vite (localhost:5173) calls the server (localhost:5000).
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : ['http://localhost:5173'];
@@ -22,7 +69,6 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., curl, Render health checks)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -35,8 +81,7 @@ app.use(
 );
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
-// IMPORTANT: The webhook endpoint needs the raw body buffer for HMAC verification.
-// We capture the raw body before JSON parsing, then use it in the webhook route.
+// Captures raw body for Paystack webhook HMAC verification before JSON parsing.
 app.use(
   express.json({
     limit: '50kb',
@@ -59,11 +104,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Initialize Payment ───────────────────────────────────────────────────────
-// The frontend sends the human KES amount (e.g. 49).
-// We convert to kobo (×100) before forwarding to Paystack.
-// The frontend PaystackPop.setup() also multiplies by 100 independently.
-app.post('/api/initialize-payment', async (req, res) => {
+// ─── API Routes (rate-limited) ─────────────────────────────────────────────────
+app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
   const { email, amount, metadata } = req.body;
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
@@ -84,7 +126,6 @@ app.post('/api/initialize-payment', async (req, res) => {
       },
       { headers: paystackHeaders }
     );
-
     res.json(response.data);
   } catch (error) {
     const detail = error.response?.data?.message || error.message;
@@ -93,9 +134,7 @@ app.post('/api/initialize-payment', async (req, res) => {
   }
 });
 
-// ─── Verify Payment ───────────────────────────────────────────────────────────
-// Called by the frontend after the PaystackPop callback fires.
-app.get('/api/verify-payment/:reference', async (req, res) => {
+app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
   const { reference } = req.params;
 
   if (!reference || !/^[a-zA-Z0-9_-]+$/.test(reference)) {
@@ -110,12 +149,8 @@ app.get('/api/verify-payment/:reference', async (req, res) => {
 
     const txStatus = response.data?.data?.status;
     if (txStatus !== 'success') {
-      return res.status(402).json({
-        error: 'Payment not confirmed.',
-        status: txStatus,
-      });
+      return res.status(402).json({ error: 'Payment not confirmed.', status: txStatus });
     }
-
     res.json(response.data);
   } catch (error) {
     const detail = error.response?.data?.message || error.message;
@@ -125,23 +160,11 @@ app.get('/api/verify-payment/:reference', async (req, res) => {
 });
 
 // ─── Paystack Webhook ─────────────────────────────────────────────────────────
-// Paystack POSTs to this URL when a payment is finalised server-side.
-//
-// How to register this URL in Paystack Dashboard:
-//   1. Log in → Settings → API Keys & Webhooks
-//   2. Paste:  https://imageke-api.onrender.com/api/paystack/webhook
-//   3. Save. Paystack will send a test event — respond with 200.
-//
-// Security: We verify the X-Paystack-Signature header using HMAC-SHA512
-// with your secret key. Requests that fail verification are rejected (401).
-//
-// Currently logs the event. Wire up your DB or fulfilment logic here.
+// Register this URL in Paystack Dashboard → Settings → API Keys & Webhooks:
+//   https://imageke.onrender.com/api/paystack/webhook
 app.post('/api/paystack/webhook', (req, res) => {
-  // Step 1: Verify the signature
   const signature = req.headers['x-paystack-signature'];
-  if (!signature) {
-    return res.status(401).json({ error: 'Missing Paystack signature.' });
-  }
+  if (!signature) return res.status(401).json({ error: 'Missing Paystack signature.' });
 
   const expectedSig = crypto
     .createHmac('sha512', PAYSTACK_SECRET_KEY)
@@ -153,27 +176,23 @@ app.post('/api/paystack/webhook', (req, res) => {
     return res.status(401).json({ error: 'Invalid signature.' });
   }
 
-  // Step 2: Acknowledge receipt immediately (Paystack retries if it doesn't get 200 fast)
+  // Respond 200 immediately — Paystack retries if it doesn't receive a fast response
   res.status(200).json({ received: true });
 
-  // Step 3: Process the event asynchronously after responding
   const event = req.body;
-  console.log('[Webhook] Event received:', event.event, '| Ref:', event.data?.reference);
-
   if (event.event === 'charge.success') {
     const { reference, amount, customer, metadata } = event.data;
-    // amount is in kobo — divide by 100 for KES
     console.log(
       `[Webhook] charge.success — ref: ${reference}, KES: ${amount / 100}, email: ${customer?.email}, preset: ${metadata?.preset}`
     );
-    // TODO: If you add a database later, mark this reference as paid here.
-    // e.g.: db.markPaid(reference, customer.email, metadata.preset);
+    // TODO: write to database here if you add persistence later
   }
 });
 
-// ─── 404 Catch-all ────────────────────────────────────────────────────────────
-app.use((_req, res) => {
-  res.status(404).json({ error: 'Not found.' });
+// ─── SPA Catch-all ────────────────────────────────────────────────────────────
+// Any non-API route serves index.html so React Router works correctly.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
@@ -185,6 +204,6 @@ app.use((err, _req, res, _next) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 app.listen(PORT, () => {
-  console.log(`[ImageKE API] Running on port ${PORT}`);
-  console.log(`[ImageKE API] Allowed origins: ${allowedOrigins.join(', ')}`);
+  console.log(`[ImageKE] Running on port ${PORT}`);
+  console.log(`[ImageKE] Serving static files from: ${DIST_DIR}`);
 });
