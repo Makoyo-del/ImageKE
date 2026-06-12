@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers } from 'lucide-react';
+import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass } from 'lucide-react';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -601,18 +601,18 @@ function App() {
   // ─────────────────────────────────────────────────────────────────────────────
   const renderHome = () => (
     <div>
-      <section className="hero">
+      <section className="hero" style={{ background: 'linear-gradient(135deg, #0A1931 0%, #15305B 50%, #0052CC 100%)', borderBottom: 'none', color: '#ffffff', padding: '5rem 1.25rem 4rem' }}>
         <div className="container">
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem', color: 'rgba(255,255,255,0.9)' }}>Kenya's #1 Photo Fixer</div>
-          <h1>Your Photo Was Rejected.<br/>Fix It in 20 Seconds.</h1>
-          <p style={{ fontSize: '1.1rem', maxWidth: '620px', margin: '0 auto', lineHeight: 1.7 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', padding: '6px 16px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem', color: '#E0E7FF' }}>Kenya's #1 Photo Fixer</div>
+          <h1 style={{ color: '#ffffff', marginBottom: '1.25rem', fontSize: 'clamp(2rem, 5vw, 3rem)', lineHeight: 1.2 }}>Your Photo Was Rejected.<br/>Fix It in 20 Seconds.</h1>
+          <p style={{ fontSize: '1.1rem', maxWidth: '620px', margin: '0 auto', lineHeight: 1.75, color: 'rgba(255,255,255,0.85)' }}>
             eCitizen says your file is too large. The visa portal says the wrong dimensions. HELB bounces it back. You've been going back and forth for hours.
             <br /><br />
-            <strong>ImageKE solves it instantly.</strong> Select your destination portal, upload your photo, and get back a file that passes every check — sized exactly right, compressed below the limit, ready to submit. No app. No signup. Just results.
+            <strong style={{ color: '#ffffff' }}>ImageKE solves it instantly.</strong> Select your destination portal, upload your photo, and get back a file that passes every check — sized exactly right, compressed below the limit, ready to submit. No app. No signup. Just results.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
             {['✅ eCitizen Ready', '✅ US Visa 600×600', '✅ KRA iTax', '✅ HELB Portal', '✅ M-Pesa Checkout'].map(tag => (
-              <span key={tag} style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '20px', padding: '5px 14px', fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{tag}</span>
+              <span key={tag} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', padding: '5px 14px', fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{tag}</span>
             ))}
           </div>
         </div>
@@ -692,31 +692,83 @@ function App() {
                 setSelectedPreset(preset);
                 setCurrentPath('processor');
               }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                borderLeft: '4px solid var(--primary)',
+                cursor: 'pointer',
+                background: '#ffffff',
+                padding: '1.5rem',
+                borderRadius: 'var(--radius)',
+              }}
             >
-              <h3>{preset.name}</h3>
-              <p>{preset.label}</p>
-              <div style={{ marginTop: '1rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                <div style={{
+                  background: 'var(--primary-light)',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--primary)',
+                  flexShrink: 0,
+                }}>
+                  {key === 'ECITIZEN' && <User size={20} />}
+                  {key === 'US_VISA' && <Globe size={20} />}
+                  {key === 'KRA' && <Percent size={20} />}
+                  {key === 'HELB' && <GraduationCap size={20} />}
+                  {key === 'SCHENGEN' && <Compass size={20} />}
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)' }}>{preset.name}</h3>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', flexGrow: 1 }}>{preset.label}</p>
+              <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>
                 {preset.width}×{preset.height}px &bull; Max {preset.maxSizeKB}KB
               </div>
             </div>
           ))}
-        </div>
 
-        <div style={{
-          textAlign: 'center', marginTop: '4rem', padding: '2rem',
-          background: '#F9FAFB', borderRadius: '12px', marginBottom: '4rem',
-        }}>
-          <h3>Need a custom size?</h3>
-          <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Resize for any requirement not listed above.
-          </p>
-          <button
-            className="btn"
-            style={{ marginTop: '1rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}
+          {/* Unified Custom Dimensions Card */}
+          <div
+            className="card"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && setCurrentPath('custom')}
             onClick={() => setCurrentPath('custom')}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              borderLeft: '4px solid #4B5563',
+              cursor: 'pointer',
+              background: '#ffffff',
+              padding: '1.5rem',
+              borderRadius: 'var(--radius)',
+            }}
           >
-            Open Custom Resizer
-          </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+              <div style={{
+                background: '#F3F4F6',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#4B5563',
+                flexShrink: 0,
+              }}>
+                <Crop size={20} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text)' }}>Custom Dimensions</h3>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)', flexGrow: 1 }}>Define your own width, height, and maximum file size limit.</p>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 700, color: '#4B5563' }}>
+              Manual Config &bull; Custom Limits
+            </div>
+          </div>
         </div>
       </div>
     </div>
