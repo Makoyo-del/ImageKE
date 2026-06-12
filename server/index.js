@@ -13,6 +13,9 @@ if (!process.env.PAYSTACK_SECRET_KEY) {
   console.error('FATAL: PAYSTACK_SECRET_KEY is not set. Server cannot start.');
   process.exit(1);
 }
+if (!process.env.PING_SECRET) {
+  console.warn('[WARN] PING_SECRET is not set. The /api/ping endpoint will be UNPROTECTED. Set it in your environment variables.');
+}
 
 const app = express();
 app.set('trust proxy', 1); // Required for rate limiting behind Render's load balancer
@@ -63,15 +66,85 @@ app.use(
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+const PING_SECRET = process.env.PING_SECRET || null;
 
 const paystackHeaders = {
   Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
   'Content-Type': 'application/json',
 };
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
+// Track server start time for uptime reporting
+const SERVER_START = Date.now();
+
+// ─── Rate Limiter: Ping (separate from payment limiter) ───────────────────────
+const pingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,                  // 100 pings per window — cron every 5 min = 3/hr, well within limit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many ping requests.' },
+});
+
+// ─── Health Check (public — no auth required) ────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ─── Secure Ping / Keep-Alive Endpoint ───────────────────────────────────────
+// Used by an external cron job (e.g., cron-job.org, UptimeRobot, GitHub Actions)
+// to prevent the Render free-tier service from sleeping after 15 min of inactivity.
+//
+// Authentication: pass the PING_SECRET via one of:
+//   1. Header:        Authorization: Bearer <PING_SECRET>
+//   2. Query param:   GET /api/ping?token=<PING_SECRET>
+//
+// If PING_SECRET is not set in env, the endpoint responds but logs a warning.
+// Set up your cron to call this every 10–12 minutes.
+app.get('/api/ping', pingLimiter, (req, res) => {
+  // ── Auth check ─────────────────────────────────────────────────────────────
+  if (PING_SECRET) {
+    const authHeader = req.headers['authorization'] || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const queryToken  = req.query.token || null;
+    const provided    = bearerToken || queryToken;
+
+    // Constant-time comparison to prevent timing attacks
+    if (!provided) {
+      return res.status(401).json({ error: 'Unauthorized. Provide token via Authorization header or ?token= query.' });
+    }
+
+    // crypto.timingSafeEqual requires same-length buffers
+    try {
+      const secretBuf   = Buffer.from(PING_SECRET);
+      const providedBuf = Buffer.alloc(secretBuf.length);
+      Buffer.from(provided).copy(providedBuf);
+      const match = crypto.timingSafeEqual(secretBuf, providedBuf);
+      if (!match) {
+        return res.status(403).json({ error: 'Forbidden. Invalid token.' });
+      }
+    } catch {
+      return res.status(403).json({ error: 'Forbidden. Invalid token.' });
+    }
+  }
+
+  // ── Healthy response ───────────────────────────────────────────────────────
+  const uptimeSeconds = Math.floor((Date.now() - SERVER_START) / 1000);
+  const mem = process.memoryUsage();
+
+  console.log(`[Ping] keep-alive hit at ${new Date().toISOString()} — uptime: ${uptimeSeconds}s`);
+
+  res.json({
+    status:    'alive',
+    timestamp: new Date().toISOString(),
+    uptime_s:  uptimeSeconds,
+    uptime_h:  (uptimeSeconds / 3600).toFixed(2),
+    memory: {
+      rss_mb:        (mem.rss        / 1024 / 1024).toFixed(1),
+      heap_used_mb:  (mem.heapUsed   / 1024 / 1024).toFixed(1),
+      heap_total_mb: (mem.heapTotal  / 1024 / 1024).toFixed(1),
+    },
+    service: 'imageke-api',
+  });
 });
 
 // ─── Initialize Payment ───────────────────────────────────────────────────────
