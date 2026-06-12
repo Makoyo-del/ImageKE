@@ -223,11 +223,12 @@ function App() {
   const [processedVideoBlob, setProcessedVideoBlob] = useState(null);
   const [processedVideoUrl, setProcessedVideoUrl] = useState('');
   const [paidVideoTools, setPaidVideoTools] = useState({});
-  const isCurrentToolPaid = !!(paidVideoTools[activeVideoTool] || isSubscribed);
   const [isSubscribed, setIsSubscribed] = useState(() => {
     return localStorage.getItem('imageke_creator_subscription') === 'true';
   });
   const [isVerifyingSub, setIsVerifyingSub] = useState(false);
+
+  const isCurrentToolPaid = !!(paidVideoTools[activeVideoTool] || isSubscribed);
 
   // Validate the subscription token on mount
   useEffect(() => {
