@@ -16,6 +16,9 @@ if (!process.env.PAYSTACK_SECRET_KEY) {
 if (!process.env.PING_SECRET) {
   console.warn('[WARN] PING_SECRET is not set. The /api/ping endpoint will be UNPROTECTED. Set it in your environment variables.');
 }
+if (!process.env.TOKEN_SECRET) {
+  console.warn('[WARN] TOKEN_SECRET is not set. Subscriptions will use a default signing key and invalidate if the server restarts.');
+}
 
 const app = express();
 app.set('trust proxy', 1); // Required for rate limiting behind Render's load balancer
@@ -67,6 +70,7 @@ app.use(
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PING_SECRET = process.env.PING_SECRET || null;
+const TOKEN_SECRET = process.env.TOKEN_SECRET || 'fallback_secret_key_for_signing_tokens';
 
 const paystackHeaders = {
   Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
@@ -75,6 +79,57 @@ const paystackHeaders = {
 
 // Track server start time for uptime reporting
 const SERVER_START = Date.now();
+
+// ─── Token Signing Helpers ───────────────────────────────────────────────────
+function generateSubscriptionToken(email, durationDays = 30) {
+  const payload = {
+    email,
+    type: 'subscription',
+    expiresAt: Date.now() + durationDays * 24 * 60 * 60 * 1000,
+  };
+  const payloadStr = JSON.stringify(payload);
+  const base64Payload = Buffer.from(payloadStr).toString('base64url');
+  
+  const signature = crypto
+    .createHmac('sha256', TOKEN_SECRET)
+    .update(base64Payload)
+    .digest('base64url');
+    
+  return `${base64Payload}.${signature}`;
+}
+
+function verifySubscriptionToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  
+  const [base64Payload, signature] = parts;
+  
+  const expectedSig = crypto
+    .createHmac('sha256', TOKEN_SECRET)
+    .update(base64Payload)
+    .digest('base64url');
+    
+  const signatureHash = crypto.createHash('sha256').update(signature).digest();
+  const expectedSigHash = crypto.createHash('sha256').update(expectedSig).digest();
+  
+  if (!crypto.timingSafeEqual(signatureHash, expectedSigHash)) {
+    return null;
+  }
+  
+  try {
+    const payloadStr = Buffer.from(base64Payload, 'base64url').toString('utf8');
+    const payload = JSON.parse(payloadStr);
+    
+    if (payload.expiresAt < Date.now()) {
+      return null; // Expired
+    }
+    
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Rate Limiter: Ping (separate from payment limiter) ───────────────────────
 const pingLimiter = rateLimit({
@@ -190,16 +245,63 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
       { headers: paystackHeaders }
     );
 
-    const txStatus = response.data?.data?.status;
+    const txData = response.data?.data;
+    const txStatus = txData?.status;
     if (txStatus !== 'success') {
       return res.status(402).json({ error: 'Payment not confirmed.', status: txStatus });
     }
-    res.json(response.data);
+
+    // Check transaction timestamp to prevent reference reuse (within 30 minutes)
+    const paidAtStr = txData?.paid_at;
+    if (paidAtStr) {
+      const paidAt = new Date(paidAtStr).getTime();
+      const diffMs = Date.now() - paidAt;
+      if (Math.abs(diffMs) > 30 * 60 * 1000) {
+        return res.status(403).json({ 
+          error: 'Payment reference expired. Verification must happen within 30 minutes of payment.' 
+        });
+      }
+    }
+
+    const amountPaid = txData?.amount / 100; // kobo/cents → KES
+    const email = txData?.customer?.email;
+
+    // Issue subscription token if amount covers the monthly plan (KES 499)
+    let token = null;
+    if (amountPaid >= 499 && email) {
+      token = generateSubscriptionToken(email, 30);
+    }
+
+    res.json({
+      status: 'success',
+      data: txData,
+      token: token,
+    });
   } catch (error) {
     const detail = error.response?.data?.message || error.message;
     console.error('[Paystack verify error]', detail);
     res.status(502).json({ error: 'Failed to verify payment. Please contact support.' });
   }
+});
+
+// ─── Verify Subscription Token ───────────────────────────────────────────────
+app.post('/api/verify-subscription-token', apiLimiter, (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required.' });
+  }
+
+  const payload = verifySubscriptionToken(token);
+  if (!payload) {
+    return res.json({ valid: false });
+  }
+
+  res.json({
+    valid: true,
+    email: payload.email,
+    expiresAt: payload.expiresAt,
+    expiresAtISO: new Date(payload.expiresAt).toISOString(),
+  });
 });
 
 // ─── Paystack Webhook ─────────────────────────────────────────────────────────

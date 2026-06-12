@@ -218,6 +218,39 @@ function App() {
   const [isSubscribed, setIsSubscribed] = useState(() => {
     return localStorage.getItem('imageke_creator_subscription') === 'true';
   });
+  const [isVerifyingSub, setIsVerifyingSub] = useState(false);
+
+  // Validate the subscription token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('imageke_creator_token');
+    if (token) {
+      setIsVerifyingSub(true);
+      axios.post(`${API_URL}/api/verify-subscription-token`, { token })
+        .then((res) => {
+          if (res.data?.valid) {
+            setIsSubscribed(true);
+            localStorage.setItem('imageke_creator_subscription', 'true');
+          } else {
+            // Token is expired or invalid
+            localStorage.removeItem('imageke_creator_token');
+            localStorage.removeItem('imageke_creator_subscription');
+            setIsSubscribed(false);
+          }
+        })
+        .catch((err) => {
+          console.warn('[Subscription Verify Error]', err);
+          // On network failure, we fallback to the local cache value to avoid breaking user access offline
+          const cachedVal = localStorage.getItem('imageke_creator_subscription') === 'true';
+          setIsSubscribed(cachedVal);
+        })
+        .finally(() => {
+          setIsVerifyingSub(false);
+        });
+    } else {
+      setIsSubscribed(false);
+      localStorage.removeItem('imageke_creator_subscription');
+    }
+  }, []);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getActivePreset = () => selectedPreset || customSize;
@@ -490,7 +523,14 @@ function App() {
               const verifyRes = await axios.get(
                 `${API_URL}/api/verify-payment/${paystackResponse.reference}`
               );
-              if (verifyRes.data?.data?.status === 'success') {
+              
+              const isOk = verifyRes.data?.status === 'success' || verifyRes.data?.data?.status === 'success';
+              if (isOk) {
+                // Save subscription token if returned by backend
+                if (verifyRes.data?.token) {
+                  localStorage.setItem('imageke_creator_token', verifyRes.data.token);
+                  localStorage.setItem('imageke_creator_subscription', 'true');
+                }
                 paymentTarget.onSuccess();
               } else {
                 setError('Payment was not confirmed. Please contact support if you were charged.');
