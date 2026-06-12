@@ -256,3 +256,108 @@ p { color: var(--text-muted); }
     align-items: center;
   }
 }
+
+/* ─── App Header (Responsive) ────────────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 1rem;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.app-logo-text {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text);
+  font-family: 'Montserrat', sans-serif;
+  white-space: nowrap;
+}
+
+.app-logo-badge {
+  color: #7C3AED;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.app-nav-btn {
+  background: none;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.app-nav-btn.active-images {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,82,204,0.2);
+}
+
+.app-nav-btn.active-videos {
+  background: #7C3AED;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+}
+
+.app-nav-btn:not(.active-images):not(.active-videos):hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+@media (max-width: 500px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .app-nav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .app-nav-btn {
+    flex: 1;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.5rem;
+    text-align: center;
+  }
+
+  .app-logo-text {
+    font-size: 1.15rem;
+  }
+}

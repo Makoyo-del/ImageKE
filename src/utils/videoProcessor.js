@@ -352,22 +352,18 @@ export async function addVideoWatermark(ffmpeg, file, watermarkSource, type, pos
  * @param {boolean} [isFree=true] - If true, limit audio duration to 15s.
  * @returns {Promise<Blob>} Extracted audio MP3 blob
  */
-export async function extractAudio(ffmpeg, file, isFree = true) {
+export async function extractAudio(ffmpeg, file) {
   const inputName = 'input.mp4';
   const outputName = 'output.mp3';
 
   await ffmpeg.writeFile(inputName, await fetchFile(file));
 
   const args = ['-i', inputName];
-  
-  if (isFree) {
-    args.push('-t', '15'); // Limit duration on free tier
-  }
 
   args.push(
     '-vn',               // Strip video
     '-acodec', 'libmp3lame', // Transcode to MP3
-    '-q:a', '4',         // Variable Bitrate (VBR) average 160 kbps
+    '-ab', '128k',       // Constant Bitrate (CBR) 128kbps for faster processing
     outputName
   );
 

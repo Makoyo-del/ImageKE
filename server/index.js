@@ -203,13 +203,34 @@ app.get('/api/ping', pingLimiter, (req, res) => {
 
 // ─── Initialize Payment ───────────────────────────────────────────────────────
 app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
-  const { email, amount, metadata } = req.body;
+  const { email, metadata } = req.body;
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return res.status(400).json({ error: 'A valid email is required.' });
   }
-  if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 100000) {
-    return res.status(400).json({ error: 'Amount must be a positive number in KES.' });
+
+  // Enforce pricing server-side based on type and tool to prevent client-side editing/tampering
+  let amount = 49; // Default photo price
+  const type = metadata?.type;
+  if (type === 'creator_subscription') {
+    amount = 499;
+  } else if (type === 'video_download') {
+    const tool = metadata?.tool;
+    const videoPricing = {
+      aspect: 99,
+      compress: 79,
+      watermark: 79,
+      audio: 49,
+      frames: 99
+    };
+    if (tool && videoPricing[tool]) {
+      amount = videoPricing[tool];
+    } else {
+      amount = 99; // Default video fallback
+    }
+  } else {
+    // Default fallback or photo_download
+    amount = 49;
   }
 
   try {

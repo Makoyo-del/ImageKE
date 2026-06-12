@@ -15,6 +15,14 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 // Pricing (in KES) — matches server-side expectation
 const PRICE_KES = 49;
 
+const VIDEO_TOOL_PRICING = {
+  aspect: 99,
+  compress: 79,
+  watermark: 79,
+  audio: 49,
+  frames: 99
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -214,7 +222,8 @@ function App() {
   // Output states
   const [processedVideoBlob, setProcessedVideoBlob] = useState(null);
   const [processedVideoUrl, setProcessedVideoUrl] = useState('');
-  const [isVideoPaid, setIsVideoPaid] = useState(false);
+  const [paidVideoTools, setPaidVideoTools] = useState({});
+  const isCurrentToolPaid = !!(paidVideoTools[activeVideoTool] || isSubscribed);
   const [isSubscribed, setIsSubscribed] = useState(() => {
     return localStorage.getItem('imageke_creator_subscription') === 'true';
   });
@@ -565,7 +574,7 @@ function App() {
     if (!isPaid) {
       setPaymentTarget({
         amount: PRICE_KES,
-        metadata: { preset: getActivePreset().name },
+        metadata: { type: 'photo_download', preset: getActivePreset().name },
         onSuccess: () => setIsPaid(true),
       });
       setShowEmailModal(true);
@@ -1557,7 +1566,7 @@ function App() {
     setVideoUrl(URL.createObjectURL(file));
     setProcessedVideoBlob(null);
     setProcessedVideoUrl('');
-    setIsVideoPaid(false);
+    setPaidVideoTools({});
     setError('');
   };
 
@@ -1671,7 +1680,7 @@ function App() {
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
       } else if (activeVideoTool === 'audio') {
-        blob = await extractAudio(ffmpeg, videoFile, useFree);
+        blob = await extractAudio(ffmpeg, videoFile);
         const url = URL.createObjectURL(blob);
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
@@ -1689,13 +1698,13 @@ function App() {
         setProcessedVideoUrl('extracted_frames'); // flag
         
         if (isSubscribed) {
-          setIsVideoPaid(true);
+          setPaidVideoTools(prev => ({ ...prev, [activeVideoTool]: true }));
           await downloadFramesAsZip(frames);
         }
       }
       
       if (isSubscribed && activeVideoTool !== 'frames') {
-        setIsVideoPaid(true);
+        setPaidVideoTools(prev => ({ ...prev, [activeVideoTool]: true }));
         const ext = activeVideoTool === 'audio' ? 'mp3' : 'mp4';
         const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
         triggerDownload(blob, cleanName);
@@ -1763,14 +1772,20 @@ function App() {
         const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
         triggerDownload(blob, cleanName);
       } else if (activeVideoTool === 'audio') {
-        blob = await extractAudio(ffmpeg, videoFile, false);
+        // Audio: the full-length MP3 is already rendered in the preview blob.
+        // Reuse it instead of running FFmpeg a second time.
+        if (processedVideoBlob) {
+          const ext = 'mp3';
+          const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
+          triggerDownload(processedVideoBlob, cleanName);
+          return; // skip finally setIsProcessing cleanup below — we didn't start it
+        }
+        blob = await extractAudio(ffmpeg, videoFile);
         const url = URL.createObjectURL(blob);
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
-        
-        const ext = 'mp3';
-        const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
-        triggerDownload(blob, cleanName);
+        const cleanNameAudio = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.mp3`;
+        triggerDownload(blob, cleanNameAudio);
       } else if (activeVideoTool === 'frames') {
         const frames = await extractVideoFrames(
           ffmpeg,
@@ -1795,11 +1810,12 @@ function App() {
   };
 
   const handlePayForVideo = () => {
+    const toolPrice = VIDEO_TOOL_PRICING[activeVideoTool] || 99;
     setPaymentTarget({
-      amount: 99,
-      metadata: { type: 'video_download', filename: videoFile.name, tool: activeVideoTool },
+      amount: toolPrice, // Shown in UI only — server enforces correct amount from metadata
+      metadata: { type: 'video_download', filename: videoFile?.name, tool: activeVideoTool },
       onSuccess: () => {
-        setIsVideoPaid(true);
+        setPaidVideoTools(prev => ({ ...prev, [activeVideoTool]: true }));
         triggerCleanVideoProcess();
       },
     });
@@ -1808,7 +1824,7 @@ function App() {
 
   const handleSubscribe = () => {
     setPaymentTarget({
-      amount: 499,
+      amount: 499, // Shown in UI only — server enforces 499 from metadata
       metadata: { type: 'creator_subscription' },
       onSuccess: () => {
         setIsSubscribed(true);
@@ -1854,7 +1870,7 @@ function App() {
     }
     setProcessedVideoUrl('');
     setExtractedFrames([]);
-    setIsVideoPaid(false);
+    setPaidVideoTools({});
     setCropOffsetPercent(50);
     setWatermarkImageFile(null);
     if (watermarkImagePreview) URL.revokeObjectURL(watermarkImagePreview);
@@ -2426,12 +2442,12 @@ function App() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                         <b>{extractedFrames.length} frames</b> extracted successfully.
-                        {isVideoPaid || isSubscribed ? ' Download your ZIP below.' : ' Preview the first 5 frames below. Pay to download all.'}
+                        {isCurrentToolPaid ? ' Download your ZIP below.' : ' Preview the first 5 frames below. Pay KSh 99 to download all.'}
                       </p>
 
                       {/* Frame thumbnails grid */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '6px' }}>
-                        {extractedFrames.slice(0, isVideoPaid || isSubscribed ? extractedFrames.length : 5).map((frame, idx) => (
+                        {extractedFrames.slice(0, isCurrentToolPaid ? extractedFrames.length : 5).map((frame, idx) => (
                           <div key={idx} style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', background: '#000', aspectRatio: '16/9' }}>
                             <img
                               src={URL.createObjectURL(frame.blob)}
@@ -2440,21 +2456,21 @@ function App() {
                             />
                           </div>
                         ))}
-                        {!(isVideoPaid || isSubscribed) && extractedFrames.length > 5 && (
+                        {!isCurrentToolPaid && extractedFrames.length > 5 && (
                           <div style={{ borderRadius: '6px', border: '1px dashed #D8B4FE', background: '#F9F5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', fontSize: '0.7rem', color: '#7C3AED', fontWeight: 700, textAlign: 'center', padding: '4px' }}>
                             +{extractedFrames.length - 5} more locked
                           </div>
                         )}
                       </div>
 
-                      {!isVideoPaid && !isSubscribed ? (
+                      {!isCurrentToolPaid ? (
                         <div style={{
                           background: '#F9F5FF', border: '1px solid #E9D5FF',
                           borderRadius: '12px', padding: '1rem',
                         }}>
                           <h4 style={{ color: '#6B21A8', marginBottom: '0.25rem' }}>🔒 Unlock All Frames</h4>
                           <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.4, marginBottom: '1rem' }}>
-                            The free preview shows the first 5 frames. Pay KSh 99 to download all {extractedFrames.length} frames as a ZIP archive, or subscribe for unlimited access.
+                            The free preview shows the first 5 frames. Pay <b>KSh {VIDEO_TOOL_PRICING.frames}</b> to download all {extractedFrames.length} frames as a ZIP archive, or subscribe for unlimited access.
                           </p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <button
@@ -2469,7 +2485,7 @@ function App() {
                               className="btn"
                               style={{ background: '#7C3AED', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                             >
-                              <DollarSign size={14} /> Pay KSh 99 — Download All {extractedFrames.length} Frames as ZIP
+                              <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING.frames} — Download All {extractedFrames.length} Frames as ZIP
                             </button>
                             <button
                               onClick={handleSubscribe}
@@ -2506,26 +2522,39 @@ function App() {
 
                   {/* Paywall for standard tools */}
                   {activeVideoTool !== 'frames' && (
-                    !isVideoPaid && !isSubscribed ? (
-                      <div style={{ background: '#F9F5FF', border: '1px solid #E9D5FF', borderRadius: '12px', padding: '1rem', marginTop: '0.5rem' }}>
-                        <h4 style={{ color: '#6B21A8', marginBottom: '0.25rem' }}>🔒 Watermarked Preview Only</h4>
-                        <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.4, marginBottom: '1rem' }}>
-                          The free version is limited to <b>15 seconds</b> with a corner watermark. Pay KSh 99 once to get the full-length, clean output — or subscribe for unlimited downloads.
-                        </p>
+                    !isCurrentToolPaid ? (
+                      <div style={{ background: '#F9F5FF', border: '1px solid #E9D5FF', borderRadius: '12px', padding: '1.25rem', marginTop: '0.5rem' }}>
+                        {activeVideoTool === 'audio' ? (
+                          <>
+                            <h4 style={{ color: '#6B21A8', marginBottom: '0.35rem' }}>🔒 Preview Only · Pay to Download MP3</h4>
+                            <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.5, marginBottom: '1rem' }}>
+                              Full-length audio preview plays above — nothing is cut. Pay <b>KSh {VIDEO_TOOL_PRICING.audio}</b> once to download the clean MP3 file.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <h4 style={{ color: '#6B21A8', marginBottom: '0.35rem' }}>🔒 Watermarked Preview Only</h4>
+                            <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.5, marginBottom: '1rem' }}>
+                              The free preview is limited to <b>15 seconds</b> with a corner watermark. Pay <b>KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99}</b> once to download the full-length clean output — or subscribe for unlimited access.
+                            </p>
+                          </>
+                        )}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          <button
-                            onClick={handleDownloadFreePreview}
-                            className="btn"
-                            style={{ background: 'transparent', color: '#7C3AED', border: '1.5px solid #7C3AED', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                          >
-                            Download Free Preview (15s, watermarked)
-                          </button>
+                          {activeVideoTool !== 'audio' && (
+                            <button
+                              onClick={handleDownloadFreePreview}
+                              className="btn"
+                              style={{ background: 'transparent', color: '#7C3AED', border: '1.5px solid #7C3AED', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                            >
+                              Download Free Preview (15s, watermarked)
+                            </button>
+                          )}
                           <button
                             onClick={handlePayForVideo}
                             className="btn"
                             style={{ background: '#7C3AED', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                           >
-                            <DollarSign size={14} /> Pay KSh 99 — Download Full Clean Version
+                            <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99} — {activeVideoTool === 'audio' ? 'Download Full MP3' : 'Download Full Clean Version'}
                           </button>
                           <button
                             onClick={handleSubscribe}
@@ -2538,7 +2567,7 @@ function App() {
                       </div>
                     ) : (
                       <button
-                        onClick={triggerCleanVideoProcess}
+                        onClick={activeVideoTool === 'audio' ? () => handleDownloadFreePreview() : triggerCleanVideoProcess}
                         className="btn"
                         style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
                       >
@@ -2574,52 +2603,31 @@ function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Sticky Header with Logo and Navigation */}
-      <header style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '1rem 2rem',
-        borderBottom: '1px solid var(--border)',
-        background: 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(12px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-      }}>
-        <div 
-          onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('home'); }} 
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
+      <header className="app-header">
+        <div
+          className="app-logo"
+          onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('home'); }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), setCurrentPath('home'))}
+          aria-label="ImageKE Home"
         >
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text)', fontFamily: 'Montserrat, sans-serif' }}>
-            🇰🇪 ImageKE <span style={{ color: '#7C3AED', fontSize: '0.9rem', fontWeight: 600 }}>PRO</span>
+          <span className="app-logo-text">
+            🇰🇪 ImageKE <span className="app-logo-badge">PRO</span>
           </span>
         </div>
-        <nav style={{ display: 'flex', gap: '1.5rem' }}>
+        <nav className="app-nav" aria-label="Main navigation">
           <button
+            className={`app-nav-btn${currentTab === 'images' ? ' active-images' : ''}`}
             onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('images'); setCurrentPath('home'); }}
-            style={{
-              background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer',
-              color: currentTab === 'images' ? 'var(--primary)' : 'var(--text-muted)',
-              borderBottom: currentTab === 'images' ? '2px solid var(--primary)' : '2px solid transparent',
-              paddingBottom: '0.25rem',
-              fontSize: '0.95rem',
-              fontFamily: 'inherit',
-              transition: 'color 0.15s ease',
-            }}
+            aria-current={currentTab === 'images' ? 'page' : undefined}
           >
             📸 Photo Tools
           </button>
           <button
+            className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
             onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('videos'); setCurrentPath('home'); }}
-            style={{
-              background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer',
-              color: currentTab === 'videos' ? '#7C3AED' : 'var(--text-muted)',
-              borderBottom: currentTab === 'videos' ? '2px solid #7C3AED' : '2px solid transparent',
-              paddingBottom: '0.25rem',
-              fontSize: '0.95rem',
-              fontFamily: 'inherit',
-              transition: 'color 0.15s ease',
-            }}
+            aria-current={currentTab === 'videos' ? 'page' : undefined}
           >
             🎥 Video Tools
           </button>
