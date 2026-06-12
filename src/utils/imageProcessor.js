@@ -182,3 +182,87 @@ export async function processImage(file, preset, watermarked = false) {
 
   return compressToLimit(canvas, preset.maxSizeKB);
 }
+
+/**
+ * Compresses a document image: resizes preserving aspect ratio, caps the longest edge,
+ * and iteratively compresses to fit within targetSizeKB.
+ * Does not crop the image, ensuring all text remains visible.
+ * Does not add watermarks.
+ * @param {File} file - The original image file.
+ * @param {number} maxDimension - Maximum pixel width or height (e.g. 1600).
+ * @param {number} targetSizeKB - Target file size in KB (e.g. 250).
+ * @returns {Promise<Blob>} - The compressed JPEG blob.
+ */
+export async function compressDocumentImage(file, maxDimension = 1600, targetSizeKB = 250) {
+  if (!file) throw new Error('No file provided.');
+  
+  const img = await loadImage(file);
+  let width = img.naturalWidth;
+  let height = img.naturalHeight;
+  
+  // Calculate new dimensions keeping the aspect ratio
+  if (width > maxDimension || height > maxDimension) {
+    if (width > height) {
+      height = Math.round((height * maxDimension) / width);
+      width = maxDimension;
+    } else {
+      width = Math.round((width * maxDimension) / height);
+      height = maxDimension;
+    }
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  // Pica expects a source canvas or image
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = img.naturalWidth;
+  srcCanvas.height = img.naturalHeight;
+  const srcCtx = srcCanvas.getContext('2d');
+  srcCtx.drawImage(img, 0, 0);
+
+  // Resize using Pica
+  await pica.resize(srcCanvas, canvas, { quality: 3 });
+
+  // Iterative quality compression
+  let quality = 0.85;
+  const minQuality = 0.05;
+  const step = 0.05;
+
+  let blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+
+  // If the blob size is still above the limit, lower the quality
+  while (blob && blob.size / 1024 > targetSizeKB && quality > minQuality) {
+    quality = Math.max(minQuality, quality - step);
+    blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+  }
+
+  // If even at minQuality, the size is larger than the target, scale down dimensions further
+  let scale = 0.9;
+  while (blob && blob.size / 1024 > targetSizeKB && scale > 0.3) {
+    const nextCanvas = document.createElement('canvas');
+    nextCanvas.width = Math.round(width * scale);
+    nextCanvas.height = Math.round(height * scale);
+    
+    // Resize down from the current resized canvas to avoid reprocessing from scratch
+    await pica.resize(canvas, nextCanvas, { quality: 2 });
+    
+    quality = 0.70; // reset to moderate quality
+    blob = await new Promise((res) => nextCanvas.toBlob(res, 'image/jpeg', quality));
+    
+    while (blob && blob.size / 1024 > targetSizeKB && quality > minQuality) {
+      quality = Math.max(minQuality, quality - step);
+      blob = await new Promise((res) => nextCanvas.toBlob(res, 'image/jpeg', quality));
+    }
+    
+    scale -= 0.1;
+  }
+
+  if (!blob) {
+    throw new Error('Failed to compress document image.');
+  }
+
+  return blob;
+}
+
