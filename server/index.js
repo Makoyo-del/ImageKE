@@ -113,12 +113,11 @@ app.get('/api/ping', pingLimiter, (req, res) => {
       return res.status(401).json({ error: 'Unauthorized. Provide token via Authorization header or ?token= query.' });
     }
 
-    // crypto.timingSafeEqual requires same-length buffers
     try {
-      const secretBuf   = Buffer.from(PING_SECRET);
-      const providedBuf = Buffer.alloc(secretBuf.length);
-      Buffer.from(provided).copy(providedBuf);
-      const match = crypto.timingSafeEqual(secretBuf, providedBuf);
+      // Use double-SHA256 comparison to safely compare arbitrary-length secrets without leaking length or prefix-matching
+      const secretHash   = crypto.createHash('sha256').update(PING_SECRET).digest();
+      const providedHash = crypto.createHash('sha256').update(provided).digest();
+      const match = crypto.timingSafeEqual(secretHash, providedHash);
       if (!match) {
         return res.status(403).json({ error: 'Forbidden. Invalid token.' });
       }
@@ -215,7 +214,11 @@ app.post('/api/paystack/webhook', (req, res) => {
     .update(req.rawBody)
     .digest('hex');
 
-  if (signature !== expectedSig) {
+  // Constant-time comparison using double-SHA256 to prevent timing attacks
+  const signatureHash = crypto.createHash('sha256').update(signature).digest();
+  const expectedSigHash = crypto.createHash('sha256').update(expectedSig).digest();
+
+  if (!crypto.timingSafeEqual(signatureHash, expectedSigHash)) {
     console.warn('[Webhook] Signature mismatch — possible spoofed request.');
     return res.status(401).json({ error: 'Invalid signature.' });
   }
