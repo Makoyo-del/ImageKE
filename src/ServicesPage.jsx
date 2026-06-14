@@ -463,14 +463,14 @@ export default function ServicesPage({ onNavigateToTools }) {
             {[
               {
                 icon: '📄', badge: 'career', name: 'ATS CV Writing & Optimization',
-                desc: 'Most resumes fail before a recruiter ever reads them. I create ATS-friendly resumes that highlight your achievements, improve keyword relevance, and increase interview rates.',
-                outcome: '→ Increase interview invitations',
+                desc: 'Most resumes fail before a recruiter ever reads them. I create ATS-friendly resumes that highlight your achievements and increase your interview rate.',
+                outcome: '→ More interview invitations',
                 bestFor: ['Job seekers', 'Career changers', 'Recent graduates', 'Promotion seekers'],
               },
               {
                 icon: '✉️', badge: 'career', name: 'Cover Letter Writing',
-                desc: 'A strong cover letter separates you from hundreds of applicants. I create customized letters tailored to specific industries and positions.',
-                outcome: '→ Stand out from the competition',
+                desc: 'A strong cover letter separates you from hundreds of applicants. I write customized letters tailored to specific industries and positions.',
+                outcome: '→ Stand out from the crowd',
                 bestFor: ['Competitive roles', 'Career transitions', 'Specific industries'],
               },
               {
@@ -481,34 +481,39 @@ export default function ServicesPage({ onNavigateToTools }) {
               },
             ].map(svc => (
               <div key={svc.name} className="dm-service-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {/* Dark header band */}
+                <div className="dm-service-card-head">
+                  <div className="dm-service-card-glow" />
                   <div className="dm-service-icon">{svc.icon}</div>
-                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career' : 'Business'}</span>
+                  <h3 className="dm-service-name">{svc.name}</h3>
                 </div>
-                <h3 className="dm-service-name">{svc.name}</h3>
-                <p className="dm-service-desc">{svc.desc}</p>
-                {svc.bestFor && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {svc.bestFor.map(b => (
-                      <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
-                    ))}
-                  </div>
-                )}
-                <div className="dm-service-outcome">{svc.outcome}</div>
-                <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Get Started →</button>
+                {/* Card body */}
+                <div className="dm-service-card-body">
+                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career Service' : 'Business'}</span>
+                  <p className="dm-service-desc">{svc.desc}</p>
+                  {svc.bestFor && (
+                    <div className="dm-service-tags">
+                      {svc.bestFor.map(b => (
+                        <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="dm-service-outcome">{svc.outcome}</div>
+                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Get Started →</button>
+                </div>
               </div>
             ))}
           </div>
 
           {/* Business Services */}
           <h3 style={{ margin: '3rem 0 1.5rem', fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ background: 'rgba(99,102,241,0.08)', color: '#6366F1', border: '1px solid rgba(99,102,241,0.15)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Business Growth</span>
+            <span style={{ background: 'rgba(99,102,241,0.08)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.2)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Business Growth</span>
           </h3>
           <div className="dm-services-grid">
             {[
               {
                 icon: '🌐', badge: 'business', name: 'Professional Website Development',
-                desc: 'Your website is often the first impression customers have. I build modern, responsive websites that establish credibility and convert visitors into leads.',
+                desc: 'Your website is often the first impression customers have. I build modern, responsive websites that establish credibility and convert visitors into paying leads.',
                 outcome: '→ Turn visitors into paying clients',
                 bestFor: ['Small businesses', 'Consultants', 'Agencies', 'Startups'],
               },
@@ -526,24 +531,30 @@ export default function ServicesPage({ onNavigateToTools }) {
               },
             ].map(svc => (
               <div key={svc.name} className="dm-service-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div className="dm-service-icon">{svc.icon}</div>
-                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career' : 'Business'}</span>
+                {/* Dark header band — indigo tint for business */}
+                <div className="dm-service-card-head" style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)' }}>
+                  <div className="dm-service-card-glow" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)' }} />
+                  <div className="dm-service-icon" style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)' }}>{svc.icon}</div>
+                  <h3 className="dm-service-name">{svc.name}</h3>
                 </div>
-                <h3 className="dm-service-name">{svc.name}</h3>
-                <p className="dm-service-desc">{svc.desc}</p>
-                {svc.bestFor && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {svc.bestFor.map(b => (
-                      <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
-                    ))}
-                  </div>
-                )}
-                <div className="dm-service-outcome">{svc.outcome}</div>
-                <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Request a Quote →</button>
+                {/* Card body */}
+                <div className="dm-service-card-body">
+                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career Service' : 'Business Growth'}</span>
+                  <p className="dm-service-desc">{svc.desc}</p>
+                  {svc.bestFor && (
+                    <div className="dm-service-tags">
+                      {svc.bestFor.map(b => (
+                        <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="dm-service-outcome" style={{ color: '#818CF8' }}>{svc.outcome}</div>
+                  <button className="dm-service-cta" style={{ background: '#312E81' }} onClick={() => scrollTo('contact')}>Request a Quote →</button>
+                </div>
               </div>
             ))}
           </div>
+
         </div>
       </section>
 
