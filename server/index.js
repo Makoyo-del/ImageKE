@@ -389,11 +389,15 @@ async function sendEmail({ to, subject, html }) {
   // ── Option 2: SMTP (Gmail App Password or any SMTP) ────────────────
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     const { default: nodemailer } = await import('nodemailer');
+    const port = parseInt(process.env.SMTP_PORT, 10) || 587;
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT, 10) || 587,
-      secure: false,
+      port,
+      secure: port === 465, // true for 465, false for other ports
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      connectionTimeout: 10000, // 10 seconds connection timeout
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
     await transporter.sendMail({
       from: `"Duncan Makoyo" <${process.env.SMTP_USER}>`,
