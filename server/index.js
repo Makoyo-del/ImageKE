@@ -471,6 +471,56 @@ app.post('/api/submit-service-request', formLimiter, async (req, res) => {
   }
 });
 
+// ─── SMTP Diagnostic Test Endpoint ───────────────────────────────────────────
+app.get('/api/test-smtp', async (req, res) => {
+  try {
+    const { default: nodemailer } = await import('nodemailer');
+    const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!user || !pass) {
+      return res.status(400).json({ error: 'SMTP credentials not configured in environment.' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 8000,
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    console.log(`[SMTP Test] Verifying host: ${host}, port: ${port}...`);
+    await transporter.verify();
+    res.json({
+      status: 'success',
+      message: 'SMTP connection verified successfully!',
+      config: { host, port, secure: port === 465, user }
+    });
+  } catch (error) {
+    console.error('[SMTP Test Error]', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      config: {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: parseInt(process.env.SMTP_PORT, 10) === 465,
+        user: process.env.SMTP_USER
+      }
+    });
+  }
+});
+
 // ─── Career Package Order Notification ───────────────────────────────────────
 app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
   const { email, package: pkg, price, reference } = req.body;
