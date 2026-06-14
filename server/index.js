@@ -38,9 +38,10 @@ const apiLimiter = rateLimit({
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 // Frontend is hosted on Hostinger (cross-origin). ALLOWED_ORIGINS must include
 // your Hostinger domain, e.g.: https://imageke.com,https://www.imageke.com
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const baseOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:5173'];
+  : [];
+const allowedOrigins = [...baseOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173'];
 
 app.use(
   cors({
