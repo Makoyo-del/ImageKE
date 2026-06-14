@@ -73,7 +73,7 @@ function isValidEmail(email) {
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
-export default function ServicesPage({ onNavigateToTools }) {
+export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
   // Form state
   const [form, setForm] = useState({
     name: '', email: '', phone: '', service: '', message: '', wantAudit: false,
@@ -965,7 +965,7 @@ export default function ServicesPage({ onNavigateToTools }) {
         <div className="dm-container">
           <div className="dm-footer-grid">
             {/* Brand col */}
-            <div>
+            <div className="dm-footer-brand">
               <div className="dm-footer-logo">DM<span>.</span></div>
               <p className="dm-footer-desc">
                 Professional CV Writing, LinkedIn Optimization, Website Development, and Digital Growth Solutions for professionals and businesses across Kenya.
@@ -996,6 +996,12 @@ export default function ServicesPage({ onNavigateToTools }) {
               <button className="dm-footer-link" onClick={() => scrollTo('contact')}>Contact</button>
               {onNavigateToTools && (
                 <button className="dm-footer-link" onClick={onNavigateToTools}>Photo & Video Tools</button>
+              )}
+              {onNavigateToPath && (
+                <>
+                  <button className="dm-footer-link" onClick={() => onNavigateToPath('terms')}>Terms of Use</button>
+                  <button className="dm-footer-link" onClick={() => onNavigateToPath('privacy')}>Privacy Policy</button>
+                </>
               )}
             </div>
 

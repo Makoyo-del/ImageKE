@@ -1415,14 +1415,14 @@ function App() {
   const renderTerms = () => (
     <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '800px' }}>
       <button
-        onClick={() => setCurrentPath('home')}
+        onClick={() => setCurrentPath('services')}
         className="btn"
         style={{ background: 'none', color: 'var(--text-muted)', padding: 0, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
       >
-        <ArrowLeft size={18} /> Back to home
+        <ArrowLeft size={18} /> Back to Home
       </button>
       <h1>Terms of Use</h1>
-      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2025</p>
+      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
         <h3 style={{ color: 'var(--text)', marginBottom: '0.5rem' }}>1. Acceptance of Terms</h3>
         <p>By accessing or using ImageKE ("the Service"), whether via the website at duncanmakoyo.com or any affiliated domain, you confirm that you are at least 18 years of age (or have parental/guardian consent) and that you have read, understood, and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Service immediately.</p>
@@ -1477,14 +1477,14 @@ function App() {
   const renderPrivacy = () => (
     <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '800px' }}>
       <button
-        onClick={() => setCurrentPath('home')}
+        onClick={() => setCurrentPath('services')}
         className="btn"
         style={{ background: 'none', color: 'var(--text-muted)', padding: 0, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
       >
-        <ArrowLeft size={18} /> Back to home
+        <ArrowLeft size={18} /> Back to Home
       </button>
       <h1>Privacy Policy</h1>
-      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2025</p>
+      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
         <p>ImageKE is built on a <b>privacy-first architecture</b>. We believe your personal photos and videos are private, and we've engineered the Service so they stay that way.</p>
 
@@ -2613,7 +2613,10 @@ function App() {
 
       {/* ── Services Landing Page (no ImageKE header shown) ── */}
       {currentPath === 'services' && (
-        <ServicesPage onNavigateToTools={handleNavigateToTools} />
+        <ServicesPage
+          onNavigateToTools={handleNavigateToTools}
+          onNavigateToPath={setCurrentPath}
+        />
       )}
 
       {/* ── Legal pages (standalone, minimal header) ── */}

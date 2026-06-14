@@ -2,25 +2,26 @@
 
 /* ─── DM Brand Tokens ────────────────────────────────────────────────────────── */
 :root {
-  --dm-navy: #0F172A;
-  --dm-navy-800: #1E293B;
-  --dm-slate: #334155;
-  --dm-slate-400: #94A3B8;
-  --dm-teal: #14B8A6;
-  --dm-teal-hover: #0D9488;
-  --dm-teal-light: rgba(20, 184, 166, 0.1);
-  --dm-bg: #F8FAFC;
-  --dm-white: #FFFFFF;
-  --dm-success: #10B981;
-  --dm-text: #111827;
-  --dm-text-muted: #64748B;
-  --dm-border: #E2E8F0;
-  --dm-card-bg: #FFFFFF;
-  --dm-shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --dm-shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  --dm-shadow-lg: 0 20px 48px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
-  --dm-radius: 12px;
-  --dm-radius-lg: 20px;
+  --dm-navy:       #0F172A;
+  --dm-navy-800:   #1E293B;
+  --dm-navy-700:   #253347;
+  --dm-slate:      #334155;  /* 7.5:1 on white — AA large + normal */
+  --dm-slate-400:  #64748B;  /* raised from 94A3B8 for better contrast */
+  --dm-teal:       #0D9488;  /* slightly darker — better contrast on white */
+  --dm-teal-hover: #0B7A70;
+  --dm-teal-light: rgba(13, 148, 136, 0.09);
+  --dm-bg:         #F1F5F9;  /* slightly deeper off-white for section contrast */
+  --dm-white:      #FFFFFF;
+  --dm-success:    #059669;
+  --dm-text:       #0F172A;  /* near-black — max contrast */
+  --dm-text-muted: #475569;  /* was 64748B — now 5.7:1 on white, WCAG AA */
+  --dm-border:     #CBD5E1;  /* slightly visible */
+  --dm-card-bg:    #FFFFFF;
+  --dm-shadow-sm:  0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+  --dm-shadow-md:  0 4px 16px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05);
+  --dm-shadow-lg:  0 20px 48px rgba(0,0,0,0.13), 0 8px 20px rgba(0,0,0,0.07);
+  --dm-radius:     12px;
+  --dm-radius-lg:  20px;
 }
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────────── */
@@ -514,7 +515,8 @@ p { color: var(--text-muted); }
 
 /* ─── DM Hero ────────────────────────────────────────────────────────────────── */
 .dm-hero {
-  background: var(--dm-navy);
+  /* Professional diagonal gradient — navy to rich dark slate */
+  background: linear-gradient(150deg, #0F172A 0%, #1A2744 45%, #0F2037 100%);
   min-height: 92vh;
   display: flex;
   align-items: center;
@@ -526,8 +528,10 @@ p { color: var(--text-muted); }
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 60% at 70% 50%, rgba(20,184,166,0.08) 0%, transparent 60%),
-              radial-gradient(ellipse 40% 40% at 20% 80%, rgba(20,184,166,0.05) 0%, transparent 60%);
+  /* Subtle teal glow — doesn't wash out text */
+  background:
+    radial-gradient(ellipse 55% 55% at 75% 45%, rgba(13,148,136,0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 35% at 15% 85%, rgba(13,148,136,0.07) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -555,9 +559,9 @@ p { color: var(--text-muted); }
 }
 
 .dm-hero-sub {
-  font-size: 1.1rem;
-  color: rgba(255,255,255,0.7);
-  line-height: 1.75;
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.82); /* raised from 0.7 → WCAG AA on dark bg */
+  line-height: 1.8;
   margin-bottom: 2.5rem;
   max-width: 480px;
 }
@@ -1350,7 +1354,8 @@ p { color: var(--text-muted); }
 
 /* ─── CTA Section ────────────────────────────────────────────────────────────── */
 .dm-cta-section {
-  background: linear-gradient(135deg, var(--dm-navy) 0%, #1E293B 100%);
+  /* Navy to deep teal — directional, polished */
+  background: linear-gradient(150deg, #0F172A 0%, #0F2037 40%, #0B3D35 100%);
   padding: 6rem 0;
   text-align: center;
   position: relative;
@@ -1361,7 +1366,7 @@ p { color: var(--text-muted); }
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 50% 80% at 50% 50%, rgba(20,184,166,0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(13,148,136,0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -1375,13 +1380,13 @@ p { color: var(--text-muted); }
 }
 
 .dm-cta-sub {
-  color: rgba(255,255,255,0.65);
+  color: rgba(255,255,255,0.80); /* raised from 0.65 for readability */
   font-size: 1.05rem;
   margin-bottom: 2.5rem;
   max-width: 520px;
   margin-left: auto;
   margin-right: auto;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 /* ─── DM Footer ──────────────────────────────────────────────────────────────── */
@@ -1412,19 +1417,19 @@ p { color: var(--text-muted); }
 
 .dm-footer-desc {
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.62); /* was 0.45 — raised for WCAG AA */
   line-height: 1.65;
   margin-bottom: 1.25rem;
 }
 
 .dm-footer-contact {
   font-size: 0.85rem;
-  color: rgba(255,255,255,0.55);
+  color: rgba(255,255,255,0.72); /* was 0.55 — raised for contrast */
   line-height: 1.8;
 }
 
 .dm-footer-contact a {
-  color: var(--dm-teal);
+  color: #2DD4BF; /* lighter teal so it pops on dark bg */
   text-decoration: none;
 }
 
@@ -1433,14 +1438,14 @@ p { color: var(--text-muted); }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.5); /* was 0.35 — raised */
   margin-bottom: 1rem;
 }
 
 .dm-footer-link {
   display: block;
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.72); /* was 0.6 — raised */
   text-decoration: none;
   margin-bottom: 0.6rem;
   background: none;
@@ -1452,7 +1457,7 @@ p { color: var(--text-muted); }
   transition: color 0.15s ease;
 }
 
-.dm-footer-link:hover { color: var(--dm-teal); }
+.dm-footer-link:hover { color: #2DD4BF; }
 
 .dm-footer-bottom {
   display: flex;
@@ -1460,7 +1465,7 @@ p { color: var(--text-muted); }
   align-items: center;
   padding-top: 1.75rem;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.5); /* was 0.3 — barely visible before */
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -1534,15 +1539,47 @@ p { color: var(--text-muted); }
   margin-top: 0.25rem;
 }
 
-/* ─── Responsive ─────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS — DM SERVICE PAGE
+   Breakpoints: 1280px tablet-lg | 1024px tablet | 768px mobile | 480px sm-mobile
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Tablet Large (1024–1280px) ─────────────────────────────────────────────── */
+@media (max-width: 1280px) {
+  .dm-hero-grid {
+    gap: 3rem;
+  }
+
+  .dm-footer-grid {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+/* ─── Tablet (768–1024px) ────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
+  .dm-hero-grid {
+    gap: 2.5rem;
+    padding: 4rem 0;
+  }
+
+  .dm-illustration {
+    /* Keep on tablet but constrain */
+    max-width: 380px;
+    margin: 0 auto;
+  }
+
   .dm-services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dm-testimonials-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .dm-stats-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 3rem;
+    gap: 2.5rem;
   }
 
   .dm-about-grid {
@@ -1551,7 +1588,7 @@ p { color: var(--text-muted); }
   }
 
   .dm-about-photo {
-    max-width: 320px;
+    max-width: 340px;
     margin: 0 auto;
   }
 
@@ -1559,43 +1596,111 @@ p { color: var(--text-muted); }
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
   }
+
+  .dm-pricing-grid {
+    grid-template-columns: repeat(3, 1fr); /* keep 3 on tablet */
+  }
+
+  .dm-pricing-card.featured {
+    transform: none; /* remove upward offset on tablet */
+  }
 }
 
+/* ─── Mobile (480–768px) ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* Navbar */
   .dm-nav {
-    padding: 0 1.25rem;
+    padding: 0 1rem;
     height: 60px;
+    gap: 0.75rem;
   }
 
   .dm-nav-links {
-    display: none;
+    display: none; /* hide text links — CTA stays */
+  }
+
+  .dm-nav-logo {
+    font-size: 1.2rem;
+  }
+
+  /* Hero */
+  .dm-hero {
+    min-height: auto;
   }
 
   .dm-hero-grid {
     grid-template-columns: 1fr;
     gap: 2.5rem;
-    padding: 3.5rem 0;
+    padding: 3.5rem 0 2.5rem;
     text-align: center;
   }
 
-  .dm-hero-sub { margin-left: auto; margin-right: auto; }
-  .dm-hero-btns { justify-content: center; }
-  .dm-hero-social-proof { justify-content: center; }
-
-  .dm-illustration { display: none; }
-
-  .dm-services-grid {
-    grid-template-columns: 1fr;
+  .dm-hero-sub {
+    margin-left: auto;
+    margin-right: auto;
   }
 
+  .dm-hero-btns {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .dm-hero-btns .dm-btn-primary,
+  .dm-hero-btns .dm-btn-outline {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+  }
+
+  .dm-hero-social-proof {
+    justify-content: center;
+  }
+
+  /* Hide hero illustration on mobile — hero image is above text */
+  .dm-illustration {
+    display: none;
+  }
+
+  /* Sections */
+  .dm-container {
+    padding: 0 1rem;
+  }
+
+  .dm-section {
+    padding: 3rem 0;
+  }
+
+  .dm-section-title {
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+  }
+
+  /* Services */
+  .dm-services-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  /* Process */
   .dm-process-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
   }
 
   .dm-process-grid::before { display: none; }
 
+  /* Stats */
+  .dm-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  /* Pricing */
   .dm-pricing-grid {
     grid-template-columns: 1fr;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .dm-pricing-card.featured {
@@ -1603,67 +1708,133 @@ p { color: var(--text-muted); }
     order: -1;
   }
 
+  /* Contact form */
   .dm-form-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .dm-form-group.full {
     grid-column: 1;
   }
 
+  /* Testimonials */
   .dm-testimonials-grid {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
 
-  .dm-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
+  /* Trust bar */
   .dm-trust-items {
     gap: 1.25rem;
     justify-content: flex-start;
     overflow-x: auto;
-    padding: 0 1.25rem;
+    padding: 0 1rem;
     flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .dm-footer-grid {
+  /* About */
+  .dm-about-grid {
     grid-template-columns: 1fr;
-    gap: 1.75rem;
+    gap: 2rem;
+  }
+
+  .dm-about-photo {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  /* Footer */
+  .dm-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem 1.5rem;
+  }
+
+  .dm-footer-brand {
+    grid-column: span 2;
+    margin-bottom: 0.5rem;
   }
 
   .dm-footer-bottom {
     flex-direction: column;
     text-align: center;
+    gap: 0.5rem;
   }
 
-  .dm-container {
-    padding: 0 1.25rem;
+  /* CTA section */
+  .dm-cta-section {
+    padding: 4rem 0;
   }
 
-  .dm-section {
-    padding: 3.5rem 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .dm-hero-headline {
-    font-size: 2rem;
+  .dm-cta-section .dm-btn-primary,
+  .dm-cta-section a {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+    text-align: center;
   }
 
-  .dm-stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .dm-process-grid {
-    grid-template-columns: 1fr;
-  }
-
+  /* WhatsApp float */
   .whatsapp-float {
     bottom: 1.25rem;
     right: 1.25rem;
     width: 52px;
     height: 52px;
+    font-size: 1.4rem;
+  }
+
+  /* Audit banner */
+  .dm-audit-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem;
+  }
+}
+
+/* ─── Small Mobile (≤480px) ──────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dm-hero-headline {
+    font-size: clamp(1.8rem, 8vw, 2.4rem);
+  }
+
+  .dm-section-title {
+    font-size: clamp(1.5rem, 7vw, 1.9rem);
+  }
+
+  .dm-stat-num {
+    font-size: 2.2rem;
+  }
+
+  .dm-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .dm-process-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .dm-nav-cta {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.8rem;
+  }
+
+  .dm-container {
+    padding: 0 0.875rem;
+  }
+
+  .dm-section {
+    padding: 2.5rem 0;
+  }
+
+  .whatsapp-float {
+    bottom: 1rem;
+    right: 1rem;
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
   }
 }
 
