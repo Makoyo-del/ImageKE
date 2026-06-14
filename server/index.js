@@ -357,6 +357,144 @@ app.post('/api/paystack/webhook', (req, res) => {
   }
 });
 
+// ─── Email Helper ─────────────────────────────────────────────────────────────
+// Priority: RESEND_API_KEY (Render native) → SMTP (nodemailer) → console log
+async function sendEmail({ to, subject, html }) {
+  // ── Option 1: Resend (Render native integration) ─────────────────────
+  if (process.env.RESEND_API_KEY) {
+    const fromAddress = process.env.EMAIL_FROM || 'noreply@duncanmakoyo.com';
+    const response = await axios.post(
+      'https://api.resend.com/emails',
+      { from: `Duncan Makoyo <${fromAddress}>`, to, subject, html },
+      { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' } }
+    );
+    if (response.data?.id) {
+      console.log(`[Email] Sent via Resend: ${response.data.id}`);
+    }
+    return;
+  }
+
+  // ── Option 2: SMTP (Gmail App Password or any SMTP) ────────────────
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const { default: nodemailer } = await import('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      secure: false,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    await transporter.sendMail({
+      from: `"Duncan Makoyo" <${process.env.SMTP_USER}>`,
+      to, subject, html,
+    });
+    console.log(`[Email] Sent via SMTP to ${to}`);
+    return;
+  }
+
+  // ── Fallback: console log only (no credentials set) ────────────────
+  console.warn('[Email] No email credentials set (RESEND_API_KEY or SMTP_USER/SMTP_PASS).');
+  console.log(`[Email fallback] TO: ${to} | SUBJECT: ${subject}`);
+}
+
+// ─── Service Request Endpoint ─────────────────────────────────────────────────
+const formLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many form submissions. Please wait and try again.' },
+});
+
+app.post('/api/submit-service-request', formLimiter, async (req, res) => {
+  const { name, email, phone, service, message, wantAudit } = req.body;
+
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    return res.status(400).json({ error: 'A valid name is required.' });
+  }
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid email is required.' });
+  }
+  if (!service || typeof service !== 'string') {
+    return res.status(400).json({ error: 'Service selection is required.' });
+  }
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#0F172A;padding:24px 32px;border-radius:12px 12px 0 0">
+        <h2 style="color:#14B8A6;margin:0;font-size:1.2rem">New Service Request</h2>
+        <p style="color:rgba(255,255,255,0.6);margin:4px 0 0;font-size:0.875rem">Via DuncanMakoyo.com</p>
+      </div>
+      <div style="background:#F8FAFC;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A;width:140px">Name</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155">${name.trim()}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Email</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155"><a href="mailto:${email.trim()}" style="color:#14B8A6">${email.trim()}</a></td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Phone</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155">${phone?.trim() || '—'}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Service</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#14B8A6;font-weight:700">${service}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Free Audit?</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155">${wantAudit ? '✅ Yes — wants free CV audit' : 'No'}</td></tr>
+          <tr><td style="padding:10px 0;font-weight:700;color:#0F172A;vertical-align:top">Message</td><td style="padding:10px 0;color:#334155;line-height:1.6">${message?.trim() || '—'}</td></tr>
+        </table>
+        <div style="margin-top:24px;padding:16px;background:#fff;border:1px solid #E2E8F0;border-radius:8px">
+          <p style="margin:0;font-size:0.8rem;color:#64748B">Reply directly to this email to respond to <strong>${name.trim()}</strong>.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    await sendEmail({
+      to: 'duncan@duncanmakoyo.com',
+      subject: `[Service Request] ${service} — ${name.trim()}`,
+      html,
+    });
+    res.json({ success: true, message: 'Request received. Duncan will be in touch within 24 hours.' });
+  } catch (err) {
+    console.error('[submit-service-request error]', err.message);
+    res.status(500).json({ error: 'Failed to send request. Please contact Duncan directly at info@duncanmakoyo.com.' });
+  }
+});
+
+// ─── Career Package Order Notification ───────────────────────────────────────
+app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
+  const { email, package: pkg, price, reference } = req.body;
+  if (!email || !pkg || !price || !reference) {
+    return res.status(400).json({ error: 'Missing required fields.' });
+  }
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#0F172A;padding:24px 32px;border-radius:12px 12px 0 0">
+        <h2 style="color:#10B981;margin:0;font-size:1.2rem">✅ New Career Package Payment</h2>
+        <p style="color:rgba(255,255,255,0.6);margin:4px 0 0;font-size:0.875rem">Payment confirmed via Paystack</p>
+      </div>
+      <div style="background:#F8FAFC;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A;width:140px">Client Email</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#14B8A6"><a href="mailto:${email}" style="color:#14B8A6">${email}</a></td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Package</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#10B981;font-weight:700">${pkg}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Amount Paid</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#0F172A;font-weight:700">KES ${Number(price).toLocaleString()}</td></tr>
+          <tr><td style="padding:10px 0;font-weight:700;color:#0F172A">Reference</td><td style="padding:10px 0;color:#64748B;font-size:0.85rem">${reference}</td></tr>
+        </table>
+        <div style="margin-top:24px;padding:16px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px">
+          <p style="margin:0;font-weight:700;color:#065F46">Action Required: Contact this client within 24 hours to begin their ${pkg} package.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    await sendEmail({
+      to: 'duncan@duncanmakoyo.com',
+      subject: `[PAID] ${pkg} Package — KES ${Number(price).toLocaleString()} — ${email}`,
+      html,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[notify-service-order error]', err.message);
+    // Non-critical — payment already verified, don't fail the client
+    res.json({ success: true, warning: 'Email notification failed but payment was confirmed.' });
+  }
+});
+
+// ─── Pricing update for career service payments ─────────────────────────────────────
+// (handled inside initialize-payment — see existing pricing block)
+
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found.' });

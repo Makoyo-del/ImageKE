@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass } from 'lucide-react';
+import ServicesPage from './ServicesPage';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -153,8 +154,8 @@ function ErrorBanner({ message, onDismiss }) {
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 function App() {
-  // 'home' | 'processor' | 'custom' | 'batch'
-  const [currentPath, setCurrentPath] = useState('home');
+  // 'services' | 'home' | 'processor' | 'custom' | 'batch' | 'terms' | 'privacy'
+  const [currentPath, setCurrentPath] = useState('services');
   const [currentTab, setCurrentTab] = useState('images'); // 'images' | 'videos'
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [customSize, setCustomSize] = useState({
@@ -2601,75 +2602,118 @@ function App() {
   // ─────────────────────────────────────────────────────────────────────────────
   // ROOT
   // ─────────────────────────────────────────────────────────────────────────────
+  // ─── Navigate to Tools from Services Page ────────────────────────────────────
+  const handleNavigateToTools = () => {
+    setCurrentPath('home');
+    setCurrentTab('images');
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Sticky Header with Logo and Navigation */}
-      <header className="app-header">
-        <div
-          className="app-logo"
-          onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('home'); }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), setCurrentPath('home'))}
-          aria-label="ImageKE Home"
-        >
-          <span className="app-logo-text">
-            🇰🇪 ImageKE <span className="app-logo-badge">PRO</span>
-          </span>
-        </div>
-        <nav className="app-nav" aria-label="Main navigation">
-          <button
-            className={`app-nav-btn${currentTab === 'images' ? ' active-images' : ''}`}
-            onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('images'); setCurrentPath('home'); }}
-            aria-current={currentTab === 'images' ? 'page' : undefined}
-          >
-            📸 Photo Tools
-          </button>
-          <button
-            className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
-            onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('videos'); setCurrentPath('home'); }}
-            aria-current={currentTab === 'videos' ? 'page' : undefined}
-          >
-            🎥 Video Tools
-          </button>
-        </nav>
-      </header>
 
-      <div style={{ flex: 1 }}>
-        {isProcessing && <ProcessingOverlay message={processingMsg} />}
-        {showEmailModal && (
-          <EmailModal
-            onSubmit={initiatePayment}
-            onCancel={() => setShowEmailModal(false)}
-          />
-        )}
-        
-        {/* Render pages depending on currentPath and currentTab */}
-        {currentPath === 'terms' && renderTerms()}
-        {currentPath === 'privacy' && renderPrivacy()}
-        
-        {currentPath !== 'terms' && currentPath !== 'privacy' && (
-          currentTab === 'images' ? (
-            <>
-              {currentPath === 'home' && renderHome()}
-              {currentPath === 'batch' && renderBatchPage()}
-              {currentPath === 'custom' && renderCustomPage()}
-              {currentPath === 'processor' && renderProcessor()}
-            </>
-          ) : (
-            renderVideoTools()
-          )
-        )}
-      </div>
-      <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-        <div className="container">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} ImageKE. All rights reserved.</p>
-          <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
-            <button onClick={() => setCurrentPath('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
-            <button onClick={() => setCurrentPath('privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
+      {/* ── Services Landing Page (no ImageKE header shown) ── */}
+      {currentPath === 'services' && (
+        <ServicesPage onNavigateToTools={handleNavigateToTools} />
+      )}
+
+      {/* ── Legal pages (standalone, minimal header) ── */}
+      {(currentPath === 'terms' || currentPath === 'privacy') && (
+        <>
+          <header className="app-header">
+            <div
+              className="app-logo"
+              onClick={() => setCurrentPath('services')}
+              role="button" tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && setCurrentPath('services')}
+              aria-label="Back to home"
+            >
+              <span className="app-logo-text">🇰🇪 ImageKE <span className="app-logo-badge">PRO</span></span>
+            </div>
+          </header>
+          <div style={{ flex: 1 }}>
+            {currentPath === 'terms' && renderTerms()}
+            {currentPath === 'privacy' && renderPrivacy()}
           </div>
-        </div>
-      </footer>
+          <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+            <div className="container">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+            </div>
+          </footer>
+        </>
+      )}
+
+      {/* ── ImageKE Photo & Video Tools ── */}
+      {currentPath !== 'services' && currentPath !== 'terms' && currentPath !== 'privacy' && (
+        <>
+          {/* Sticky Header */}
+          <header className="app-header">
+            <div
+              className="app-logo"
+              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('services'); }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), setCurrentPath('services'))}
+              aria-label="Home"
+            >
+              <span className="app-logo-text">
+                🇰🇪 ImageKE <span className="app-logo-badge">PRO</span>
+              </span>
+            </div>
+            <nav className="app-nav" aria-label="Main navigation">
+              <button
+                className={`app-nav-btn${currentTab === 'images' ? ' active-images' : ''}`}
+                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('images'); setCurrentPath('home'); }}
+                aria-current={currentTab === 'images' ? 'page' : undefined}
+              >
+                📸 Photo Tools
+              </button>
+              <button
+                className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
+                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('videos'); setCurrentPath('home'); }}
+                aria-current={currentTab === 'videos' ? 'page' : undefined}
+              >
+                🎥 Video Tools
+              </button>
+            </nav>
+            <button
+              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('services'); }}
+              style={{ background: 'none', border: 'none', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+            >
+              ← Back to Services
+            </button>
+          </header>
+
+          <div style={{ flex: 1 }}>
+            {isProcessing && <ProcessingOverlay message={processingMsg} />}
+            {showEmailModal && (
+              <EmailModal
+                onSubmit={initiatePayment}
+                onCancel={() => setShowEmailModal(false)}
+              />
+            )}
+            {currentTab === 'images' ? (
+              <>
+                {currentPath === 'home' && renderHome()}
+                {currentPath === 'batch' && renderBatchPage()}
+                {currentPath === 'custom' && renderCustomPage()}
+                {currentPath === 'processor' && renderProcessor()}
+              </>
+            ) : (
+              renderVideoTools()
+            )}
+          </div>
+
+          <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+            <div className="container">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                <button onClick={() => setCurrentPath('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
+                <button onClick={() => setCurrentPath('privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
+              </div>
+            </div>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
