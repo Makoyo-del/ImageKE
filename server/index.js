@@ -399,6 +399,9 @@ async function sendEmail({ to, subject, html }) {
       connectionTimeout: 10000, // 10 seconds connection timeout
       greetingTimeout: 10000,
       socketTimeout: 10000,
+      tls: {
+        rejectUnauthorized: false, // bypass SSL certificate verification issues common in shared hosts
+      },
     });
     await transporter.sendMail({
       from: `"Duncan Makoyo" <${process.env.SMTP_USER}>`,
