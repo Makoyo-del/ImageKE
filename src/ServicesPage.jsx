@@ -733,22 +733,24 @@ export default function ServicesPage({ onNavigateToTools }) {
       <section className="dm-section" id="about" style={{ background: '#fff' }}>
         <div className="dm-container">
           <div className="dm-about-grid">
-            <div className="dm-about-photo">
+            <div className="dm-about-photo" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
               <img
-                src="/portrait.jpg"
-                alt="Duncan Makoyo"
-                onError={e => {
-                  e.target.style.display = 'none';
-                  e.target.parentNode.innerHTML = `
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.4);gap:1rem;padding:2rem;text-align:center">
-                      <div style="font-size:5rem">👤</div>
-                      <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:1.5rem;color:rgba(255,255,255,0.7)">Duncan Makoyo</div>
-                      <div style="font-size:0.875rem">Digital Consultant &amp; Career Strategist</div>
-                    </div>
-                  `;
-                }}
+                src="/portrait.jpeg"
+                alt="Duncan Makoyo — Career Consultant & Digital Strategist"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
               />
+              {/* Name plate */}
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                background: 'linear-gradient(to top, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.6) 60%, transparent 100%)',
+                padding: '2rem 1.5rem 1.25rem',
+                display: 'flex', flexDirection: 'column', gap: '0.2rem',
+              }}>
+                <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>Duncan Makoyo</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--dm-teal)', fontWeight: 600, letterSpacing: '0.04em' }}>Career Consultant & Digital Strategist</span>
+              </div>
             </div>
+
             <div>
               <span className="dm-section-label">About</span>
               <h2 className="dm-section-title" style={{ marginBottom: '1.25rem' }}>Hi, I'm Duncan.</h2>
