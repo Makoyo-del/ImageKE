@@ -464,6 +464,39 @@ app.post('/api/submit-service-request', formLimiter, async (req, res) => {
       subject: `[Service Request] ${service} — ${name.trim()}`,
       html,
     });
+
+    // Send auto-acknowledgement email to the client
+    try {
+      const clientHtml = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#334155">
+          <div style="background:#0F172A;padding:24px 32px;border-radius:12px 12px 0 0">
+            <h2 style="color:#14B8A6;margin:0;font-size:1.2rem">Request Received</h2>
+            <p style="color:rgba(255,255,255,0.6);margin:4px 0 0;font-size:0.875rem">Via DuncanMakoyo.com</p>
+          </div>
+          <div style="background:#F8FAFC;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;line-height:1.6">
+            <p>Hi ${name.trim()},</p>
+            <p>Thanks for reaching out! I have received your request for: <strong>${service}</strong>.</p>
+            <p>I am reviewing your details and will get back to you within 24 hours to discuss how we can work together.</p>
+            <div style="margin-top:24px;padding:16px;background:#F1F5F9;border-radius:8px">
+              <h3 style="margin:0 0 8px;font-size:0.9rem;color:#0F172A">Your Request Details</h3>
+              <table style="width:100%;font-size:0.85rem">
+                <tr><td style="color:#64748B;padding:4px 0;width:120px">Service:</td><td style="font-weight:700;color:#0F172A">${service}</td></tr>
+                <tr><td style="color:#64748B;padding:4px 0">Free Audit?</td><td style="color:#0F172A">${wantAudit ? 'Yes — requested free CV audit' : 'No'}</td></tr>
+              </table>
+            </div>
+            <p style="margin-top:24px;font-size:0.9rem;color:#475569">Best regards,<br><strong>Duncan Makoyo</strong><br><a href="https://duncanmakoyo.com" style="color:#14B8A6;text-decoration:none">duncanmakoyo.com</a></p>
+          </div>
+        </div>
+      `;
+      await sendEmail({
+        to: email.trim(),
+        subject: `Request Received: ${service} — Duncan Makoyo`,
+        html: clientHtml,
+      });
+    } catch (clientErr) {
+      console.warn('[submit-service-request client email error]', clientErr.message);
+    }
+
     res.json({ success: true, message: 'Request received. Duncan will be in touch within 24 hours.' });
   } catch (err) {
     console.error('[submit-service-request error]', err.message);
@@ -554,6 +587,44 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
       subject: `[PAID] ${pkg} Package — KES ${Number(price).toLocaleString()} — ${email}`,
       html,
     });
+
+    // Send payment confirmation receipt email to the client
+    try {
+      const clientHtml = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#334155">
+          <div style="background:#0F172A;padding:24px 32px;border-radius:12px 12px 0 0">
+            <h2 style="color:#10B981;margin:0;font-size:1.2rem">Thank you for your order!</h2>
+            <p style="color:rgba(255,255,255,0.6);margin:4px 0 0;font-size:0.875rem">Order Confirmed</p>
+          </div>
+          <div style="background:#F8FAFC;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px;line-height:1.6">
+            <p>Hi there,</p>
+            <p>Thank you for choosing my career consulting services. Your payment of <strong>KES ${Number(price).toLocaleString()}</strong> for the <strong>${pkg}</strong> package has been successfully verified.</p>
+            <p><strong>What happens next?</strong></p>
+            <ul>
+              <li>I will personally reach out to you at this email address within 24 hours to schedule our kick-off or request your current CV/details.</li>
+              <li>If you'd like to get a head start, you can reply directly to this email with your current CV, target job descriptions, or any specific goals you have.</li>
+            </ul>
+            <div style="margin-top:24px;padding:16px;background:#F1F5F9;border-radius:8px">
+              <h3 style="margin:0 0 8px;font-size:0.9rem;color:#0F172A">Order Details</h3>
+              <table style="width:100%;font-size:0.85rem">
+                <tr><td style="color:#64748B;padding:4px 0;width:120px">Package:</td><td style="font-weight:700;color:#0F172A">${pkg}</td></tr>
+                <tr><td style="color:#64748B;padding:4px 0">Amount:</td><td style="font-weight:700;color:#0F172A">KES ${Number(price).toLocaleString()}</td></tr>
+                <tr><td style="color:#64748B;padding:4px 0">Reference:</td><td style="color:#64748B">${reference}</td></tr>
+              </table>
+            </div>
+            <p style="margin-top:24px;font-size:0.9rem;color:#475569">Best regards,<br><strong>Duncan Makoyo</strong><br><a href="https://duncanmakoyo.com" style="color:#14B8A6;text-decoration:none">duncanmakoyo.com</a></p>
+          </div>
+        </div>
+      `;
+      await sendEmail({
+        to: email.trim().toLowerCase(),
+        subject: `Confirmation: Your Career Package is Confirmed! — Duncan Makoyo`,
+        html: clientHtml,
+      });
+    } catch (clientErr) {
+      console.warn('[notify-service-order client email error]', clientErr.message);
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('[notify-service-order error]', err.message);
