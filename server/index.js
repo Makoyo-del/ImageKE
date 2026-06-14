@@ -228,6 +228,18 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
     } else {
       amount = 99; // Default video fallback
     }
+  } else if (type === 'career_service') {
+    const pkgId = metadata?.package;
+    const careerPricing = {
+      essential: 1500,
+      professional: 3500,
+      executive: 6000
+    };
+    if (pkgId && careerPricing[pkgId]) {
+      amount = careerPricing[pkgId];
+    } else {
+      return res.status(400).json({ error: 'Invalid career service package.' });
+    }
   } else {
     // Default fallback or photo_download
     amount = 49;
