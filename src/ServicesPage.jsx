@@ -122,14 +122,23 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       await axios.post(`${API_URL}/api/submit-service-request`, form);
       setFormStatus('success');
       setForm({ name: '', email: '', phone: '', service: '', message: '', wantAudit: false });
-    } catch {
-      // Fallback: open mailto if backend fails
+    } catch (err) {
+      console.error(err);
+      setFormStatus('error');
       const subject = encodeURIComponent(`Service Request: ${form.service}`);
       const body = encodeURIComponent(
         `Name: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nService: ${form.service}\nAudit: ${form.wantAudit ? 'Yes' : 'No'}\n\nMessage:\n${form.message}`
       );
-      window.open(`mailto:duncan@duncanmakoyo.com?subject=${subject}&body=${body}`);
-      setFormStatus('success');
+      const mailtoUrl = `mailto:duncan@duncanmakoyo.com?subject=${subject}&body=${body}`;
+      setFormError(
+        <span>
+          Automated submission failed. Please click{' '}
+          <a href={mailtoUrl} style={{ color: '#B91C1C', textDecoration: 'underline', fontWeight: 700 }}>
+            here to send your request via email
+          </a>{' '}
+          directly, or contact Duncan on WhatsApp.
+        </span>
+      );
     }
   };
 
