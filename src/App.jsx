@@ -15,6 +15,7 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
 // Pricing (in KES) — matches server-side expectation
 const PRICE_KES = 49;
+const BATCH_PRICE_KES = 4;
 
 const VIDEO_TOOL_PRICING = {
   aspect: 99,
@@ -343,6 +344,7 @@ function App() {
     initialFiles.forEach(f => {
       processBatchFile(f, targetSizeKB, maxDimension);
     });
+    setIsPaid(false); // Reset payment for the new batch
   }, [targetSizeKB, maxDimension, processBatchFile]);
 
   const recompressAll = useCallback((targetSize = targetSizeKB, maxDim = maxDimension) => {
@@ -374,6 +376,16 @@ function App() {
   }, [targetSizeKB, maxDimension, processBatchFile]);
 
   const handleDownloadAllBatch = useCallback(async () => {
+    if (!isPaid) {
+      setPaymentTarget({
+        amount: BATCH_PRICE_KES,
+        metadata: { type: 'batch_download' },
+        onSuccess: () => setIsPaid(true),
+      });
+      setShowEmailModal(true);
+      return;
+    }
+
     const successFiles = batchFiles.filter(f => f.status === 'success' && f.compressedBlob);
     if (successFiles.length === 0) return;
 
@@ -385,7 +397,7 @@ function App() {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
-  }, [batchFiles]);
+  }, [batchFiles, isPaid]);
 
   const resetBatch = useCallback(() => {
     batchFiles.forEach(f => {
@@ -395,6 +407,7 @@ function App() {
     });
     setBatchFiles([]);
     setError('');
+    setIsPaid(false);
   }, [batchFiles]);
 
   const removeBatchFile = useCallback((id) => {
@@ -440,6 +453,7 @@ function App() {
     addedItems.forEach(item => {
       processBatchFile(item, targetSizeKB, maxDimension);
     });
+    setIsPaid(false); // New files added, must pay again for the new batch
   }, [batchFiles, targetSizeKB, maxDimension, processBatchFile]);
 
   // ── File Upload & Processing ───────────────────────────────────────────────
@@ -486,6 +500,14 @@ function App() {
 
   // ── Payment Flow ───────────────────────────────────────────────────────────
   const initiatePayment = async (email) => {
+    // Admin Exception: Bypass payment for specific emails
+    const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+    if (adminEmails.includes(email.toLowerCase())) {
+      setShowEmailModal(false);
+      paymentTarget.onSuccess();
+      return;
+    }
+
     setShowEmailModal(false);
     setIsPaying(true);
     setError('');
@@ -1156,7 +1178,7 @@ function App() {
 
                 <button
                   onClick={handleDownloadAllBatch}
-                  disabled={successCount === 0}
+                  disabled={successCount === 0 || isPaying}
                   className="btn"
                   style={{
                     display: 'flex',
@@ -1166,8 +1188,11 @@ function App() {
                     boxShadow: successCount > 0 ? '0 4px 14px rgba(0, 82, 204, 0.3)' : 'none',
                   }}
                 >
-                  <Download size={18} />
-                  Download All ({successCount} file{successCount !== 1 ? 's' : ''})
+                  {isPaying ? (
+                    <><Loader2 size={18} className="spin-icon" /> Processing...</>
+                  ) : (
+                    <><Download size={18} /> {isPaid ? `Download All (${successCount})` : `Pay KES ${BATCH_PRICE_KES} & Download All`}</>
+                  )}
                 </button>
               </div>
             </div>

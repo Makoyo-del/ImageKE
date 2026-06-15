@@ -202,19 +202,15 @@ app.get('/api/ping', pingLimiter, (req, res) => {
   });
 });
 
-// ─── Initialize Payment ───────────────────────────────────────────────────────
-app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
-  const { email, metadata } = req.body;
-
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return res.status(400).json({ error: 'A valid email is required.' });
-  }
-
-  // Enforce pricing server-side based on type and tool to prevent client-side editing/tampering
+// ─── Pricing Helper ─────────────────────────────────────────────────────────────
+function getExpectedAmount(metadata) {
   let amount = 49; // Default photo price
   const type = metadata?.type;
+  
   if (type === 'creator_subscription') {
     amount = 499;
+  } else if (type === 'batch_download') {
+    amount = 4; // 4 shillings for batch compression
   } else if (type === 'video_download') {
     const tool = metadata?.tool;
     const videoPricing = {
@@ -224,11 +220,7 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
       audio: 49,
       frames: 99
     };
-    if (tool && videoPricing[tool]) {
-      amount = videoPricing[tool];
-    } else {
-      amount = 99; // Default video fallback
-    }
+    amount = (tool && videoPricing[tool]) ? videoPricing[tool] : 99;
   } else if (type === 'career_service') {
     const pkgId = metadata?.package;
     const careerPricing = {
@@ -239,11 +231,28 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
     if (pkgId && careerPricing[pkgId]) {
       amount = careerPricing[pkgId];
     } else {
-      return res.status(400).json({ error: 'Invalid career service package.' });
+      return null; // Invalid package
     }
   } else {
     // Default fallback or photo_download
     amount = 49;
+  }
+  
+  return amount;
+}
+
+// ─── Initialize Payment ───────────────────────────────────────────────────────
+app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
+  const { email, metadata } = req.body;
+
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid email is required.' });
+  }
+
+  // Enforce pricing server-side based on type and tool to prevent client-side editing/tampering
+  const expectedAmount = getExpectedAmount(metadata);
+  if (expectedAmount === null) {
+    return res.status(400).json({ error: 'Invalid service package.' });
   }
 
   try {
@@ -251,7 +260,7 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
       'https://api.paystack.co/transaction/initialize',
       {
         email,
-        amount: Math.round(amount * 100), // KES → kobo
+        amount: Math.round(expectedAmount * 100), // KES → kobo
         currency: 'KES',
         metadata: metadata || {},
       },
@@ -261,7 +270,8 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
   } catch (error) {
     const detail = error.response?.data?.message || error.message;
     console.error('[Paystack init error]', detail);
-    res.status(502).json({ error: 'Failed to initialize payment. Please try again.' });
+    // Forward the exact error (like minimum amount limits) so the frontend sees it instead of a generic message
+    res.status(502).json({ error: detail || 'Failed to initialize payment. Please try again.' });
   }
 });
 
@@ -299,6 +309,17 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
 
     const amountPaid = txData?.amount / 100; // kobo/cents → KES
     const email = txData?.customer?.email;
+    const metadata = txData?.metadata;
+
+    // VERY SECURE: Validate that the paid amount actually matches the expected pricing for this product
+    const expectedAmount = getExpectedAmount(metadata);
+    if (expectedAmount === null || amountPaid < expectedAmount) {
+      console.error(`[Security Warning] Payment amount mismatch. Paid: ${amountPaid}, Expected: ${expectedAmount}`);
+      return res.status(400).json({ 
+        error: 'Security validation failed: Payment amount does not match the requested service price.', 
+        status: 'failed' 
+      });
+    }
 
     // Issue subscription token if amount covers the monthly plan (KES 499)
     let token = null;
