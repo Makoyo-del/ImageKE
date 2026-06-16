@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { Menu, X } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -77,6 +78,9 @@ function isValidEmail(email) {
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
+  // Mobile navigation state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Form state
   const [form, setForm] = useState({
     name: '', email: '', phone: '', service: '', message: '', wantAudit: false,
@@ -297,13 +301,22 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           NAVBAR
       ══════════════════════════════════════════════════════════════════════ */}
       <nav className="dm-nav" id="top">
-        <div className="dm-nav-logo">DM<span>.</span></div>
+        <div className="dm-nav-logo" onClick={() => scrollTo('top')}>DM<span>.</span></div>
         <div className="dm-nav-links">
           <button className="dm-nav-link" onClick={() => scrollTo('services')}>Services</button>
           <button className="dm-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
           <button className="dm-nav-link" onClick={() => scrollTo('process')}>Process</button>
           <button className="dm-nav-link" onClick={() => scrollTo('about')}>About</button>
           <button className="dm-nav-link" onClick={() => scrollTo('contact')}>Contact</button>
+          {onNavigateToPath && (
+            <button
+              className="dm-nav-link"
+              onClick={() => onNavigateToPath('ats')}
+              style={{ color: 'var(--dm-teal)', fontWeight: 700 }}
+            >
+              🧠 ATS Simulator
+            </button>
+          )}
           {onNavigateToTools && (
             <button className="dm-nav-link" onClick={onNavigateToTools} title="Photo & Video Tools">🛠 Tools</button>
           )}
@@ -311,7 +324,37 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
         <button className="dm-nav-cta" onClick={() => scrollTo('contact')}>
           Request Service
         </button>
+        <button
+          className="dm-mobile-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </nav>
+
+      {mobileMenuOpen && (
+        <div className="dm-mobile-menu">
+          <button className="dm-mobile-link" onClick={() => { scrollTo('services'); setMobileMenuOpen(false); }}>Services</button>
+          <button className="dm-mobile-link" onClick={() => { scrollTo('pricing'); setMobileMenuOpen(false); }}>Pricing</button>
+          <button className="dm-mobile-link" onClick={() => { scrollTo('process'); setMobileMenuOpen(false); }}>Process</button>
+          <button className="dm-mobile-link" onClick={() => { scrollTo('about'); setMobileMenuOpen(false); }}>About</button>
+          <button className="dm-mobile-link" onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }}>Contact</button>
+          {onNavigateToPath && (
+            <button className="dm-mobile-link ats-highlight" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
+              🧠 ATS Simulator
+            </button>
+          )}
+          {onNavigateToTools && (
+            <button className="dm-mobile-link tools-highlight" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }}>
+              🛠 Photo &amp; Video Tools
+            </button>
+          )}
+          <button className="dm-mobile-cta" onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }}>
+            Request Service
+          </button>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           HERO
@@ -758,6 +801,101 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
+          ATS SIMULATOR CTA SECTION
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="dm-section" id="ats-simulator" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', overflow: 'hidden', position: 'relative' }}>
+        {/* Background glow */}
+        <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(20,184,166,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '250px', height: '250px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div className="dm-container" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }} className="ats-cta-grid">
+
+            {/* Left — Copy */}
+            <div>
+              <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.12)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-teal)', marginBottom: '1.5rem' }}>
+                Free Tool
+              </div>
+              <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '1rem', lineHeight: 1.25 }}>
+                See What ATS Systems<br />Actually Read From Your CV
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, fontSize: '0.95rem', marginBottom: '2rem' }}>
+                Everybody talks about ATS systems. Very few people have actually seen one work. Upload your CV and watch a live ATS parse it — field by field — in real time. See exactly what gets detected, what gets missed, and why.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+                {[
+                  '🟢 Contact info, skills and sections — detected live',
+                  '🔴 Missing fields shown in real time',
+                  '⚠️ Formatting issues that kill readability exposed',
+                  '📊 Detailed ATS readiness score breakdown',
+                ].map(item => (
+                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                    {item}
+                  </div>
+                ))}
+              </div>
+
+              {onNavigateToPath && (
+                <button
+                  onClick={() => onNavigateToPath('ats')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
+                    background: 'linear-gradient(135deg, var(--dm-teal) 0%, #0D9488 100%)',
+                    color: '#fff', border: 'none', borderRadius: '12px',
+                    padding: '1rem 2rem', fontSize: '1rem', fontWeight: 800,
+                    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
+                    boxShadow: '0 6px 24px rgba(20,184,166,0.4)', transition: 'transform 0.15s, box-shadow 0.15s',
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(20,184,166,0.5)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(20,184,166,0.4)'; }}
+                >
+                  🔍 Try the Live ATS Simulator →
+                </button>
+              )}
+              <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>🔒 100% free · No signup · Your CV never leaves your device</p>
+            </div>
+
+            {/* Right — Preview mockup */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '1.5rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#34D399' }} />
+              </div>
+              <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.75rem' }}>// ATS Parser — Live Output</div>
+              {[
+                { label: 'Name', value: 'John Doe', status: '🟢' },
+                { label: 'Email', value: 'john@email.com', status: '🟢' },
+                { label: 'Phone', value: '+254 7XX XXX XXX', status: '🟢' },
+                { label: 'LinkedIn', value: 'Not detected', status: '🔴', muted: true },
+                { label: 'Experience', value: '~5 years', status: '🟢' },
+                { label: 'Skills found', value: 'SQL, Excel, Python…', status: '🟢' },
+                { label: 'Certifications', value: 'Not detected', status: '🔴', muted: true },
+                { label: 'Multi-column', value: 'Detected — Risky!', status: '⚠️', muted: true },
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', gap: '1rem' }}>
+                  <span style={{ color: '#94A3B8', minWidth: '100px' }}>{row.label}:</span>
+                  <span style={{ color: row.muted ? 'rgba(255,255,255,0.3)' : '#fff', flex: 1, textAlign: 'right', fontStyle: row.muted ? 'italic' : 'normal' }}>{row.value}</span>
+                  <span>{row.status}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>ATS Readiness Score</span>
+                <span style={{ color: '#F59E0B', fontWeight: 800, fontSize: '1.1rem', fontFamily: 'Montserrat, sans-serif' }}>67%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <style>{`
+          @media (max-width: 768px) {
+            .ats-cta-grid { grid-template-columns: 1fr !important; gap: 2.5rem !important; }
+          }
+        `}</style>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
           TESTIMONIALS
       ══════════════════════════════════════════════════════════════════════ */}
       <section className="dm-section" style={{ background: 'var(--dm-bg)' }}>
@@ -1068,6 +1206,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               )}
               {onNavigateToPath && (
                 <>
+                  <button className="dm-footer-link" onClick={() => onNavigateToPath('ats')}>🧠 ATS Simulator</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('terms')}>Terms of Use</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('privacy')}>Privacy Policy</button>
                 </>

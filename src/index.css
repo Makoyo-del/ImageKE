@@ -1838,3 +1838,129 @@ p { color: var(--text-muted); }
   }
 }
 
+/* Mobile menu toggle & overlay styles */
+.dm-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  z-index: 210;
+}
+
+@media (max-width: 768px) {
+  .dm-mobile-toggle {
+    display: flex;
+  }
+  .dm-nav-cta {
+    display: none !important;
+  }
+}
+
+.dm-mobile-menu {
+  position: fixed;
+  top: 60px; /* navbar height on mobile */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.5rem;
+  gap: 1rem;
+  z-index: 190;
+  overflow-y: auto;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dm-mobile-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dm-mobile-link:hover, .dm-mobile-link:focus {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  padding-left: 1.25rem;
+}
+
+.dm-mobile-link.ats-highlight {
+  color: #2DD4BF;
+  border-bottom-color: rgba(45, 212, 191, 0.15);
+}
+
+.dm-mobile-link.tools-highlight {
+  color: #818cf8;
+  border-bottom-color: rgba(129, 140, 248, 0.15);
+}
+
+.dm-mobile-cta {
+  background: var(--dm-teal);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.875rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 1rem;
+  transition: background 0.15s ease;
+}
+
+.dm-mobile-cta:hover {
+  background: var(--dm-teal-hover);
+}
+
+/* Document-wide responsiveness refinements */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.ats-table-container {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .batch-file-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  .batch-file-card > div {
+    width: 100% !important;
+  }
+}
+
+

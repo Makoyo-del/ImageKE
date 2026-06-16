@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
 import ServicesPage from './ServicesPage';
+import ATSSimulator from './ATSSimulator';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -2667,6 +2668,11 @@ function App() {
         />
       )}
 
+      {/* ── ATS Simulator (standalone page) ── */}
+      {currentPath === 'ats' && (
+        <ATSSimulator onBack={() => setCurrentPath('services')} />
+      )}
+
       {/* ── Legal pages (standalone, minimal header) ── */}
       {(currentPath === 'terms' || currentPath === 'privacy') && (
         <>
@@ -2694,7 +2700,7 @@ function App() {
       )}
 
       {/* ── ImageKE Photo & Video Tools ── */}
-      {currentPath !== 'services' && currentPath !== 'terms' && currentPath !== 'privacy' && (
+      {currentPath !== 'services' && currentPath !== 'terms' && currentPath !== 'privacy' && currentPath !== 'ats' && (
         <>
           {/* Sticky Header */}
           <header className="app-header">
