@@ -265,6 +265,11 @@ function App() {
     }
   }, []);
 
+  // Reset window scroll to top on path/tool change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [currentPath, activeVideoTool]);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getActivePreset = () => selectedPreset || customSize;
 
@@ -1471,58 +1476,42 @@ function App() {
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
         <h3 style={{ color: 'var(--text)', marginBottom: '0.5rem' }}>1. Acceptance of Terms</h3>
-        <p>By accessing or using the website at duncanmakoyo.com ("the Site"), and any associated media tools (ImageKE), career development services, web development packages, or digital presence consulting (collectively, "the Services"), you confirm that you are at least 18 years of age (or have parental/guardian consent) and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Services immediately.</p>
+        <p>By accessing or using the website at duncanmakoyo.com ("the Site"), and any associated media utilities (ImageKE Photo & Video Studio), career development services, ATS resume auditing simulator, custom web development packages, or digital presence consulting (collectively, "the Services"), you confirm that you are at least 18 years of age (or have parental/guardian consent) and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Services immediately.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Scope and Description of Services</h3>
-        <p>We provide two primary categories of solutions through the Site:</p>
+        <p>We provide a comprehensive suite of digital, media, and career solutions, including:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>ImageKE Media Processing Tools:</b> Browser-native, client-side photo resizing and video processing utilities. All media processing occurs on your device; no media files are transmitted to or stored on our servers.</li>
-          <li><b>Professional Career & Digital Services:</b> Personal branding, professional CV/resume writing, LinkedIn profile optimization, custom business website design, search engine optimization (SEO), and digital presence strategy/setup.</li>
+          <li><b>ImageKE Photo Utilities:</b> Automated image resizing and cropping for specific portal requirements (e.g. eCitizen, KRA iTax, HELB, US/Schengen Visa), custom dimensional resizing, and a Batch Document Compressor to optimize scanned page uploads for low-bandwidth connections.</li>
+          <li><b>ImageKE Video Studio:</b> Client-side aspect ratio cropping (portrait 9:16, square 1:1, widescreen 16:9), size compressors (WhatsApp under 16MB, email under 25MB), text/image branding watermarkers, MP3 audio extractors, and video frame extraction tools.</li>
+          <li><b>ATS Simulator (V2):</b> A secure resume parsing utility utilizing artificial intelligence to analyze formatting safety, structural ordering, privacy markers (e.g. photos, DOB, National ID risks), STAR methodology metrics, and keyword coverage.</li>
+          <li><b>Professional Career & Web Services:</b> Elite CV/resume copywriting, cover letter design, LinkedIn profile optimization, corporate web development, search engine optimization (SEO), and digital presence setup.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. User Obligations and Information Accuracy</h3>
-        <p>You agree to:</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. Payments, Billing, and Refunds</h3>
+        <p>You agree to adhere to the payment terms associated with each category of Services:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li>Use the Services only for lawful purposes in accordance with the laws of Kenya.</li>
-          <li>Provide accurate, complete, and truthful information during consultation, questionnaire responses, and registration processes (e.g. your career history, educational background, and business requirements). We are not responsible for any issues resulting from inaccurate information provided by you.</li>
-          <li>Ensure you hold full legal rights to any images, video files, text, logos, or other intellectual property you submit for resizing, editing, or integration into a web project.</li>
+          <li><b>Pay-Per-Download Tools:</b> Single media fixes or batch document compression downloads require a fixed payment (e.g. KSh 49 or KSh 4) processed via Paystack. Because watermarked previews are displayed prior to purchase, all sales are final and non-refundable.</li>
+          <li><b>Creator Subscription Plan:</b> A monthly subscription (KSh 499/month) granting unlimited downloads for video and photo tools. Subscriptions are billed automatically until canceled by the user via the local dashboard. Canceled subscriptions remain active until the end of the billing period and are non-refundable.</li>
+          <li><b>Professional Consulting packages:</b> Custom branding, web development, and resume copywriting packages are subject to project-specific proposal pricing. Payments are due prior to commencement or at agreed milestones. Once project discovery or draft composition has started, fees are non-refundable.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Payments, Custom Projects, and Refund Policy</h3>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Intellectual Property and Content Submissions</h3>
+        <p>You retain ownership of any media, text, CV drafts, or project information you upload. You warrant that you hold full legal rights and licensing to any materials submitted. All proprietary code, software architectures, website copy, algorithms, and design tokens of the Site and the ImageKE tools are the sole intellectual property of Duncan Makoyo. Completed custom website builds, final CV drafts, and branding assets become your property only upon full payment settlement.</p>
+
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Disclaimer of Warranties and Guarantees</h3>
+        <p>THE SERVICES ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS. DUNCAN MAKOYO AND THE SITE OPERATORS MAKE NO WARRANTIES, EXPRESS OR IMPLIED, AND EXPRESSLY DISCLAIM ALL WARRANTIES INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT GUARANTEE, WARRANT, OR PROMISE ANY SPECIFIC CAREER, BUSINESS, OR TECHNICAL OUTCOME, INCLUDING BUT NOT LIMITED TO:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>ImageKE Tools:</b> Operates on a pay-per-download model. Since a watermarked preview of the output is provided for review before checkout, all tool sales are final and non-refundable.</li>
-          <li><b>Professional Services:</b> Pricing for career optimization (essential/professional/executive packages) and web development/presence setups is displayed on the Site or detailed in a separate custom project proposal. Payment must be cleared prior to or during the project milestones as specified in the invoicing agreement.</li>
-          <li><b>Professional Services Refund Policy:</b> Once active draft preparation or development setup has commenced, payments are non-refundable. Revisions are restricted to the quantities defined in the purchased service tier.</li>
+          <li>Securing job interviews, callbacks, employment offers, salary raises, or recruitment opportunities from using the ATS Simulator or professional CV services.</li>
+          <li>Increases in web traffic, business leads, sales conversions, search engine rankings, or digital revenue from custom web development and SEO packages.</li>
+          <li>Acceptance of processed photos, videos, or documents by any third-party government portal (eCitizen, KRA), visa office, school portal, or corporate Applicant Tracking System.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Intellectual Property</h3>
-        <p>All original code, branding layouts, and assets of the Site and ImageKE are the intellectual property of Duncan Makoyo. Delivered custom assets, including finished CV drafts, custom website source code, and logo files, become your intellectual property upon final payment settlement. You grant us a temporary, non-exclusive license to edit, host, and test materials submitted by you solely to execute the requested Services.</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Limitation of Liability and Full Indemnification</h3>
+        <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL DUNCAN MAKOYO, THE SITE OPERATORS, ITS AGENTS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, EMPLOYMENT OPPORTUNITIES, BUSINESS DOWNTIME, OR SYSTEM FAILURES.</p>
+        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site or delivered assets; (ii) any career, financial, or business outcomes resulting from our consulting; (iii) any third-party claims regarding intellectual property infringement in materials you submitted; or (iv) any service interruptions, data losses, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Disclaimer of Warranties and Outcomes</h3>
-        <p>The Services are provided on an "as is" and "as available" basis without warranties of any kind. <b>We do not guarantee, warrant, or promise any specific career or business outcome, including but not limited to:</b></p>
-        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li>Receiving job interviews, employment offers, hiring responses, promotions, or salary increases as a result of CV writing or LinkedIn optimization.</li>
-          <li>Increased traffic, customer inquiries, leads, conversions, sales, or business revenue as a result of custom website development or digital presence optimization.</li>
-          <li>Acceptance of processed photos or media by any government portal, visa application system, or applicant tracking system (ATS), though we align design to their published parameters.</li>
-        </ul>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>7. Limitation of Liability and Full Indemnification</h3>
-        <p>To the maximum extent permitted by applicable law, <b>Duncan Makoyo and the Site operators shall not be liable, and you agree to fully indemnify, defend, and hold us harmless</b> from and against any and all claims, liabilities, losses, damages, costs, or expenses (including legal fees) arising from:</p>
-        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li>Your use or misuse of the Site, the media tools, or any delivered documents, code, or services.</li>
-          <li>Any career or business outcomes, including employment rejection, loss of job, loss of business revenue, site downtime, search engine ranking changes, or administrative penalties.</li>
-          <li>Any third-party claims concerning intellectual property infringement of materials submitted by you.</li>
-          <li>Under no circumstances shall our cumulative liability for any claim arising from or related to the Services exceed the exact fee paid by you to us for that specific transaction or service package.</li>
-        </ul>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>8. Modifications to Terms</h3>
-        <p>We reserve the right to update these Terms of Use at any time. Continued use of the Site or Services after an update constitutes your agreement to be bound by the revised terms.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>9. Governing Law</h3>
-        <p>These Terms are governed by the laws of the Republic of Kenya. Any disputes shall be subject to the exclusive jurisdiction of the courts of Kenya.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>10. Contact</h3>
-        <p>For questions or concerns regarding these Terms, please reach out via the contact information on the Site.</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>7. Governing Law and Disputes</h3>
+        <p>These Terms of Use shall be governed by, construed, and enforced in accordance with the laws of the Republic of Kenya. Any legal actions or disputes arising from these Terms or the Services shall be submitted to the exclusive jurisdiction of the courts of Nairobi, Kenya.</p>
       </div>
     </div>
   );
@@ -1539,53 +1528,39 @@ function App() {
       <h1>Privacy Policy</h1>
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
-        <p>This Privacy Policy describes how we handle information collected through duncanmakoyo.com ("the Site"), our browser-native media tools (ImageKE), and any professional development or website consulting services we offer.</p>
+        <p>This Privacy Policy describes how we collect, process, and protect your personal information when you use duncanmakoyo.com ("the Site"), our browser-native media tools (ImageKE), or our consulting services.</p>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>1. Media and Code Assets (Client-Side Privacy)</h3>
-        <p>For users utilizing the ImageKE Photo & Video resizing features, all processing occurs directly in your local browser using client-side APIs. <b>No media files or personal photos/videos are ever uploaded to or stored on our servers.</b></p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>1. Browser-Native Processing (Zero Server Transmission)</h3>
+        <p>For the ImageKE Photo and Video editing tools (including compressor, aspect cropper, watermarker, and extractors), **all rendering is conducted locally in your web browser using WebAssembly and canvas technologies**. Your uploaded photos, logo overlays, and video streams never leave your device and are never sent to our servers.</p>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Data We Collect for Professional Services</h3>
-        <p>For clients engaging us for custom professional services (CV optimization, website development, hosting setup), we collect the following information:</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Data We Collect and Process</h3>
+        <p>We collect personal and professional information under the following conditions:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>Contact Details:</b> Name, email address, phone number, and LinkedIn profile link.</li>
-          <li><b>Career Materials:</b> Your existing resume, cover letters, career goals, work history, and school credentials, submitted via form or direct messaging.</li>
-          <li><b>Technical / Business Parameters:</b> Domain settings, business names, and temporary access credentials (if explicitly provided and required to launch a client website).</li>
+          <li><b>Career Forms & Consultation:</b> When you submit service requests or sign up for CV audits, we collect your name, email, phone number, LinkedIn URL, target job fields, and uploaded CV files.</li>
+          <li><b>ATS Simulator V2:</b> When you use the simulator, we temporarily process your resume data. If you upload a PDF, the file is converted to text/base64 and sent to our secure backend proxy route to be analyzed using artificial intelligence. **No resume files or personal text parsed by the simulator are ever stored on our servers.** They are held in memory solely to compile your score card and are immediately discarded.</li>
+          <li><b>Billing Data:</b> Email addresses and transaction references collected during Paystack checkout are processed securely. Card numbers, bank log-ins, and M-Pesa PINs are handled directly by Paystack and are never visible to or stored by us.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. How Your Information Is Used</h3>
-        <p>Your data is processed strictly for the following purposes:</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. How We Use and Share Information</h3>
+        <p>We use your information exclusively to deliver the requested Services, refine your CV drafts, host client websites, verify payments, and communicate project updates. We **never sell, share, rent, or trade your personal data, resume details, contact lists, or media files** with third-party advertising or marketing agencies.</p>
+
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Data Protection and Retention</h3>
+        <p>We store financial transaction records for 7 years to comply with Kenyan tax accounting audits. Completed client CV drafts, SEO audit logs, and custom web source code are retained for 1 year to assist you with future revisions, after which they are permanently deleted. You can request the immediate deletion of your career files at any time by contacting us.</p>
+
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Third-Party Services</h3>
+        <p>We utilize the following secure integrations to facilitate Site operations:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li>To compile, optimize, and deliver ATS-compliant CVs, resume drafts, and LinkedIn recommendations.</li>
-          <li>To develop, design, and configure your custom business website and hosting environment.</li>
-          <li>To verify checkout payments via Paystack and contact you regarding drafts or project updates.</li>
-          <li>We do not share, sell, rent, or trade your personal data, career materials, or source files with any third-party marketing companies.</li>
+          <li><b>Paystack:</b> Payment gateway processing.</li>
+          <li><b>Render:</b> Hosting infrastructure and request proxy routing.</li>
+          <li><b>Google Gemini API:</b> Processing resume analysis requests securely via a private server-side connection (data is not used to train models).</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Cookies and Local Storage</h3>
-        <p>We do not use tracking or advertising cookies. We use browser <code>localStorage</code> solely to remember local preferences and subscription status for ImageKE, which does not leave your browser.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Third-Party Integrations</h3>
-        <p>We utilize secure third-party platforms to execute specific functions:</p>
-        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>Paystack</b> — Secure payment processing (supports cards, M-Pesa, etc.). Subject to Paystack's Privacy Policy.</li>
-          <li><b>Render</b> — Backend API hosting for secure payment verification and request routing.</li>
-          <li><b>Google Fonts</b> — Standard typography loading.</li>
-        </ul>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Data Retention</h3>
-        <p>Financial transaction references and associated client emails are retained for 7 years for tax accounting compliance. CV source files, questionnaire answers, and project-specific web assets are retained for up to 1 year following final delivery to facilitate future client updates, after which they are permanently deleted unless requested sooner.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>7. Security</h3>
-        <p>We apply standard security protocols, including SSL/TLS encryption for all forms and data in transit, to protect your personal information and career assets from unauthorized access or alteration.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>8. Governing Law</h3>
-        <p>This Privacy Policy is governed by and construed in accordance with the Data Protection Act of the Republic of Kenya.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>9. Contact</h3>
-        <p>For privacy inquiries, data requests, or to ask for immediate deletion of your project documents, please contact us via the contact form or email on the Site.</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Legal Compliance</h3>
+        <p>This Privacy Policy is designed to comply with the Data Protection Act of the Republic of Kenya. By using the Services, you consent to our practices as outlined herein.</p>
       </div>
     </div>
   );
+
 
   // ── Video Helpers ─────────────────────────────────────────────────────────
   const ensureFFmpegLoaded = async () => {

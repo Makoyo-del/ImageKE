@@ -511,6 +511,11 @@ export default function ATSSimulator({ onBack }) {
   const [leadStatus, setLeadStatus] = useState(null); // null | 'sending' | 'success' | 'error'
   const [leadError, setLeadError] = useState('');
 
+  // Reset window scroll to top when view changes (e.g. upload -> parsing -> results)
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [view]);
+
   // ── File selection ────────────────────────────────────────────────────────
   const handleFileSelect = useCallback((selectedFile) => {
     setUploadError('');
