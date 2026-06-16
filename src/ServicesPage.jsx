@@ -4,12 +4,13 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
-// ─── Career Package Prices (KES) ──────────────────────────────────────────────
+// ─── Career Package Prices (KES & USD) ──────────────────────────────────────────
 const CAREER_PACKAGES = [
   {
     id: 'essential',
     tier: 'Essential',
-    price: 1500,
+    priceKES: 1500,
+    priceUSD: 12,
     delivery: 'Delivery: 48–72 Hours · 1 Revision',
     features: [
       'ATS-Optimized CV',
@@ -21,7 +22,8 @@ const CAREER_PACKAGES = [
   {
     id: 'professional',
     tier: 'Professional',
-    price: 3500,
+    priceKES: 3500,
+    priceUSD: 28,
     delivery: 'Delivery: 48 Hours · 2 Revisions',
     featured: true,
     features: [
@@ -35,7 +37,8 @@ const CAREER_PACKAGES = [
   {
     id: 'executive',
     tier: 'Executive',
-    price: 6000,
+    priceKES: 6000,
+    priceUSD: 48,
     delivery: 'Delivery: 24–48 Hours · 3 Revisions',
     features: [
       'ATS CV Rewrite',
@@ -87,6 +90,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
   const [showPayModal, setShowPayModal] = useState(false);
   const [payError, setPayError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
+  const [currency, setCurrency] = useState('KES');
 
   // Load Paystack script on mount
   useEffect(() => {
@@ -160,11 +164,13 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
     setIsPaying(true);
     setPayError('');
 
+    const activePrice = currency === 'USD' ? pkg.priceUSD : pkg.priceKES;
+
     try {
       const initRes = await axios.post(`${API_URL}/api/initialize-payment`, {
         email: payEmail.trim().toLowerCase(),
-        amount: pkg.price,
-        metadata: { type: 'career_service', package: pkg.id, packageTier: pkg.tier },
+        amount: activePrice,
+        metadata: { type: 'career_service', package: pkg.id, packageTier: pkg.tier, currency },
       });
 
       if (!initRes.data?.data?.reference) throw new Error('Invalid payment response.');
@@ -173,8 +179,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       const handler = window.PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: payEmail.trim().toLowerCase(),
-        amount: pkg.price * 100,
-        currency: 'KES',
+        amount: activePrice * 100,
+        currency: currency,
         ref: reference,
         callback: function (response) {
           (async () => {
@@ -187,8 +193,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   await axios.post(`${API_URL}/api/notify-service-order`, {
                     email: payEmail.trim().toLowerCase(),
                     package: pkg.tier,
-                    price: pkg.price,
+                    price: activePrice,
                     reference: response.reference,
+                    currency,
                   });
                 } catch {}
 
@@ -243,7 +250,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 {payingPackage.tier} Package
               </div>
               <h3 style={{ margin: 0, fontFamily: 'Montserrat, sans-serif', fontSize: '1.5rem', color: 'var(--dm-navy)' }}>
-                KES {payingPackage.price.toLocaleString()}
+                {currency === 'USD' ? '$' : 'KES '}{currency === 'USD' ? payingPackage.priceUSD : payingPackage.priceKES.toLocaleString()}
               </h3>
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', color: 'var(--dm-text-muted)' }}>
                 Enter your email to proceed. Duncan will contact you within 24 hours after payment.
@@ -279,7 +286,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 onClick={() => initiateCareerPayment(payingPackage)}
                 disabled={isPaying}
               >
-                {isPaying ? 'Processing…' : `Pay KES ${payingPackage.price.toLocaleString()}`}
+                {isPaying ? 'Processing…' : `Pay ${currency === 'USD' ? '$' : 'KES '}${currency === 'USD' ? payingPackage.priceUSD : payingPackage.priceKES.toLocaleString()}`}
               </button>
             </div>
           </div>
@@ -625,6 +632,51 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             Career service packages paid via Paystack (M-Pesa, Card, Bank). Website and business services — <button onClick={() => scrollTo('contact')} style={{ background: 'none', border: 'none', color: 'var(--dm-teal)', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 'inherit' }}>request a custom quote</button>.
           </p>
 
+          {/* Currency Toggle Selector */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
+            <div style={{
+              background: '#E2E8F0',
+              padding: '4px',
+              borderRadius: '30px',
+              display: 'flex',
+              gap: '4px',
+              border: '1px solid #CBD5E1',
+            }}>
+              <button
+                onClick={() => setCurrency('KES')}
+                style={{
+                  padding: '6px 20px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: currency === 'KES' ? 'var(--dm-teal)' : 'transparent',
+                  color: currency === 'KES' ? '#fff' : 'var(--dm-slate)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                KES (Shillings)
+              </button>
+              <button
+                onClick={() => setCurrency('USD')}
+                style={{
+                  padding: '6px 20px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: currency === 'USD' ? 'var(--dm-teal)' : 'transparent',
+                  color: currency === 'USD' ? '#fff' : 'var(--dm-slate)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                USD ($)
+              </button>
+            </div>
+          </div>
+
           {/* Free Audit Banner */}
           <div className="dm-audit-banner" style={{ marginBottom: '2.5rem' }}>
             <div className="dm-audit-text">
@@ -642,7 +694,15 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 {pkg.featured && <div className="dm-pricing-badge">⭐ Most Popular</div>}
                 <div className="dm-pricing-tier">{pkg.tier}</div>
                 <div className="dm-pricing-price">
-                  <small>KES </small>{pkg.price.toLocaleString()}
+                  {currency === 'USD' ? (
+                    <>
+                      <small>$</small>{pkg.priceUSD}
+                    </>
+                  ) : (
+                    <>
+                      <small>KES </small>{pkg.priceKES.toLocaleString()}
+                    </>
+                  )}
                 </div>
                 <div className="dm-pricing-delivery">{pkg.delivery}</div>
                 <ul className="dm-pricing-features">
@@ -652,7 +712,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   className={`dm-pricing-btn ${pkg.featured ? 'primary' : 'outline'}`}
                   onClick={() => openPayModal(pkg)}
                 >
-                  Get Started — KES {pkg.price.toLocaleString()}
+                  Get Started — {currency === 'USD' ? '$' + pkg.priceUSD : 'KES ' + pkg.priceKES.toLocaleString()}
                 </button>
               </div>
             ))}

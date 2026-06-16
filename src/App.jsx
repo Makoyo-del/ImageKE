@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass } from 'lucide-react';
+import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
 import ServicesPage from './ServicesPage';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
@@ -398,6 +398,25 @@ function App() {
       }
     }
   }, [batchFiles, isPaid]);
+
+  const handleDownloadIndividualBatch = useCallback(async (fileItem) => {
+    if (!isPaid) {
+      setPaymentTarget({
+        amount: BATCH_PRICE_KES,
+        metadata: { type: 'batch_download' },
+        onSuccess: () => {
+          setIsPaid(true);
+          const cleanFilename = fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg";
+          triggerDownload(fileItem.compressedBlob, cleanFilename);
+        },
+      });
+      setShowEmailModal(true);
+      return;
+    }
+
+    const cleanFilename = fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg";
+    triggerDownload(fileItem.compressedBlob, cleanFilename);
+  }, [isPaid]);
 
   const resetBatch = useCallback(() => {
     batchFiles.forEach(f => {
@@ -1089,20 +1108,21 @@ function App() {
                         {/* Individual Download */}
                         {fileItem.status === 'success' && fileItem.compressedBlob && (
                           <button
-                            onClick={() => triggerDownload(fileItem.compressedBlob, fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg")}
+                            onClick={() => handleDownloadIndividualBatch(fileItem)}
                             className="btn"
                             style={{
                               padding: '0.4rem 0.8rem',
                               fontSize: '0.8rem',
-                              background: 'var(--primary-light)',
-                              color: 'var(--primary)',
+                              background: isPaid ? 'var(--primary-light)' : '#FEF3C7',
+                              color: isPaid ? 'var(--primary)' : '#B45309',
+                              border: isPaid ? 'none' : '1px solid #FCD34D',
                               borderRadius: '6px',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.25rem',
                             }}
                           >
-                            <Download size={12} /> Download
+                            {isPaid ? <Download size={12} /> : <Lock size={12} />} Download
                           </button>
                         )}
 

@@ -206,6 +206,7 @@ app.get('/api/ping', pingLimiter, (req, res) => {
 function getExpectedAmount(metadata) {
   let amount = 49; // Default photo price
   const type = metadata?.type;
+  const currency = metadata?.currency || 'KES';
   
   if (type === 'creator_subscription') {
     amount = 499;
@@ -223,15 +224,28 @@ function getExpectedAmount(metadata) {
     amount = (tool && videoPricing[tool]) ? videoPricing[tool] : 99;
   } else if (type === 'career_service') {
     const pkgId = metadata?.package;
-    const careerPricing = {
-      essential: 1500,
-      professional: 3500,
-      executive: 6000
-    };
-    if (pkgId && careerPricing[pkgId]) {
-      amount = careerPricing[pkgId];
+    if (currency === 'USD') {
+      const careerPricingUSD = {
+        essential: 12,
+        professional: 28,
+        executive: 48
+      };
+      if (pkgId && careerPricingUSD[pkgId]) {
+        amount = careerPricingUSD[pkgId];
+      } else {
+        return null;
+      }
     } else {
-      return null; // Invalid package
+      const careerPricingKES = {
+        essential: 1500,
+        professional: 3500,
+        executive: 6000
+      };
+      if (pkgId && careerPricingKES[pkgId]) {
+        amount = careerPricingKES[pkgId];
+      } else {
+        return null;
+      }
     }
   } else {
     // Default fallback or photo_download
@@ -244,6 +258,7 @@ function getExpectedAmount(metadata) {
 // ─── Initialize Payment ───────────────────────────────────────────────────────
 app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
   const { email, metadata } = req.body;
+  const currency = metadata?.currency || 'KES';
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return res.status(400).json({ error: 'A valid email is required.' });
@@ -260,8 +275,8 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
       'https://api.paystack.co/transaction/initialize',
       {
         email,
-        amount: Math.round(expectedAmount * 100), // KES → kobo
-        currency: 'KES',
+        amount: Math.round(expectedAmount * 100), // KES → kobo, USD → cents
+        currency,
         metadata: metadata || {},
       },
       { headers: paystackHeaders }
@@ -608,12 +623,15 @@ app.get('/api/test-smtp', async (req, res) => {
   }
 });
 
-// ─── Career Package Order Notification ───────────────────────────────────────
 app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
-  const { email, package: pkg, price, reference } = req.body;
+  const { email, package: pkg, price, reference, currency } = req.body;
   if (!email || !pkg || !price || !reference) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
+
+  const isUSD = currency === 'USD';
+  const currLabel = isUSD ? 'USD' : 'KES';
+  const currSymbol = isUSD ? '$' : 'KES ';
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -625,7 +643,7 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
         <table style="width:100%;border-collapse:collapse">
           <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A;width:140px">Client Email</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#14B8A6"><a href="mailto:${email}" style="color:#14B8A6">${email}</a></td></tr>
           <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Package</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#10B981;font-weight:700">${pkg}</td></tr>
-          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Amount Paid</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#0F172A;font-weight:700">KES ${Number(price).toLocaleString()}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Amount Paid</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#0F172A;font-weight:700">${currSymbol}${Number(price).toLocaleString()} (${currLabel})</td></tr>
           <tr><td style="padding:10px 0;font-weight:700;color:#0F172A">Reference</td><td style="padding:10px 0;color:#64748B;font-size:0.85rem">${reference}</td></tr>
         </table>
         <div style="margin-top:24px;padding:16px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px">
@@ -638,7 +656,7 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
   try {
     await sendEmail({
       to: 'duncan@duncanmakoyo.com',
-      subject: `[PAID] ${pkg} Package — KES ${Number(price).toLocaleString()} — ${email}`,
+      subject: `[PAID] ${pkg} Package — ${currSymbol}${Number(price).toLocaleString()} — ${email}`,
       html,
     });
 
@@ -654,7 +672,7 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
           <!-- Body -->
           <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
             <p style="margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem;">Hi there,</p>
-            <p style="margin-bottom: 20px; color: #475569;">Thank you for choosing my career consulting services. Your payment of <strong>KES ${Number(price).toLocaleString()}</strong> for the <strong>${pkg}</strong> package has been successfully verified.</p>
+            <p style="margin-bottom: 20px; color: #475569;">Thank you for choosing my career consulting services. Your payment of <strong>${currSymbol}${Number(price).toLocaleString()}</strong> for the <strong>${pkg}</strong> package has been successfully verified.</p>
             
             <p style="margin-bottom: 12px; font-weight: 700; color: #0F172A;">What happens next?</p>
             <ul style="margin: 0 0 24px; padding-left: 20px; color: #475569;">
@@ -672,7 +690,7 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
                 </tr>
                 <tr>
                   <td style="color: #64748B; padding: 6px 0; font-weight: 500;">Amount:</td>
-                  <td style="font-weight: 700; color: #10B981; padding: 6px 0;">KES ${Number(price).toLocaleString()}</td>
+                  <td style="font-weight: 700; color: #10B981; padding: 6px 0;">${currSymbol}${Number(price).toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style="color: #64748B; padding: 6px 0; font-weight: 500;">Reference:</td>
