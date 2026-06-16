@@ -549,7 +549,7 @@ export default function ATSSimulator({ onBack }) {
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
     const ext = file.name.split('.').pop().toLowerCase();
 
-    // Start Gemini API Call immediately if key exists
+    // Start Gemini API Call immediately if key exists, or fall back to secure backend proxy
     let geminiPromise = null;
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('VITE_GEMINI_API_KEY') || '';
 
@@ -597,6 +597,31 @@ export default function ATSSimulator({ onBack }) {
           return parsed;
         } catch (error) {
           console.error("Gemini API parsing failed, falling back to client-side regex:", error);
+          throw error;
+        }
+      })();
+    } else {
+      // Call the secure backend proxy
+      geminiPromise = (async () => {
+        try {
+          let payload = {};
+          if (ext === 'pdf') {
+            const base64Data = await fileToBase64(file);
+            payload = { fileBase64: base64Data, fileType: 'pdf' };
+          } else {
+            const extractedText = await extractDocxText(file);
+            payload = { text: extractedText, fileType: 'docx' };
+          }
+
+          const response = await axios.post(`${API_URL}/api/analyze-resume`, payload);
+          const parsed = response.data;
+
+          // Calculate scores based on the flags
+          parsed.scores = calculateScores(parsed);
+
+          return parsed;
+        } catch (error) {
+          console.error("Secure backend proxy parsing failed, falling back to client-side regex:", error);
           throw error;
         }
       })();

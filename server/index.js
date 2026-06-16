@@ -59,11 +59,14 @@ app.use(
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 // Captures raw body before JSON parsing — required for Paystack webhook HMAC.
+// Enforce limit of 8mb for resume uploads.
 app.use(
   express.json({
-    limit: '50kb',
+    limit: '8mb',
     verify: (req, _res, buf) => {
-      req.rawBody = buf;
+      if (req.originalUrl === '/api/paystack/webhook') {
+        req.rawBody = buf;
+      }
     },
   })
 );
@@ -451,6 +454,175 @@ async function sendEmail({ to, subject, html }) {
   console.warn('[Email] No email credentials set (RESEND_API_KEY or SMTP_USER/SMTP_PASS).');
   console.log(`[Email fallback] TO: ${to} | SUBJECT: ${subject}`);
 }
+
+// ─── Gemini System Prompt and Parser Proxy ──────────────────────────────────
+const GEMINI_SYSTEM_PROMPT = `
+You are an advanced proprietary ATS Simulator Engine (V2). Your objective is to parse the uploaded resume and evaluate it against professional resume-writing standards.
+
+CRITICAL RULES FOR RECOMMENDATIONS & TERMINOLOGY:
+1. Do NOT mention "Gemini", "Google", "AI", "LLM", or any specific machine learning model name in your analysis or recommendations. Treat yourself as a proprietary "ATS Simulator Engine".
+2. All recommendations must be formulated in a constructive, client-facing tone as if written by an elite career consultant.
+3. Evaluate the resume strictly against the following Resume Quality Rules:
+
+RESUME QUALITY RULES:
+1. Typography & Design:
+   - Preferred fonts are clean, standard sans-serif (e.g., Calibri, Arial, Montserrat, Open Sans).
+   - Simple, clean layouts. Colors should be strictly black text on white background. No colored headers, gray subtitles, or tint accents.
+   - Layout tables must be avoided (they confuse ATS parsers).
+   - No visual/design clutter (no icons, skill progress bars, star ratings, pie charts, or floating text boxes).
+   - Page count: Professional/executive resumes should strictly be under a 2-page cap.
+   - Compiling margins should be compact (around 0.4in to 0.5in).
+   - No decorative bullet symbols (use standard circular bullets or plain hyphens).
+2. Structure & Organization:
+   - Sections should be organized in this order:
+     1. Contact Information
+     2. Professional Summary
+     3. Key Achievements
+     4. Core Skills
+     5. Professional Experience
+     6. Education
+     7. Interests
+     8. Referees
+   - Standard headings should be uppercase (e.g., PROFESSIONAL SUMMARY, CORE SKILLS, PROFESSIONAL EXPERIENCE, EDUCATION, CERTIFICATIONS, LANGUAGES, KEY ACHIEVEMENTS, REFEREES). Avoid creative headings like "My Journey".
+3. Contact Details & Privacy Rules:
+   - Contact line should be separated by pipes (" | ").
+   - No profile photo/headshot (this is a major ATS bias and parsing risk).
+   - No personal identifiers: Date of birth (DOB), age, gender, marital status, National ID, or passport numbers (these are privacy and bias risks!).
+   - No full physical address (only City, Country is acceptable, e.g., "Nairobi, Kenya").
+   - Include LinkedIn URL if provided. Do not complain if not provided unless they have other contact info missing.
+4. Content & STAR Method (Critical):
+   - Every experience bullet point must follow the STAR method: Action Verb + Specific Task + Quantifiable Result. No generic responsibilities list.
+   - Bold the first 3-5 words of every bullet point in the experience section.
+   - Bold key statistics and metrics (e.g., "% Growth", "$ ARR", "Time saved", transaction counts, audit scores) inside paragraphs and bullets.
+   - Ensure there are NO raw asterisks in the copy (e.g., USSD channels must be written as "USSD 247#" or "USSD channel 247#" instead of "*247#").
+   - Punctuation & Grammar: Every bullet point/item must start with a capital letter and end with a clean full stop (period).
+   - Referees: If references are listed, they should include the supervisor's name, title, and direct phone.
+
+You must parse the document and return a JSON object with the following schema:
+{
+  "contact": {
+    "name": "string or null",
+    "email": "string or null",
+    "phone": "string or null",
+    "linkedin": "string or null",
+    "location": "string or null",
+    "hasPhoto": boolean,
+    "hasDOB": boolean,
+    "hasMaritalStatus": boolean,
+    "hasIDNumber": boolean,
+    "hasFullAddress": boolean
+  },
+  "sections": {
+    "summary": boolean,
+    "experience": boolean,
+    "education": boolean,
+    "skills": boolean,
+    "certifications": boolean,
+    "languages": boolean,
+    "achievements": boolean,
+    "references": boolean
+  },
+  "formatting": {
+    "isLikelyScanned": boolean,
+    "multiColumnRisk": boolean,
+    "hasTables": boolean,
+    "hasGraphics": boolean,
+    "hasTextBoxes": boolean,
+    "hasHeaderFooterContact": boolean,
+    "hasCreativeHeadings": boolean,
+    "hasSpecialBullets": boolean,
+    "pageCountEstimate": number,
+    "isOverTwoPages": boolean,
+    "hasColoredTextOrBg": boolean
+  },
+  "skills": ["string"],
+  "jobTitles": ["string"],
+  "yearsExp": "string",
+  "hasAchievements": boolean,
+  "experienceEvaluation": {
+    "usesStarMethod": boolean,
+    "hasMetrics": boolean,
+    "boldsFirstWords": boolean,
+    "boldsMetrics": boolean,
+    "grammarCapitalizationAndPeriods": boolean,
+    "rawAsterisksFound": boolean
+  },
+  "recommendations": [
+    {
+      "type": "critical",
+      "text": "string"
+    }
+  ]
+}
+`;
+
+const parserLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,                  // 30 parses per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many resume reviews. Please wait a few minutes and try again.' },
+});
+
+app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
+  const { text, fileBase64, fileType } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    console.error('[Resume Parser Proxy] Error: GEMINI_API_KEY is not configured on the server.');
+    return res.status(500).json({ error: 'ATS Simulator Engine is not configured on the server.' });
+  }
+
+  try {
+    let parts = [
+      { text: GEMINI_SYSTEM_PROMPT }
+    ];
+
+    if (fileBase64 && fileType === 'pdf') {
+      parts.push({
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: fileBase64
+        }
+      });
+    } else if (text) {
+      parts.push({
+        text: `Here is the extracted text of the resume:\n\n${text}\n\nPlease analyze it using the instructions.`
+      });
+    } else {
+      return res.status(400).json({ error: 'Missing resume text or document.' });
+    }
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        contents: [{ parts }],
+        generationConfig: {
+          responseMimeType: 'application/json'
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 25000 // 25s timeout
+      }
+    );
+
+    const candidate = response.data?.candidates?.[0];
+    const responseText = candidate?.content?.parts?.[0]?.text;
+
+    if (!responseText) {
+      throw new Error('Empty response from parser engine.');
+    }
+
+    // Try parsing to validate it is valid JSON
+    const parsed = JSON.parse(responseText);
+    res.json(parsed);
+  } catch (error) {
+    const detail = error.response?.data?.error?.message || error.message;
+    console.error('[Resume Parser Proxy Error]', detail);
+    res.status(502).json({ error: 'ATS Simulator Engine failed to parse the document.' });
+  }
+});
 
 // ─── Service Request Endpoint ─────────────────────────────────────────────────
 const formLimiter = rateLimit({
