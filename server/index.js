@@ -565,7 +565,7 @@ const parserLimiter = rateLimit({
 });
 
 app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
-  const { text, fileBase64, fileType } = req.body;
+  const { text, fileBase64, fileType, extractedLinks } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -585,10 +585,19 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
           data: fileBase64
         }
       });
+
+      let promptText = 'Please analyze the uploaded PDF resume according to the system instructions.';
+      if (extractedLinks && Array.isArray(extractedLinks) && extractedLinks.length > 0) {
+        promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
+      }
+      parts.push({ text: promptText });
+
     } else if (text) {
-      parts.push({
-        text: `Here is the extracted text of the resume:\n\n${text}\n\nPlease analyze it using the instructions.`
-      });
+      let promptText = `Here is the extracted text of the resume:\n\n${text}\n\nPlease analyze it using the instructions.`;
+      if (extractedLinks && Array.isArray(extractedLinks) && extractedLinks.length > 0) {
+        promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
+      }
+      parts.push({ text: promptText });
     } else {
       return res.status(400).json({ error: 'Missing resume text or document.' });
     }

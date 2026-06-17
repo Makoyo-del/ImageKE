@@ -432,6 +432,54 @@ async function extractDocxText(file) {
     .split('\n').map(l => l.trim()).join('\n');
 }
 
+// ─── Extract hyperlinks from PDF ──────────────────────────────────────────────
+async function extractPdfLinks(file) {
+  try {
+    const pdfjsLib = await loadPdfJs();
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const links = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const annotations = await page.getAnnotations();
+      for (const annot of annotations) {
+        if (annot.subtype === 'Link' && annot.url) {
+          links.push(annot.url);
+        }
+      }
+    }
+    return links;
+  } catch (err) {
+    console.warn('[PDF link extraction failed]', err);
+    return [];
+  }
+}
+
+// ─── Extract hyperlinks from DOCX ─────────────────────────────────────────────
+async function extractDocxLinks(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const relsFile = zip.file('word/_rels/document.xml.rels');
+    if (!relsFile) return [];
+    const relsContent = await relsFile.async('text');
+    
+    // Extract all Target="..." from the rels file
+    const matches = relsContent.matchAll(/Target="([^"]+)"/g);
+    const links = [];
+    for (const match of matches) {
+      const url = match[1];
+      if (url.startsWith('http') || url.includes('linkedin.com')) {
+        links.push(url);
+      }
+    }
+    return links;
+  } catch (err) {
+    console.warn('[DOCX link extraction failed]', err);
+    return [];
+  }
+}
+
 // ─── Parsing Steps Definition ─────────────────────────────────────────────────
 const PARSE_STEPS = [
   { id: 'extract', label: 'Extracting text from document', icon: '📄' },
@@ -572,6 +620,11 @@ export default function ATSSimulator({ onBack }) {
           let result;
           if (ext === 'pdf') {
             const base64Data = await fileToBase64(file);
+            const extractedLinks = await extractPdfLinks(file);
+            let promptText = GEMINI_SYSTEM_PROMPT;
+            if (extractedLinks && extractedLinks.length > 0) {
+              promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
+            }
             result = await model.generateContent([
               {
                 inlineData: {
@@ -579,16 +632,17 @@ export default function ATSSimulator({ onBack }) {
                   mimeType: 'application/pdf'
                 }
               },
-              GEMINI_SYSTEM_PROMPT
+              promptText
             ]);
           } else {
             const extractedText = await extractDocxText(file);
+            const extractedLinks = await extractDocxLinks(file);
+            let promptText = `Here is the extracted text of the resume:\n\n${extractedText}\n\nPlease analyze it using the instructions.`;
+            if (extractedLinks && extractedLinks.length > 0) {
+              promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
+            }
             result = await model.generateContent([
-              `Here is the extracted text of the resume:
-              
-              ${extractedText}
-              
-              Please analyze it using the instructions.`,
+              promptText,
               GEMINI_SYSTEM_PROMPT
             ]);
           }
@@ -610,12 +664,15 @@ export default function ATSSimulator({ onBack }) {
       geminiPromise = (async () => {
         try {
           let payload = {};
+          let extractedLinks = [];
           if (ext === 'pdf') {
             const base64Data = await fileToBase64(file);
-            payload = { fileBase64: base64Data, fileType: 'pdf' };
+            extractedLinks = await extractPdfLinks(file);
+            payload = { fileBase64: base64Data, fileType: 'pdf', extractedLinks };
           } else {
             const extractedText = await extractDocxText(file);
-            payload = { text: extractedText, fileType: 'docx' };
+            extractedLinks = await extractDocxLinks(file);
+            payload = { text: extractedText, fileType: 'docx', extractedLinks };
           }
 
           const response = await axios.post(`${API_URL}/api/analyze-resume`, payload);
