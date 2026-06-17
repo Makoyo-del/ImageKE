@@ -498,8 +498,9 @@ RESUME QUALITY RULES:
    - Punctuation & Grammar: Every bullet point/item must start with a capital letter and end with a clean full stop (period).
    - Referees: If references are listed, they should include the supervisor's name, title, and direct phone.
 
-CRITICAL INSTRUCTION ON TRUTHFULNESS:
+CRITICAL INSTRUCTION ON TRUTHFULNESS & DETERMINISM:
 All boolean evaluation flags (e.g., hasPhoto, hasDOB, hasMaritalStatus, hasIDNumber, hasFullAddress, isLikelyScanned, multiColumnRisk, hasTables, hasGraphics, hasTextBoxes, hasCreativeHeadings, hasSpecialBullets, isOverTwoPages, hasColoredTextOrBg, usesStarMethod, hasMetrics, boldsFirstWords, boldsMetrics, grammarCapitalizationAndPeriods, rawAsterisksFound) MUST be 100% truthful based strictly on what is present in the document. Do not guess, speculate, or make false inferences. If a feature or risk is not clearly and explicitly present, set its flag to false.
+You must perform an objective, strict, and consistent evaluation. The same resume content must always receive the exact same boolean flags and identified lists. Do not fluctuate your evaluation criteria between runs. Be very conservative: if a quality criterion (such as STAR method, metrics, standard uppercase headers, or formatting) is not fully met, strictly set its positive evaluation to false, and strictly flag the risk/issue.
 
 You must parse the document and return a JSON object with the following schema:
 {
@@ -628,7 +629,8 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
       {
         contents: [{ parts }],
         generationConfig: {
-          responseMimeType: 'application/json'
+          responseMimeType: 'application/json',
+          temperature: 0.0
         }
       },
       {
