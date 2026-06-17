@@ -365,9 +365,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             {/* Left */}
             <div>
               <div style={{
-                display: 'inline-block', background: 'rgba(18, 56, 232, 0.12)', border: '1px solid rgba(18, 56, 232, 0.25)',
+                display: 'inline-block', background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)',
                 borderRadius: '20px', padding: '5px 16px', fontSize: '0.8rem', fontWeight: 700,
-                letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--dm-primary)', marginBottom: '1.5rem',
+                letterSpacing: '0.06em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '1.5rem',
               }}>
                 Professional Consulting Services
               </div>
@@ -590,10 +590,10 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               },
             ].map(svc => (
               <div key={svc.name} className="dm-service-card">
-                {/* Dark header band — indigo tint for business */}
-                <div className="dm-service-card-head" style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)' }}>
-                  <div className="dm-service-card-glow" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)' }} />
-                  <div className="dm-service-icon" style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)' }}>{svc.icon}</div>
+                {/* Header band */}
+                <div className="dm-service-card-head">
+                  <div className="dm-service-card-glow" />
+                  <div className="dm-service-icon">{svc.icon}</div>
                   <h3 className="dm-service-name">{svc.name}</h3>
                 </div>
                 {/* Card body */}
@@ -607,8 +607,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                       ))}
                     </div>
                   )}
-                  <div className="dm-service-outcome" style={{ color: '#818CF8' }}>{svc.outcome}</div>
-                  <button className="dm-service-cta" style={{ background: '#312E81' }} onClick={() => scrollTo('contact')}>Request a Quote →</button>
+                  <div className="dm-service-outcome">{svc.outcome}</div>
+                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Request a Quote →</button>
                 </div>
               </div>
             ))}
@@ -813,13 +813,13 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
             {/* Left — Copy */}
             <div>
-              <div style={{ display: 'inline-block', background: 'rgba(18, 56, 232, 0.12)', border: '1px solid rgba(18, 56, 232, 0.3)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-primary)', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-block', background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#FFFFFF', marginBottom: '1.5rem' }}>
                 Free Tool
               </div>
               <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '1rem', lineHeight: 1.25 }}>
                 See What ATS Systems<br />Actually Read From Your CV
               </h2>
-              <p style={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, fontSize: '0.95rem', marginBottom: '2rem' }}>
+              <p style={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.75, fontSize: '0.95rem', marginBottom: '2rem' }}>
                 Everybody talks about ATS systems. Very few people have actually seen one work. Upload your CV and watch a live ATS parse it — field by field — in real time. See exactly what gets detected, what gets missed, and why.
               </p>
 
@@ -830,7 +830,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   '⚠️ Formatting issues that kill readability exposed',
                   '📊 Detailed ATS readiness score breakdown',
                 ].map(item => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#FFFFFF', fontWeight: 500 }}>
                     {item}
                   </div>
                 ))}
@@ -841,19 +841,19 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   onClick={() => onNavigateToPath('ats')}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
-                    background: 'linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-electric) 100%)',
+                    background: 'var(--dm-primary)',
                     color: '#fff', border: 'none', borderRadius: '12px',
                     padding: '1rem 2rem', fontSize: '1rem', fontWeight: 800,
                     fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(18, 56, 232, 0.4)', transition: 'transform 0.15s, box-shadow 0.15s',
+                    boxShadow: '0 6px 24px rgba(18, 56, 232, 0.4)', transition: 'transform 0.15s, box-shadow 0.15s, background-color 0.15s',
                   }}
-                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(43, 91, 255, 0.5)'; }}
-                  onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.4)'; }}
+                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(43, 91, 255, 0.5)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.4)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
                 >
                   🔍 Try the Live ATS Simulator →
                 </button>
               )}
-              <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>🔒 100% free · No signup · Your CV never leaves your device</p>
+              <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>🔒 100% free · No signup · Your CV never leaves your device</p>
             </div>
 
             {/* Right — Preview mockup */}

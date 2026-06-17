@@ -142,35 +142,6 @@ function parseResume(rawText) {
     if (span > 0 && span < 50) yearsExp = `~${span} years`;
   }
 
-  // ── ATS Score Calculation ──────────────────────────────────────────────────
-  // Parsing Accuracy (30%) — can we read the document?
-  const parsingAccuracy = isLikelyScanned ? 0 : Math.min(100, Math.round((totalChars / 2000) * 100));
-
-  // Section Recognition (25%) — standard headings found
-  const sectionCount = Object.values(detectedSections).filter(Boolean).length;
-  const maxSections = Object.keys(detectedSections).length;
-  const sectionScore = Math.round((sectionCount / maxSections) * 100);
-
-  // Keyword Coverage (25%) — skills richness. Target: 12 recognised skills = 100%.
-  // Using a dynamic denominator prevents bias toward any one domain.
-  const KEYWORD_TARGET = 12;
-  const keywordScore = Math.min(100, Math.round((detectedSkills.length / KEYWORD_TARGET) * 100));
-
-  // Formatting Safety (20%) — no formatting issues
-  let formattingDeductions = 0;
-  if (multiColumnRisk) formattingDeductions += 30;
-  if (hasImageWarning) formattingDeductions += 50;
-  if (hasTables) formattingDeductions += 15;
-  if (specialCharCount > 10) formattingDeductions += 10;
-  const formattingScore = Math.max(0, 100 - formattingDeductions);
-
-  const overallScore = Math.round(
-    parsingAccuracy * 0.30 +
-    sectionScore * 0.25 +
-    keywordScore * 0.25 +
-    formattingScore * 0.20
-  );
-
   // ── Recommendations ────────────────────────────────────────────────────────
   const recommendations = [];
   if (isLikelyScanned) recommendations.push({ type: 'critical', text: 'Your CV appears to be a scanned image. ATS systems cannot read it. Use a text-based PDF or DOCX.' });
@@ -185,12 +156,18 @@ function parseResume(rawText) {
   if (detectedSkills.length < 5) recommendations.push({ type: 'warning', text: `Only ${detectedSkills.length} recognizable skills found. Expand your skills section with industry keywords.` });
   if (specialCharCount > 10) recommendations.push({ type: 'info', text: 'Decorative bullet symbols detected. Use plain hyphens or standard bullets for better ATS compatibility.' });
 
-  return {
+  const result = {
     contact: {
       name: detectedName,
       email: emailMatch ? emailMatch[0] : null,
       phone: phoneMatch ? phoneMatch[0] : null,
       linkedin: linkedinMatch ? linkedinMatch[0] : null,
+      location: null,
+      hasPhoto: false,
+      hasDOB: false,
+      hasMaritalStatus: false,
+      hasIDNumber: false,
+      hasFullAddress: false,
     },
     sections: detectedSections,
     hasEducation,
@@ -206,17 +183,27 @@ function parseResume(rawText) {
       hasTables,
       hasImageWarning,
       totalChars,
+      hasGraphics: false,
+      hasTextBoxes: false,
+      hasColoredTextOrBg: false,
+      hasSpecialBullets: specialCharCount > 10,
+      hasCreativeHeadings: false,
+      isOverTwoPages: false,
     },
-    scores: {
-      parsingAccuracy,
-      sectionScore,
-      keywordScore,
-      formattingScore,
-      overallScore,
+    experienceEvaluation: {
+      usesStarMethod: hasAchievements,
+      hasMetrics: hasAchievements,
+      boldsFirstWords: false,
+      boldsMetrics: false,
+      grammarCapitalizationAndPeriods: true,
+      rawAsterisksFound: false,
     },
     recommendations,
     rawTextLength: totalChars,
   };
+
+  result.scores = calculateScores(result);
+  return result;
 }
 
 // ─── File to Base64 helper ───────────────────────────────────────────────────
@@ -338,41 +325,44 @@ You must parse the document and return a JSON object with the following schema:
 
 // ─── Score calculation helper ────────────────────────────────────────────────
 function calculateScores(parsedData) {
+  if (!parsedData) return { parsingAccuracy: 0, sectionScore: 0, keywordScore: 0, formattingScore: 0, overallScore: 0 };
+
   // Parsing Accuracy (30%)
   let parsingAccuracy = 100;
-  if (parsedData.formatting.isLikelyScanned) parsingAccuracy -= 50;
-  if (!parsedData.contact.name) parsingAccuracy -= 20;
-  if (!parsedData.contact.email) parsingAccuracy -= 15;
-  if (!parsedData.contact.phone) parsingAccuracy -= 15;
+  if (parsedData.formatting?.isLikelyScanned) parsingAccuracy -= 50;
+  if (!parsedData.contact?.name) parsingAccuracy -= 20;
+  if (!parsedData.contact?.email) parsingAccuracy -= 15;
+  if (!parsedData.contact?.phone) parsingAccuracy -= 15;
   parsingAccuracy = Math.max(0, parsingAccuracy);
 
   // Section Score (25%)
-  const sectionKeys = Object.keys(parsedData.sections);
-  const sectionsFound = sectionKeys.filter(k => parsedData.sections[k]).length;
-  const sectionScore = Math.round((sectionsFound / sectionKeys.length) * 100);
+  const sectionsObj = parsedData.sections || {};
+  const sectionKeys = Object.keys(sectionsObj);
+  const sectionsFound = sectionKeys.filter(k => sectionsObj[k]).length;
+  const sectionScore = sectionKeys.length ? Math.round((sectionsFound / sectionKeys.length) * 100) : 0;
 
   // Keyword Score (25%) — dynamic: 12 recognised skills = full marks (avoids domain bias)
   const KEYWORD_TARGET = 12;
-  const skillsCount = parsedData.skills ? parsedData.skills.length : 0;
+  const skillsCount = Array.isArray(parsedData.skills) ? parsedData.skills.length : 0;
   const keywordScore = Math.min(100, Math.round((skillsCount / KEYWORD_TARGET) * 100));
 
   // Formatting Score (20%)
   let formattingDeductions = 0;
-  if (parsedData.formatting.multiColumnRisk) formattingDeductions += 25;
-  if (parsedData.contact.hasPhoto) formattingDeductions += 35;
-  if (parsedData.formatting.hasTables) formattingDeductions += 15;
-  if (parsedData.formatting.hasGraphics) formattingDeductions += 15;
-  if (parsedData.formatting.hasTextBoxes) formattingDeductions += 15;
-  if (parsedData.formatting.hasColoredTextOrBg) formattingDeductions += 10;
-  if (parsedData.formatting.hasSpecialBullets) formattingDeductions += 10;
-  if (parsedData.formatting.hasCreativeHeadings) formattingDeductions += 10;
-  if (parsedData.formatting.isOverTwoPages) formattingDeductions += 15;
+  if (parsedData.formatting?.multiColumnRisk) formattingDeductions += 25;
+  if (parsedData.contact?.hasPhoto) formattingDeductions += 35;
+  if (parsedData.formatting?.hasTables) formattingDeductions += 15;
+  if (parsedData.formatting?.hasGraphics) formattingDeductions += 15;
+  if (parsedData.formatting?.hasTextBoxes) formattingDeductions += 15;
+  if (parsedData.formatting?.hasColoredTextOrBg) formattingDeductions += 10;
+  if (parsedData.formatting?.hasSpecialBullets) formattingDeductions += 10;
+  if (parsedData.formatting?.hasCreativeHeadings) formattingDeductions += 10;
+  if (parsedData.formatting?.isOverTwoPages) formattingDeductions += 15;
   
   // Experience quality deductions
-  if (!parsedData.experienceEvaluation.usesStarMethod) formattingDeductions += 10;
-  if (!parsedData.experienceEvaluation.hasMetrics) formattingDeductions += 10;
-  if (parsedData.contact.hasDOB) formattingDeductions += 20;
-  if (parsedData.contact.hasIDNumber) formattingDeductions += 20;
+  if (parsedData.experienceEvaluation && !parsedData.experienceEvaluation.usesStarMethod) formattingDeductions += 10;
+  if (parsedData.experienceEvaluation && !parsedData.experienceEvaluation.hasMetrics) formattingDeductions += 10;
+  if (parsedData.contact?.hasDOB) formattingDeductions += 20;
+  if (parsedData.contact?.hasIDNumber) formattingDeductions += 20;
   
   const formattingScore = Math.max(0, 100 - formattingDeductions);
 
@@ -1006,15 +996,15 @@ export default function ATSSimulator({ onBack }) {
                 onClick={runSimulation}
                 style={{
                   display: 'block', width: '100%', marginTop: '1.5rem',
-                  background: 'linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-electric) 100%)',
+                  background: 'var(--dm-primary)',
                   color: '#fff', border: 'none', borderRadius: '14px',
                   padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800,
                   fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
-                  boxShadow: '0 6px 24px rgba(18, 56, 232, 0.35)', transition: 'transform 0.15s, box-shadow 0.15s',
+                  boxShadow: '0 6px 24px rgba(18, 56, 232, 0.35)', transition: 'transform 0.15s, box-shadow 0.15s, background-color 0.15s',
                   letterSpacing: '0.01em',
                 }}
-                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(43, 91, 255, 0.45)'; }}
-                onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.35)'; }}
+                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(43, 91, 255, 0.45)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
+                onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.35)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
               >
                 🔍 Start ATS Simulation
               </button>
@@ -1080,7 +1070,7 @@ export default function ATSSimulator({ onBack }) {
                       <div style={{ fontWeight: 700, color: isPending ? 'rgba(255,255,255,0.35)' : '#fff', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif' }}>
                         {step.label}
                       </div>
-                      {isActive && <div style={{ color: 'var(--dm-teal)', fontSize: '0.75rem', marginTop: '0.2rem', fontWeight: 600 }}>Scanning…</div>}
+                      {isActive && <div style={{ color: '#fff', fontSize: '0.75rem', marginTop: '0.2rem', fontWeight: 600 }}>Scanning…</div>}
                       {isDone && <div style={{ color: '#34D399', fontSize: '0.75rem', marginTop: '0.2rem', fontWeight: 600 }}>Completed ✓</div>}
                       {isError && <div style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '0.2rem', fontWeight: 600 }}>Failed ✗</div>}
                     </div>
@@ -1429,7 +1419,7 @@ export default function ATSSimulator({ onBack }) {
                   <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: '1.35rem', marginBottom: '0.75rem' }}>
                     {ctaHeadline}
                   </h2>
-                  <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', lineHeight: 1.7 }}>
                     {ctaBody}
                   </p>
                 </div>
@@ -1464,9 +1454,9 @@ export default function ATSSimulator({ onBack }) {
                     <button
                       type="submit"
                       disabled={leadStatus === 'sending'}
-                      style={{ width: '100%', background: 'linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-electric) 100%)', color: '#fff', border: 'none', borderRadius: '12px', padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', boxShadow: '0 4px 20px rgba(18, 56, 232, 0.35)', letterSpacing: '0.01em', transition: 'transform 0.15s, box-shadow 0.15s' }}
-                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(43, 91, 255, 0.45)'; }}
-                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(18, 56, 232, 0.35)'; }}
+                      style={{ width: '100%', background: 'var(--dm-primary)', color: '#fff', border: 'none', borderRadius: '12px', padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', boxShadow: '0 4px 20px rgba(18, 56, 232, 0.35)', letterSpacing: '0.01em', transition: 'transform 0.15s, box-shadow 0.15s, background-color 0.15s' }}
+                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(43, 91, 255, 0.45)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
+                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(18, 56, 232, 0.35)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
                     >
                       {leadStatus === 'sending' ? 'Sending…' : 'Get My Personalised Review →'}
                     </button>
