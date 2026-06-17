@@ -488,8 +488,8 @@ RESUME QUALITY RULES:
    - Contact line should be separated by pipes (" | ").
    - No profile photo/headshot (this is a major ATS bias and parsing risk). IMPORTANT: Set "hasPhoto" to true ONLY if you explicitly see a visual photographic headshot/profile picture of a person's face. Do NOT flag text headers, blank margins, colored sidebar containers, decorative icons, avatars, or logos as a photo. If not 100% certain, assume false.
    - No personal identifiers: Date of birth (DOB), age, gender, marital status, National ID, or passport numbers (these are privacy and bias risks!). Only set "hasDOB", "hasMaritalStatus", and "hasIDNumber" to true if you see explicit text stating these.
-   - No full physical address (only City, Country is acceptable, e.g., "Nairobi, Kenya").
-   - Include LinkedIn URL if provided. Do not complain if not provided unless they have other contact info missing.
+   - No full physical address. City and Country is acceptable (e.g., "London, UK", "Nairobi, Kenya", "Lagos, Nigeria", "New York, USA", "Dubai, UAE"). Street-level address details are not acceptable.
+   - Include LinkedIn URL if provided. LinkedIn URLs may appear as linkedin.com/in/name (personal profile), linkedin.com/company/name, or linkedin.com/school/name. A missing LinkedIn URL is NOT a critical or warning issue — set it to null and do not penalise the candidate. LinkedIn is not universally used across all industries and regions.
 4. Content & STAR Method (Critical):
    - Every experience bullet point must follow the STAR method: Action Verb + Specific Task + Quantifiable Result. No generic responsibilities list.
    - Bold the first 3-5 words of every bullet point in the experience section.
@@ -576,6 +576,24 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
     return res.status(500).json({ error: 'ATS Simulator Engine is not configured on the server.' });
   }
 
+  // ── Input size guard (prevents memory exhaustion under concurrent load) ─────
+  // base64-encoded PDF can be up to ~10MB; extracted DOCX text is typically under 1MB
+  const MAX_BASE64_BYTES = 12 * 1024 * 1024; // 12MB of base64 characters
+  const MAX_TEXT_BYTES = 500 * 1024;          // 500KB of plain text
+  if (fileBase64 && fileBase64.length > MAX_BASE64_BYTES) {
+    return res.status(413).json({ error: 'Document is too large to process. Please upload a file under 8MB.' });
+  }
+  if (text && text.length > MAX_TEXT_BYTES) {
+    return res.status(413).json({ error: 'Extracted text is too large. Please upload a shorter document.' });
+  }
+
+  // ── Link sanitation: only forward valid HTTP URLs, cap list at 50 entries ──
+  const safeLinks = Array.isArray(extractedLinks)
+    ? extractedLinks
+        .filter(l => typeof l === 'string' && /^https?:\/\//i.test(l))
+        .slice(0, 50)
+    : [];
+
   try {
     let parts = [
       { text: GEMINI_SYSTEM_PROMPT }
@@ -590,15 +608,15 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
       });
 
       let promptText = 'Please analyze the uploaded PDF resume according to the system instructions.';
-      if (extractedLinks && Array.isArray(extractedLinks) && extractedLinks.length > 0) {
-        promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
+      if (safeLinks.length > 0) {
+        promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${safeLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
       }
       parts.push({ text: promptText });
 
     } else if (text) {
       let promptText = `Here is the extracted text of the resume:\n\n${text}\n\nPlease analyze it using the instructions.`;
-      if (extractedLinks && Array.isArray(extractedLinks) && extractedLinks.length > 0) {
-        promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
+      if (safeLinks.length > 0) {
+        promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${safeLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
       }
       parts.push({ text: promptText });
     } else {

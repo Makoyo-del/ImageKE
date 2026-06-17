@@ -63,8 +63,10 @@ function parseResume(rawText) {
 
   // ── Contact Information ────────────────────────────────────────────────────
   const emailMatch = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-  const phoneMatch = text.match(/(\+?254[\s\-]?[0-9]{3}[\s\-]?[0-9]{3}[\s\-]?[0-9]{3}|\+?[0-9]{1,3}[\s\-]?\(?[0-9]{3}\)?[\s\-]?[0-9]{3,4}[\s\-]?[0-9]{3,4}|\b0[17][0-9]{8}\b)/);
-  const linkedinMatch = text.match(/linkedin\.com\/in\/[a-zA-Z0-9\-_%]+/i);
+  // International phone: matches +CC (NN)NNN-NNNN variants, 7-15 digits (ITU E.164 range)
+  const phoneMatch = text.match(/(\+?[0-9]{1,4}[\s.\-]?\(?[0-9]{1,4}\)?[\s.\-]?[0-9]{3,5}[\s.\-]?[0-9]{3,5}(?:[\s.\-]?[0-9]{1,4})?)/);
+  // LinkedIn: match profile, company, school URLs
+  const linkedinMatch = text.match(/linkedin\.com\/(?:in|company|school)\/[a-zA-Z0-9\-_%]+/i);
 
   // Name: try first non-blank line that isn't email/phone/heading
   let detectedName = null;
@@ -149,8 +151,10 @@ function parseResume(rawText) {
   const maxSections = Object.keys(detectedSections).length;
   const sectionScore = Math.round((sectionCount / maxSections) * 100);
 
-  // Keyword Coverage (25%) — skills richness
-  const keywordScore = Math.min(100, Math.round((detectedSkills.length / 15) * 100));
+  // Keyword Coverage (25%) — skills richness. Target: 12 recognised skills = 100%.
+  // Using a dynamic denominator prevents bias toward any one domain.
+  const KEYWORD_TARGET = 12;
+  const keywordScore = Math.min(100, Math.round((detectedSkills.length / KEYWORD_TARGET) * 100));
 
   // Formatting Safety (20%) — no formatting issues
   let formattingDeductions = 0;
@@ -175,7 +179,8 @@ function parseResume(rawText) {
   if (!detectedSections.skills) recommendations.push({ type: 'warning', text: 'No "Skills" section detected. Add a dedicated skills section with relevant keywords.' });
   if (!detectedSections.summary) recommendations.push({ type: 'info', text: 'No professional summary detected. A 3-line summary at the top boosts ATS keyword density.' });
   if (!detectedSections.certifications) recommendations.push({ type: 'info', text: 'No certifications section found. If you have certifications, add a dedicated section.' });
-  if (!linkedinMatch) recommendations.push({ type: 'info', text: 'LinkedIn profile URL not detected. Include it in your contact section.' });
+  // LinkedIn is recommended but never required — many industries/regions don't rely on it
+  if (!linkedinMatch) recommendations.push({ type: 'info', text: 'No LinkedIn URL detected. If you are active on LinkedIn, include the full profile URL (e.g. linkedin.com/in/yourname) in your contact section for recruiter convenience.' });
   if (!hasAchievements) recommendations.push({ type: 'warning', text: 'No measurable achievements found. Add metrics (e.g., "Increased sales by 23%") to stand out.' });
   if (detectedSkills.length < 5) recommendations.push({ type: 'warning', text: `Only ${detectedSkills.length} recognizable skills found. Expand your skills section with industry keywords.` });
   if (specialCharCount > 10) recommendations.push({ type: 'info', text: 'Decorative bullet symbols detected. Use plain hyphens or standard bullets for better ATS compatibility.' });
@@ -346,9 +351,10 @@ function calculateScores(parsedData) {
   const sectionsFound = sectionKeys.filter(k => parsedData.sections[k]).length;
   const sectionScore = Math.round((sectionsFound / sectionKeys.length) * 100);
 
-  // Keyword Score (25%)
+  // Keyword Score (25%) — dynamic: 12 recognised skills = full marks (avoids domain bias)
+  const KEYWORD_TARGET = 12;
   const skillsCount = parsedData.skills ? parsedData.skills.length : 0;
-  const keywordScore = Math.min(100, Math.round((skillsCount / 12) * 100));
+  const keywordScore = Math.min(100, Math.round((skillsCount / KEYWORD_TARGET) * 100));
 
   // Formatting Score (20%)
   let formattingDeductions = 0;
@@ -605,9 +611,11 @@ export default function ATSSimulator({ onBack }) {
     const delay = (ms) => new Promise(res => setTimeout(res, ms));
     const ext = file.name.split('.').pop().toLowerCase();
 
-    // Start Gemini API Call immediately if key exists, or fall back to secure backend proxy
+    // Start Gemini API Call immediately if key exists in env, or fall back to secure backend proxy.
+    // NOTE: We intentionally do NOT read from localStorage — that would be a security risk
+    // (any user could inject their own key and share it, exposing it in browser storage).
     let geminiPromise = null;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('VITE_GEMINI_API_KEY') || '';
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
     if (apiKey) {
       geminiPromise = (async () => {
