@@ -533,17 +533,17 @@ function ScoreRing({ score, label, size = 90, color = '#63D11A' }) {
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ found, warningText, okText = 'Detected' }) {
   if (warningText) return (
-    <span className="ats-status-badge" style={{ background: 'rgba(255, 210, 31, 0.12)', color: '#FFD21F' }}>
+    <span className="ats-status-badge" style={{ background: 'rgba(255, 210, 31, 0.12)', color: '#A16207' }}>
       ⚠️ {warningText}
     </span>
   );
   if (found) return (
-    <span className="ats-status-badge" style={{ background: 'rgba(99, 209, 26, 0.12)', color: '#63D11A' }}>
+    <span className="ats-status-badge" style={{ background: 'rgba(99, 209, 26, 0.12)', color: '#166534' }}>
       🟢 {okText}
     </span>
   );
   return (
-    <span className="ats-status-badge" style={{ background: 'rgba(239, 42, 42, 0.1)', color: '#EF2A2A' }}>
+    <span className="ats-status-badge" style={{ background: 'rgba(239, 42, 42, 0.1)', color: '#991B1B' }}>
       🔴 Not detected
     </span>
   );
