@@ -800,8 +800,40 @@ export default function ATSSimulator({ onBack }) {
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // VIEW: UPLOAD
+  // DERIVED STATE — computed from parseResult for the results view
+  // All values have safe fallbacks so the view never crashes even if the
+  // Gemini response is partial or the regex fallback path is used.
   // ─────────────────────────────────────────────────────────────────────────
+  const contact        = parseResult?.contact        ?? {};
+  const sections       = parseResult?.sections       ?? {};
+  const skills         = Array.isArray(parseResult?.skills) ? parseResult.skills : [];
+  const recommendations = Array.isArray(parseResult?.recommendations) ? parseResult.recommendations : [];
+  const formatCheck    = parseResult?.formatting     ?? {};
+  const expEval        = parseResult?.experienceEvaluation ?? {};
+  const privacyCheck   = parseResult?.contact        ?? {};
+  const scores         = parseResult?.scores         ?? { parsingAccuracy: 0, sectionScore: 0, keywordScore: 0, formattingScore: 0, overallScore: 0 };
+  const overallScore   = scores.overallScore         ?? 0;
+  const hasAchievements = parseResult?.hasAchievements ?? false;
+  const hasEducation    = parseResult?.hasEducation   ?? (parseResult?.sections?.education ?? false);
+  const educationFound  = hasEducation;
+  const yearsExp        = parseResult?.yearsExp       ?? 'Not detected';
+
+  // Score colour and label based on overall score
+  const scoreColor = overallScore >= 75 ? '#14B8A6' : overallScore >= 50 ? '#F59E0B' : '#EF4444';
+  const scoreLabel = overallScore >= 85 ? 'ATS Ready' : overallScore >= 70 ? 'Good Standing' : overallScore >= 50 ? 'Needs Work' : 'High Risk';
+
+  // CTA copy based on score
+  const ctaHeadline = overallScore >= 85
+    ? 'Your CV is ATS-Ready — Let\'s Make It Exceptional'
+    : overallScore >= 60
+    ? 'Your CV Has Gaps — Fix Them Before You Apply'
+    : 'Your CV Is Failing ATS Systems — This Is Urgent';
+  const ctaBody = overallScore >= 85
+    ? 'A high ATS score is necessary, but not sufficient. Recruiters still need to choose you over equally qualified candidates. Get a professional review to sharpen your narrative, metrics, and positioning.'
+    : overallScore >= 60
+    ? 'Your CV passes basic parsing but is leaving points on the table. A strategic rewrite focused on STAR method, keywords, and formatting will significantly increase your interview call rate.'
+    : 'Your CV is being rejected by automated systems before any human sees it. A full professional rewrite is not optional — it\'s urgent. Let\'s fix this together.';
+
   // ─────────────────────────────────────────────────────────────────────────
   // VIEW RENDERING
   // ─────────────────────────────────────────────────────────────────────────
