@@ -486,8 +486,8 @@ RESUME QUALITY RULES:
    - Standard headings should be uppercase (e.g., PROFESSIONAL SUMMARY, CORE SKILLS, PROFESSIONAL EXPERIENCE, EDUCATION, CERTIFICATIONS, LANGUAGES, KEY ACHIEVEMENTS, REFEREES). Avoid creative headings like "My Journey".
 3. Contact Details & Privacy Rules:
    - Contact line should be separated by pipes (" | ").
-   - No profile photo/headshot (this is a major ATS bias and parsing risk).
-   - No personal identifiers: Date of birth (DOB), age, gender, marital status, National ID, or passport numbers (these are privacy and bias risks!).
+   - No profile photo/headshot (this is a major ATS bias and parsing risk). IMPORTANT: Set "hasPhoto" to true ONLY if you explicitly see a visual photographic headshot/profile picture of a person's face. Do NOT flag text headers, blank margins, colored sidebar containers, decorative icons, avatars, or logos as a photo. If not 100% certain, assume false.
+   - No personal identifiers: Date of birth (DOB), age, gender, marital status, National ID, or passport numbers (these are privacy and bias risks!). Only set "hasDOB", "hasMaritalStatus", and "hasIDNumber" to true if you see explicit text stating these.
    - No full physical address (only City, Country is acceptable, e.g., "Nairobi, Kenya").
    - Include LinkedIn URL if provided. Do not complain if not provided unless they have other contact info missing.
 4. Content & STAR Method (Critical):
@@ -497,6 +497,9 @@ RESUME QUALITY RULES:
    - Ensure there are NO raw asterisks in the copy (e.g., USSD channels must be written as "USSD 247#" or "USSD channel 247#" instead of "*247#").
    - Punctuation & Grammar: Every bullet point/item must start with a capital letter and end with a clean full stop (period).
    - Referees: If references are listed, they should include the supervisor's name, title, and direct phone.
+
+CRITICAL INSTRUCTION ON TRUTHFULNESS:
+All boolean evaluation flags (e.g., hasPhoto, hasDOB, hasMaritalStatus, hasIDNumber, hasFullAddress, isLikelyScanned, multiColumnRisk, hasTables, hasGraphics, hasTextBoxes, hasCreativeHeadings, hasSpecialBullets, isOverTwoPages, hasColoredTextOrBg, usesStarMethod, hasMetrics, boldsFirstWords, boldsMetrics, grammarCapitalizationAndPeriods, rawAsterisksFound) MUST be 100% truthful based strictly on what is present in the document. Do not guess, speculate, or make false inferences. If a feature or risk is not clearly and explicitly present, set its flag to false.
 
 You must parse the document and return a JSON object with the following schema:
 {
