@@ -502,7 +502,7 @@ const PARSE_STEPS = [
 ];
 
 // ─── Score Ring Component ─────────────────────────────────────────────────────
-function ScoreRing({ score, label, size = 90, color = '#14B8A6' }) {
+function ScoreRing({ score, label, size = 90, color = '#63D11A' }) {
   const r = (size - 12) / 2;
   const circ = 2 * Math.PI * r;
   const dash = (score / 100) * circ;
@@ -513,7 +513,7 @@ function ScoreRing({ score, label, size = 90, color = '#14B8A6' }) {
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E2E8F0" strokeWidth="8" />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={score >= 75 ? '#14B8A6' : score >= 50 ? '#F59E0B' : '#EF4444'}
+          stroke={score >= 75 ? '#63D11A' : score >= 50 ? '#FFD21F' : '#EF2A2A'}
           strokeWidth="8"
           strokeDasharray={`${dash} ${circ}`}
           strokeLinecap="round"
@@ -533,17 +533,17 @@ function ScoreRing({ score, label, size = 90, color = '#14B8A6' }) {
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ found, warningText, okText = 'Detected' }) {
   if (warningText) return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FEF3C7', color: '#92400E', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
+    <span className="ats-status-badge" style={{ background: 'rgba(255, 210, 31, 0.12)', color: '#FFD21F' }}>
       ⚠️ {warningText}
     </span>
   );
   if (found) return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#D1FAE5', color: '#065F46', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
+    <span className="ats-status-badge" style={{ background: 'rgba(99, 209, 26, 0.12)', color: '#63D11A' }}>
       🟢 {okText}
     </span>
   );
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FEE2E2', color: '#991B1B', padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
+    <span className="ats-status-badge" style={{ background: 'rgba(239, 42, 42, 0.1)', color: '#EF2A2A' }}>
       🔴 Not detected
     </span>
   );
@@ -819,7 +819,7 @@ export default function ATSSimulator({ onBack }) {
   const yearsExp        = parseResult?.yearsExp       ?? 'Not detected';
 
   // Score colour and label based on overall score
-  const scoreColor = overallScore >= 75 ? '#14B8A6' : overallScore >= 50 ? '#F59E0B' : '#EF4444';
+  const scoreColor = overallScore >= 75 ? '#63D11A' : overallScore >= 50 ? '#FFD21F' : '#EF2A2A';
   const scoreLabel = overallScore >= 85 ? 'ATS Ready' : overallScore >= 70 ? 'Good Standing' : overallScore >= 50 ? 'Needs Work' : 'High Risk';
 
   // CTA copy based on score
@@ -841,17 +841,17 @@ export default function ATSSimulator({ onBack }) {
     <>
       <style>{`
         .ats-back-btn { background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; color: var(--dm-text-muted); font-size: 0.9rem; font-weight: 600; font-family: Inter, sans-serif; padding: 0.5rem 0; transition: color 0.15s; }
-        .ats-back-btn:hover { color: var(--dm-teal); }
+        .ats-back-btn:hover { color: var(--dm-primary); }
         .ats-drop-zone { border: 2.5px dashed #CBD5E1; border-radius: 20px; padding: 4rem 2rem; text-align: center; transition: all 0.2s; background: #fff; cursor: pointer; }
-        .ats-drop-zone.dragging { border-color: var(--dm-teal); background: rgba(20,184,166,0.04); }
-        .ats-drop-zone:hover { border-color: var(--dm-teal); }
-        .ats-file-selected { border-color: var(--dm-teal); background: rgba(20,184,166,0.04); }
+        .ats-drop-zone.dragging { border-color: var(--dm-primary); background: rgba(18, 56, 232, 0.04); }
+        .ats-drop-zone:hover { border-color: var(--dm-primary); }
+        .ats-file-selected { border-color: var(--dm-primary); background: rgba(18, 56, 232, 0.04); }
         @keyframes ats-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
         @keyframes ats-fadein { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .ats-step-row { animation: ats-fadein 0.3s ease forwards; }
         @keyframes ats-spin { to { transform: rotate(360deg); } }
-        .ats-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #E2E8F0; border-top-color: var(--dm-teal); border-radius: 50%; animation: ats-spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-        .ats-skill-chip { display: inline-block; background: rgba(20,184,166,0.1); color: var(--dm-teal); border: 1px solid rgba(20,184,166,0.25); border-radius: 20px; padding: 3px 12px; font-size: 0.75rem; font-weight: 700; margin: 3px; }
+        .ats-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #E2E8F0; border-top-color: var(--dm-primary); border-radius: 50%; animation: ats-spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        .ats-skill-chip { display: inline-block; background: rgba(18, 56, 232, 0.1); color: var(--dm-primary); border: 1px solid rgba(18, 56, 232, 0.25); border-radius: 20px; padding: 3px 12px; font-size: 0.75rem; font-weight: 700; margin: 3px; }
         .ats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .ats-table th { background: var(--dm-bg); padding: 0.5rem 0.75rem; text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dm-text-muted); border-bottom: 1px solid var(--dm-border); }
         .ats-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--dm-border); vertical-align: middle; color: var(--dm-slate); }
@@ -875,9 +875,9 @@ export default function ATSSimulator({ onBack }) {
           color: rgba(255, 255, 255, 0.35);
         }
         .ats-lead-input:focus {
-          border-color: var(--dm-teal);
+          border-color: var(--dm-primary);
           background: rgba(15, 23, 42, 0.75);
-          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.25);
+          box-shadow: 0 0 0 3px rgba(18, 56, 232, 0.25);
         }
         .ats-wa-link {
           color: rgba(255, 255, 255, 0.6) !important;
@@ -888,10 +888,11 @@ export default function ATSSimulator({ onBack }) {
           transition: all 0.2s ease;
         }
         .ats-wa-link:hover {
-          color: var(--dm-teal) !important;
+          color: var(--dm-primary) !important;
           transform: translateY(-1px);
         }
-         .ats-lead-grid {
+        .ats-status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+        .ats-lead-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.25rem;
@@ -909,6 +910,8 @@ export default function ATSSimulator({ onBack }) {
           .ats-table td { padding: 0.5rem 0.5rem !important; word-break: break-all; }
           .ats-skill-chip { font-size: 0.7rem !important; padding: 2px 8px !important; margin: 2px !important; }
           .ats-scores-row { gap: 1rem !important; justify-content: space-around; }
+          .ats-status-badge { padding: 2px 6px !important; font-size: 0.65rem !important; }
+          .ats-drop-zone { padding: 2.5rem 1rem !important; }
         }
       `}</style>
 
@@ -923,7 +926,7 @@ export default function ATSSimulator({ onBack }) {
 
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.25)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-teal)', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'inline-block', background: 'rgba(18, 56, 232, 0.1)', border: '1px solid rgba(18, 56, 232, 0.25)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-primary)', marginBottom: '1.25rem' }}>
                 Free Tool
               </div>
               <h1 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', marginBottom: '1rem', lineHeight: 1.25 }}>
@@ -982,7 +985,7 @@ export default function ATSSimulator({ onBack }) {
                   <p style={{ color: 'var(--dm-text-muted)', fontSize: '0.9rem', margin: '0 0 1.5rem' }}>
                     or click to select — PDF or DOCX supported
                   </p>
-                  <span style={{ display: 'inline-block', background: 'var(--dm-teal)', color: '#fff', padding: '0.75rem 2rem', borderRadius: '10px', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif' }}>
+                  <span style={{ display: 'inline-block', background: 'var(--dm-primary)', color: '#fff', padding: '0.75rem 2rem', borderRadius: '10px', fontWeight: 700, fontSize: '0.95rem', fontFamily: 'Inter, sans-serif' }}>
                     Select File
                   </span>
                   <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: '#475569' }}>
@@ -1003,15 +1006,15 @@ export default function ATSSimulator({ onBack }) {
                 onClick={runSimulation}
                 style={{
                   display: 'block', width: '100%', marginTop: '1.5rem',
-                  background: 'linear-gradient(135deg, var(--dm-teal) 0%, #0D9488 100%)',
+                  background: 'linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-electric) 100%)',
                   color: '#fff', border: 'none', borderRadius: '14px',
                   padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800,
                   fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
-                  boxShadow: '0 6px 24px rgba(20,184,166,0.35)', transition: 'transform 0.15s, box-shadow 0.15s',
+                  boxShadow: '0 6px 24px rgba(18, 56, 232, 0.35)', transition: 'transform 0.15s, box-shadow 0.15s',
                   letterSpacing: '0.01em',
                 }}
-                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(20,184,166,0.45)'; }}
-                onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(20,184,166,0.35)'; }}
+                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(43, 91, 255, 0.45)'; }}
+                onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.35)'; }}
               >
                 🔍 Start ATS Simulation
               </button>
@@ -1041,7 +1044,7 @@ export default function ATSSimulator({ onBack }) {
       )}
 
       {view === 'parsing' && (
-        <div style={{ minHeight: '100vh', background: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--dm-navy)', display: 'flex', alignItems: 'center', justifycontent: 'center', padding: '2rem' }}>
           <div style={{ width: '100%', maxWidth: '560px' }}>
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
@@ -1130,7 +1133,7 @@ export default function ATSSimulator({ onBack }) {
             )}
 
             {/* ── Score Overview ──────────────────────────────────────────── */}
-            <div style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', borderRadius: '20px', padding: '2.5rem', marginBottom: '2rem', color: '#fff' }}>
+            <div style={{ background: 'linear-gradient(135deg, var(--dm-navy) 0%, var(--dm-primary) 50%, var(--dm-electric) 100%)', borderRadius: '20px', padding: '2.5rem', marginBottom: '2rem', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem' }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem' }}>ATS Simulation Complete</div>
@@ -1377,7 +1380,7 @@ export default function ATSSimulator({ onBack }) {
               <p style={{ fontSize: '0.8rem', color: 'var(--dm-text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
                 Recruiters using ATS software don't see your beautiful design. They see structured data — like this:
               </p>
-              <div style={{ background: '#0F172A', borderRadius: '12px', padding: '1.5rem', fontFamily: "'Courier New', monospace", fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.8 }}>
+              <div style={{ background: 'var(--dm-navy-800)', borderRadius: '12px', padding: '1.5rem', fontFamily: "'Courier New', monospace", fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.8 }}>
                 <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.5rem' }}>// ATS Parsed Profile</div>
                 <div><span style={{ color: '#FB7185' }}>Name:</span> <span style={{ color: '#fff' }}>{contact.name || '⚠️ NOT DETECTED'}</span></div>
                 <div><span style={{ color: '#FB7185' }}>Email:</span> <span style={{ color: '#fff' }}>{contact.email || '⚠️ NOT DETECTED'}</span></div>
@@ -1415,7 +1418,7 @@ export default function ATSSimulator({ onBack }) {
 
             {/* ── Lead Capture CTA ──────────────────────────────────────────── */}
             <div style={{
-              background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
+              background: 'linear-gradient(135deg, var(--dm-navy) 0%, var(--dm-navy-800) 50%, var(--dm-navy) 100%)',
               borderRadius: '20px', padding: '2.5rem',
               border: `1px solid ${scoreColor}33`,
               boxShadow: `0 0 40px ${scoreColor}22`,
@@ -1432,7 +1435,7 @@ export default function ATSSimulator({ onBack }) {
                 </div>
 
                 {leadStatus === 'success' ? (
-                  <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(20,184,166,0.1)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: '14px' }}>
+                  <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(99, 209, 26, 0.1)', border: '1px solid rgba(99, 209, 26, 0.3)', borderRadius: '14px' }}>
                     <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✅</div>
                     <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', marginBottom: '0.5rem' }}>Got it! Duncan will be in touch.</h3>
                     <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Check your inbox. You'll hear back within 24 hours.</p>
@@ -1454,16 +1457,16 @@ export default function ATSSimulator({ onBack }) {
                       <input className="ats-lead-input" placeholder="linkedin.com/in/yourname" value={leadForm.linkedin} onChange={e => setLeadForm(p => ({ ...p, linkedin: e.target.value }))} />
                     </div>
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                      <input type="checkbox" checked={leadForm.consent} onChange={e => setLeadForm(p => ({ ...p, consent: e.target.checked }))} style={{ accentColor: 'var(--dm-teal)', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} />
+                      <input type="checkbox" checked={leadForm.consent} onChange={e => setLeadForm(p => ({ ...p, consent: e.target.checked }))} style={{ accentColor: 'var(--dm-primary)', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} />
                       I agree to be contacted by Duncan Makoyo about my CV results. My data will not be shared with third parties.
                     </label>
                     {leadError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '0.6rem 1rem', marginBottom: '1rem', color: '#FCA5A5', fontSize: '0.85rem' }}>{leadError}</div>}
                     <button
                       type="submit"
                       disabled={leadStatus === 'sending'}
-                      style={{ width: '100%', background: 'linear-gradient(135deg, var(--dm-teal) 0%, #0D9488 100%)', color: '#fff', border: 'none', borderRadius: '12px', padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', boxShadow: '0 4px 20px rgba(20,184,166,0.35)', letterSpacing: '0.01em', transition: 'transform 0.15s, box-shadow 0.15s' }}
-                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(20,184,166,0.45)'; }}
-                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(20,184,166,0.35)'; }}
+                      style={{ width: '100%', background: 'linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-electric) 100%)', color: '#fff', border: 'none', borderRadius: '12px', padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', boxShadow: '0 4px 20px rgba(18, 56, 232, 0.35)', letterSpacing: '0.01em', transition: 'transform 0.15s, box-shadow 0.15s' }}
+                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(43, 91, 255, 0.45)'; }}
+                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(18, 56, 232, 0.35)'; }}
                     >
                       {leadStatus === 'sending' ? 'Sending…' : 'Get My Personalised Review →'}
                     </button>

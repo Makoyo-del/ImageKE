@@ -659,7 +659,7 @@ function App() {
   // ─────────────────────────────────────────────────────────────────────────────
   const renderHome = () => (
     <div>
-      <section className="hero" style={{ background: 'linear-gradient(135deg, #0A1931 0%, #15305B 50%, #0052CC 100%)', borderBottom: 'none', color: '#ffffff', padding: '5rem 1.25rem 4rem' }}>
+      <section className="hero" style={{ background: 'linear-gradient(135deg, #0D1B4D 0%, #1238E8 50%, #2B5BFF 100%)', borderBottom: 'none', color: '#ffffff', padding: '5rem 1.25rem 4rem' }}>
         <div className="container">
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', padding: '6px 16px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem', color: '#E0E7FF' }}>Kenya's #1 Photo Fixer</div>
           <h1 style={{ color: '#ffffff', marginBottom: '1.25rem', fontSize: 'clamp(2rem, 5vw, 3rem)', lineHeight: 1.2 }}>Your Photo Was Rejected.<br/>Fix It in 20 Seconds.</h1>
@@ -679,12 +679,12 @@ function App() {
       <div className="container">
         {/* Batch Document Compressor Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, #0052CC 0%, #003D99 100%)',
+          background: 'linear-gradient(135deg, var(--dm-navy) 0%, var(--dm-primary) 100%)',
           color: '#ffffff',
           borderRadius: '16px',
           padding: '2rem',
           marginBottom: '2.5rem',
-          boxShadow: '0 8px 30px rgba(0, 82, 204, 0.15)',
+          boxShadow: '0 8px 30px rgba(18, 56, 232, 0.15)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-start',
@@ -1904,10 +1904,9 @@ function App() {
     setError('');
   };
 
-  // ── Video Dashboard ───────────────────────────────────────────────────────
   const renderVideoDashboard = () => (
     <div>
-      <section className="hero" style={{ background: 'linear-gradient(160deg, #2D1B69 0%, #7C3AED 60%, #A855F7 100%)' }}>
+      <section className="hero" style={{ background: 'linear-gradient(135deg, #0D1B4D 0%, #1238E8 50%, #2B5BFF 100%)' }}>
         <div className="container">
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem', color: 'rgba(255,255,255,0.9)' }}>Browser-Powered · No Upload · No Desktop App</div>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#fff' }}>
@@ -1930,13 +1929,13 @@ function App() {
         {/* Subscription / Billing Banner */}
         <div style={{
           background: isSubscribed
-            ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
-            : 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
+            ? 'linear-gradient(135deg, #63D11A 0%, #4CAF0A 100%)'
+            : 'linear-gradient(135deg, #1238E8 0%, #0D1B4D 100%)',
           color: '#ffffff',
           borderRadius: '16px',
           padding: '2rem',
           marginBottom: '2.5rem',
-          boxShadow: '0 8px 30px rgba(124, 58, 237, 0.15)',
+          boxShadow: '0 8px 30px rgba(18, 56, 232, 0.15)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -1966,7 +1965,7 @@ function App() {
             <button
               onClick={handleSubscribe}
               className="btn"
-              style={{ background: '#ffffff', color: '#7C3AED', fontWeight: 700 }}
+              style={{ background: '#ffffff', color: '#1238E8', fontWeight: 700 }}
             >
               Subscribe KSh 499 / Mo
             </button>
@@ -1982,48 +1981,48 @@ function App() {
               title: 'Crop & Aspect Ratio',
               badge: 'TikTok / Reels',
               desc: 'Shot in 16:9 but need 9:16 for TikTok or Reels? Crop it to portrait with a visual focus selector — no guesswork.',
-              icon: <Crop size={24} style={{ color: '#7C3AED' }} />
+              icon: <Crop size={24} style={{ color: 'var(--primary)' }} />
             },
             {
               id: 'compress',
               title: 'WhatsApp Compressor',
               badge: 'Under 16MB',
               desc: 'Your video is too large to send. Compress it to under 16MB (WhatsApp) or 25MB (Gmail) without butchering the quality.',
-              icon: <FileVideo size={24} style={{ color: '#7C3AED' }} />
+              icon: <FileVideo size={24} style={{ color: 'var(--primary)' }} />
             },
             {
               id: 'watermark',
               title: 'Brand Watermarker',
               badge: 'Logo / Text',
               desc: 'Burn your company logo or brand text onto the video permanently. Ideal for content creators protecting their work.',
-              icon: <Layers size={24} style={{ color: '#7C3AED' }} />
+              icon: <Layers size={24} style={{ color: 'var(--primary)' }} />
             },
             {
               id: 'audio',
               title: 'Audio Extractor (MP3)',
               badge: 'Podcast / Music',
               desc: 'Pull the audio track from any video and save it as a clean MP3. Perfect for podcast clips, meeting recordings, or music.',
-              icon: <Music size={24} style={{ color: '#7C3AED' }} />
+              icon: <Music size={24} style={{ color: 'var(--primary)' }} />
             },
             {
               id: 'frames',
               title: 'Video Frame Extractor',
               badge: 'Storyboard / AI Training',
               desc: 'Break your video into individual PNG frames at any rate — 1 per second, 2 per second, or a fixed total count. Downloads as a ZIP.',
-              icon: <Eye size={24} style={{ color: '#7C3AED' }} />
+              icon: <Eye size={24} style={{ color: 'var(--primary)' }} />
             }
           ].map((tool) => (
             <div
               key={tool.id}
               className="card"
               onClick={() => setActiveVideoTool(tool.id)}
-              style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderLeft: '4px solid #7C3AED', cursor: 'pointer' }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderLeft: '4px solid var(--primary)', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                 {tool.icon}
                 <div>
                   <h3 style={{ margin: 0 }}>{tool.title}</h3>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#F3E8FF', color: '#7C3AED', borderRadius: '10px', padding: '1px 8px', display: 'inline-block', marginTop: '2px' }}>{tool.badge}</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: '10px', padding: '1px 8px', display: 'inline-block', marginTop: '2px' }}>{tool.badge}</span>
                 </div>
               </div>
               <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>{tool.desc}</p>
@@ -2067,7 +2066,7 @@ function App() {
 
         {/* Upload State */}
         {!videoUrl ? (
-          <div className="upload-zone" style={{ background: '#FAF8FF', border: '2px dashed #D8B4FE' }}>
+          <div className="upload-zone" style={{ background: 'var(--dm-bg)', border: '2px dashed var(--dm-border)' }}>
             <input
               type="file"
               id="videoUploadInput"
@@ -2077,9 +2076,9 @@ function App() {
             />
             <label htmlFor="videoUploadInput" style={{ cursor: 'pointer', display: 'block' }}>
               <div style={{
-                background: '#F3E8FF', width: '64px', height: '64px', borderRadius: '50%',
+                background: 'var(--primary-light)', width: '64px', height: '64px', borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyIntent: 'center',
-                margin: '0 auto 1.5rem', color: '#7C3AED',
+                margin: '0 auto 1.5rem', color: 'var(--primary)',
               }}>
                 <Upload size={32} />
               </div>
@@ -2087,7 +2086,7 @@ function App() {
               <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 1.5rem' }}>
                 Supports MP4, WebM, MOV, MKV files. Recommended: max 50MB for fast speed.
               </p>
-              <span className="btn" style={{ background: '#7C3AED' }}>Select Video</span>
+              <span className="btn" style={{ background: 'var(--primary)' }}>Select Video</span>
             </label>
           </div>
         ) : (
@@ -2116,7 +2115,7 @@ function App() {
                 {activeVideoTool === 'aspect' && !isProcessed && (
                   <div style={{
                     position: 'absolute',
-                    border: '2px dashed #7C3AED',
+                    border: '2px dashed var(--primary)',
                     boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)',
                     pointerEvents: 'none',
                     transition: 'all 0.1s ease',
@@ -2190,9 +2189,9 @@ function App() {
                             flex: 1,
                             padding: '0.5rem 0.25rem',
                             fontSize: '0.8rem',
-                            background: targetAspect === item.value ? '#7C3AED' : 'transparent',
-                            color: targetAspect === item.value ? '#ffffff' : '#7C3AED',
-                            border: '1px solid #7C3AED',
+                            background: targetAspect === item.value ? 'var(--primary)' : 'transparent',
+                            color: targetAspect === item.value ? '#ffffff' : 'var(--primary)',
+                            border: '1px solid var(--primary)',
                           }}
                         >
                           {item.label}
@@ -2205,7 +2204,7 @@ function App() {
                   {(targetAspect === '9:16' || targetAspect === '1:1') && (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                        Focus Area Position: <span style={{ color: '#7C3AED' }}>{cropOffsetPercent}%</span>
+                        Focus Area Position: <span style={{ color: 'var(--primary)' }}>{cropOffsetPercent}%</span>
                       </label>
                       <input
                         type="range"
@@ -2213,7 +2212,7 @@ function App() {
                         max="100"
                         value={cropOffsetPercent}
                         onChange={(e) => setCropOffsetPercent(parseInt(e.target.value))}
-                        style={{ width: '100%', accentColor: '#7C3AED', cursor: 'pointer' }}
+                        style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
                       />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
                         Drag the slider to adjust the horizontal crop window. Bounding box overlay updates in real-time.
@@ -2244,9 +2243,9 @@ function App() {
                             flex: 1,
                             padding: '0.5rem 0.25rem',
                             fontSize: '0.8rem',
-                            background: targetCompressMB === item.value ? '#7C3AED' : 'transparent',
-                            color: targetCompressMB === item.value ? '#ffffff' : '#7C3AED',
-                            border: '1px solid #7C3AED',
+                            background: targetCompressMB === item.value ? 'var(--primary)' : 'transparent',
+                            color: targetCompressMB === item.value ? '#ffffff' : 'var(--primary)',
+                            border: '1px solid var(--primary)',
                           }}
                         >
                           {item.label}
@@ -2294,9 +2293,9 @@ function App() {
                             flex: 1,
                             padding: '0.5rem 0.25rem',
                             fontSize: '0.8rem',
-                            background: watermarkType === item.value ? '#7C3AED' : 'transparent',
-                            color: watermarkType === item.value ? '#ffffff' : '#7C3AED',
-                            border: '1px solid #7C3AED',
+                            background: watermarkType === item.value ? 'var(--primary)' : 'transparent',
+                            color: watermarkType === item.value ? '#ffffff' : 'var(--primary)',
+                            border: '1px solid var(--primary)',
                           }}
                         >
                           {item.label}
@@ -2388,9 +2387,9 @@ function App() {
                             flex: 1,
                             padding: '0.6rem 0.25rem',
                             fontSize: '0.85rem',
-                            background: frameExtractMode === item.value ? '#7C3AED' : 'transparent',
-                            color: frameExtractMode === item.value ? '#ffffff' : '#7C3AED',
-                            border: '1px solid #7C3AED',
+                            background: frameExtractMode === item.value ? 'var(--primary)' : 'transparent',
+                            color: frameExtractMode === item.value ? '#ffffff' : 'var(--primary)',
+                            border: '1px solid var(--primary)',
                           }}
                         >
                           {item.label}
@@ -2402,7 +2401,7 @@ function App() {
                   {frameExtractMode === 'fps' ? (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                        Extract one frame every <span style={{ color: '#7C3AED' }}>{frameExtractFpsRate} second{frameExtractFpsRate !== 1 ? 's' : ''}</span>
+                        Extract one frame every <span style={{ color: 'var(--primary)' }}>{frameExtractFpsRate} second{frameExtractFpsRate !== 1 ? 's' : ''}</span>
                       </label>
                       <input
                         type="range"
@@ -2411,7 +2410,7 @@ function App() {
                         step="1"
                         value={frameExtractFpsRate}
                         onChange={(e) => setFrameExtractFpsRate(parseInt(e.target.value))}
-                        style={{ width: '100%', accentColor: '#7C3AED', cursor: 'pointer' }}
+                        style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
                       />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
                         At {frameExtractFpsRate}s intervals, a {videoFileMetadata.duration ? Math.round(videoFileMetadata.duration / frameExtractFpsRate) : '?'}-frame ZIP will be generated.
@@ -2420,7 +2419,7 @@ function App() {
                   ) : (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                        Total frames to extract: <span style={{ color: '#7C3AED' }}>{frameExtractCount}</span>
+                        Total frames to extract: <span style={{ color: 'var(--primary)' }}>{frameExtractCount}</span>
                       </label>
                       <input
                         type="range"
@@ -2429,14 +2428,14 @@ function App() {
                         step="5"
                         value={frameExtractCount}
                         onChange={(e) => setFrameExtractCount(parseInt(e.target.value))}
-                        style={{ width: '100%', accentColor: '#7C3AED', cursor: 'pointer' }}
+                        style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
                       />
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
                         Frames will be distributed evenly across the full video duration.
                       </span>
                     </div>
                   )}
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: '#F9F5FF', padding: '0.75rem', borderRadius: '8px', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--primary-light)', padding: '0.75rem', borderRadius: '8px', lineHeight: 1.5 }}>
                     💡 <b>Use case:</b> AI training datasets, storyboard generation, thumbnail selection, video analysis.
                   </p>
                 </div>
@@ -2448,8 +2447,8 @@ function App() {
                   onClick={handleProcessVideo}
                   className="btn"
                   style={{
-                    background: '#7C3AED',
-                    boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)',
+                    background: 'var(--primary)',
+                    boxShadow: '0 4px 14px rgba(18, 56, 232, 0.25)',
                     padding: '0.875rem 2rem',
                     fontWeight: 700,
                   }}
@@ -2483,7 +2482,7 @@ function App() {
                           </div>
                         ))}
                         {!isCurrentToolPaid && extractedFrames.length > 5 && (
-                          <div style={{ borderRadius: '6px', border: '1px dashed #D8B4FE', background: '#F9F5FF', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', fontSize: '0.7rem', color: '#7C3AED', fontWeight: 700, textAlign: 'center', padding: '4px' }}>
+                          <div style={{ borderRadius: '6px', border: '1px dashed var(--dm-border)', background: 'var(--dm-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', fontSize: '0.7rem', color: 'var(--dm-primary)', fontWeight: 700, textAlign: 'center', padding: '4px' }}>
                             +{extractedFrames.length - 5} more locked
                           </div>
                         )}
@@ -2491,25 +2490,25 @@ function App() {
 
                       {!isCurrentToolPaid ? (
                         <div style={{
-                          background: '#F9F5FF', border: '1px solid #E9D5FF',
+                          background: 'var(--dm-bg)', border: '1px solid var(--dm-border)',
                           borderRadius: '12px', padding: '1rem',
                         }}>
-                          <h4 style={{ color: '#6B21A8', marginBottom: '0.25rem' }}>🔒 Unlock All Frames</h4>
-                          <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.4, marginBottom: '1rem' }}>
+                          <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.25rem' }}>🔒 Unlock All Frames</h4>
+                          <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.4, marginBottom: '1rem' }}>
                             The free preview shows the first 5 frames. Pay <b>KSh {VIDEO_TOOL_PRICING.frames}</b> to download all {extractedFrames.length} frames as a ZIP archive, or subscribe for unlimited access.
                           </p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <button
                               onClick={handleDownloadFreePreview}
                               className="btn"
-                              style={{ background: 'transparent', color: '#7C3AED', border: '1.5px solid #7C3AED', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                              style={{ background: 'transparent', color: 'var(--dm-primary)', border: '1.5px solid var(--dm-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
                             >
                               Download First 5 Frames (Free)
                             </button>
                             <button
                               onClick={handlePayForVideo}
                               className="btn"
-                              style={{ background: '#7C3AED', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                              style={{ background: 'var(--primary)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                             >
                               <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING.frames} — Download All {extractedFrames.length} Frames as ZIP
                             </button>
@@ -2549,18 +2548,18 @@ function App() {
                   {/* Paywall for standard tools */}
                   {activeVideoTool !== 'frames' && (
                     !isCurrentToolPaid ? (
-                      <div style={{ background: '#F9F5FF', border: '1px solid #E9D5FF', borderRadius: '12px', padding: '1.25rem', marginTop: '0.5rem' }}>
+                      <div style={{ background: 'var(--dm-bg)', border: '1px solid var(--dm-border)', borderRadius: '12px', padding: '1.25rem', marginTop: '0.5rem' }}>
                         {activeVideoTool === 'audio' ? (
                           <>
-                            <h4 style={{ color: '#6B21A8', marginBottom: '0.35rem' }}>🔒 Preview Only · Pay to Download MP3</h4>
-                            <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.5, marginBottom: '1rem' }}>
+                            <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.35rem' }}>🔒 Preview Only · Pay to Download MP3</h4>
+                            <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
                               Full-length audio preview plays above — nothing is cut. Pay <b>KSh {VIDEO_TOOL_PRICING.audio}</b> once to download the clean MP3 file.
                             </p>
                           </>
                         ) : (
                           <>
-                            <h4 style={{ color: '#6B21A8', marginBottom: '0.35rem' }}>🔒 Watermarked Preview Only</h4>
-                            <p style={{ fontSize: '0.825rem', color: '#7C3AED', lineHeight: 1.5, marginBottom: '1rem' }}>
+                            <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.35rem' }}>🔒 Watermarked Preview Only</h4>
+                            <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
                               The free preview is limited to <b>15 seconds</b> with a corner watermark. Pay <b>KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99}</b> once to download the full-length clean output — or subscribe for unlimited access.
                             </p>
                           </>
@@ -2570,7 +2569,7 @@ function App() {
                             <button
                               onClick={handleDownloadFreePreview}
                               className="btn"
-                              style={{ background: 'transparent', color: '#7C3AED', border: '1.5px solid #7C3AED', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                              style={{ background: 'transparent', color: 'var(--dm-primary)', border: '1.5px solid var(--dm-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
                             >
                               Download Free Preview (15s, watermarked)
                             </button>
@@ -2578,7 +2577,7 @@ function App() {
                           <button
                             onClick={handlePayForVideo}
                             className="btn"
-                            style={{ background: '#7C3AED', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                            style={{ background: 'var(--primary)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                           >
                             <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99} — {activeVideoTool === 'audio' ? 'Download Full MP3' : 'Download Full Clean Version'}
                           </button>

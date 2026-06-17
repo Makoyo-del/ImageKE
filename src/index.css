@@ -2,42 +2,49 @@
 
 /* ─── DM Brand Tokens ────────────────────────────────────────────────────────── */
 :root {
-  --dm-navy:       #0F172A;
-  --dm-navy-800:   #1E293B;
-  --dm-navy-700:   #253347;
-  --dm-slate:      #334155;  /* 7.5:1 on white — AA large + normal */
-  --dm-slate-400:  #64748B;  /* raised from 94A3B8 for better contrast */
-  --dm-teal:       #0D9488;  /* slightly darker — better contrast on white */
-  --dm-teal-hover: #0B7A70;
-  --dm-teal-light: rgba(13, 148, 136, 0.09);
-  --dm-bg:         #F1F5F9;  /* slightly deeper off-white for section contrast */
+  --dm-primary:    #1238E8;  /* Primary Blue */
+  --dm-electric:   #2B5BFF;  /* Electric Blue */
+  --dm-navy:       #0D1B4D;  /* Midnight Navy */
+  --dm-navy-800:   #081236;  /* Deeper Navy */
+  --dm-navy-700:   #132460;  /* Lighter Navy */
+  --dm-slate:      #2B3A67;  /* Medium Navy/Slate */
+  --dm-slate-400:  #64748B;  /* Muted Text */
+  --dm-success:    #63D11A;  /* Success Green */
+  --dm-red:        #EF2A2A;  /* Action Red */
+  --dm-yellow:     #FFD21F;  /* Attention Yellow */
   --dm-white:      #FFFFFF;
-  --dm-success:    #059669;
-  --dm-text:       #0F172A;  /* near-black — max contrast */
-  --dm-text-muted: #475569;  /* was 64748B — now 5.7:1 on white, WCAG AA */
-  --dm-border:     #CBD5E1;  /* slightly visible */
+  --dm-bg:         #F5F8FF;  /* Light Background */
+  --dm-text:       #0D1B4D;  /* Midnight Navy text */
+  --dm-text-muted: #64748B;  /* Muted Text */
+  --dm-border:     #DCE5FF;  /* Light Border */
   --dm-card-bg:    #FFFFFF;
+  
+  /* Legacy/compatibility pointers */
+  --dm-teal:       var(--dm-primary);
+  --dm-teal-hover: var(--dm-electric);
+  --dm-teal-light: rgba(18, 56, 232, 0.08);
+
   --dm-shadow-sm:  0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
-  --dm-shadow-md:  0 4px 16px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05);
-  --dm-shadow-lg:  0 20px 48px rgba(0,0,0,0.13), 0 8px 20px rgba(0,0,0,0.07);
+  --dm-shadow-md:  0 4px 16px rgba(18,56,232,0.08), 0 2px 6px rgba(18,56,232,0.04);
+  --dm-shadow-lg:  0 20px 48px rgba(13,27,77,0.12), 0 8px 20px rgba(13,27,77,0.06);
   --dm-radius:     12px;
   --dm-radius-lg:  20px;
 }
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────────── */
 :root {
-  --primary: #0052CC;
-  --primary-hover: #003D99;
-  --primary-light: #EBF3FF;
-  --bg: #FFFFFF;
-  --text: #111827;
-  --text-muted: #6B7280;
-  --card-bg: #F9FAFB;
-  --border: #E5E7EB;
-  --success: #059669;
+  --primary: var(--dm-primary);
+  --primary-hover: var(--dm-electric);
+  --primary-light: var(--dm-bg);
+  --bg: var(--dm-white);
+  --text: var(--dm-navy);
+  --text-muted: var(--dm-slate-400);
+  --card-bg: var(--dm-white);
+  --border: var(--dm-border);
+  --success: var(--dm-success);
   --radius: 12px;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-md: 0 4px 16px rgba(18,56,232,0.08);
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────────────── */
@@ -515,8 +522,8 @@ p { color: var(--text-muted); }
 
 /* ─── DM Hero ────────────────────────────────────────────────────────────────── */
 .dm-hero {
-  /* Professional diagonal gradient — navy to rich dark slate */
-  background: linear-gradient(150deg, #0F172A 0%, #1A2744 45%, #0F2037 100%);
+  /* Premium brand gradient — navy to primary blue to electric blue */
+  background: linear-gradient(135deg, var(--dm-navy) 0%, var(--dm-primary) 50%, var(--dm-electric) 100%);
   min-height: 92vh;
   display: flex;
   align-items: center;
@@ -528,10 +535,10 @@ p { color: var(--text-muted); }
   content: '';
   position: absolute;
   inset: 0;
-  /* Subtle teal glow — doesn't wash out text */
+  /* Subtle electric blue glow */
   background:
-    radial-gradient(ellipse 55% 55% at 75% 45%, rgba(13,148,136,0.12) 0%, transparent 65%),
-    radial-gradient(ellipse 35% 35% at 15% 85%, rgba(13,148,136,0.07) 0%, transparent 60%);
+    radial-gradient(ellipse 55% 55% at 75% 45%, rgba(43, 91, 255, 0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 35% at 15% 85%, rgba(18, 56, 232, 0.08) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -1354,8 +1361,8 @@ p { color: var(--text-muted); }
 
 /* ─── CTA Section ────────────────────────────────────────────────────────────── */
 .dm-cta-section {
-  /* Navy to deep teal — directional, polished */
-  background: linear-gradient(150deg, #0F172A 0%, #0F2037 40%, #0B3D35 100%);
+  /* Premium brand gradient — navy to primary blue to electric blue */
+  background: linear-gradient(135deg, var(--dm-navy) 0%, var(--dm-primary) 50%, var(--dm-electric) 100%);
   padding: 6rem 0;
   text-align: center;
   position: relative;
@@ -1366,7 +1373,7 @@ p { color: var(--text-muted); }
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(13,148,136,0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(43, 91, 255, 0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 

@@ -365,9 +365,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             {/* Left */}
             <div>
               <div style={{
-                display: 'inline-block', background: 'rgba(20,184,166,0.12)', border: '1px solid rgba(20,184,166,0.25)',
+                display: 'inline-block', background: 'rgba(18, 56, 232, 0.12)', border: '1px solid rgba(18, 56, 232, 0.25)',
                 borderRadius: '20px', padding: '5px 16px', fontSize: '0.8rem', fontWeight: 700,
-                letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--dm-teal)', marginBottom: '1.5rem',
+                letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--dm-primary)', marginBottom: '1.5rem',
               }}>
                 Professional Consulting Services
               </div>
@@ -403,7 +403,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 position: 'relative',
                 borderRadius: '24px',
                 overflow: 'hidden',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(20,184,166,0.2)',
+                boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(18, 56, 232, 0.2)',
                 width: '100%',
                 maxWidth: '500px',
               }}>
@@ -416,7 +416,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 <div style={{
                   position: 'absolute', bottom: '20px', left: '20px',
                   background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(20,184,166,0.3)', borderRadius: '12px',
+                  border: '1px solid rgba(18, 56, 232, 0.3)', borderRadius: '12px',
                   padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px',
                 }}>
                   <span style={{ fontSize: '1.5rem' }}>✅</span>
@@ -429,10 +429,10 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 <div style={{
                   position: 'absolute', top: '16px', right: '16px',
                   background: 'var(--dm-teal)', color: '#fff',
-                  fontSize: '0.72rem', fontWeight: 800, padding: '5px 14px',
-                  borderRadius: '20px', boxShadow: '0 4px 12px rgba(20,184,166,0.45)',
-                  animation: 'float 3s ease-in-out infinite',
-                }}>
+                   fontSize: '0.72rem', fontWeight: 800, padding: '5px 14px',
+                   borderRadius: '20px', boxShadow: '0 4px 12px rgba(18, 56, 232, 0.45)',
+                   animation: 'float 3s ease-in-out infinite',
+                 }}>
                   ATS Score: 94% ↑
                 </div>
               </div>
@@ -803,17 +803,17 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           ATS SIMULATOR CTA SECTION
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="ats-simulator" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', overflow: 'hidden', position: 'relative' }}>
+      <section className="dm-section" id="ats-simulator" style={{ background: 'linear-gradient(135deg, #0D1B4D 0%, #1238E8 50%, #2B5BFF 100%)', overflow: 'hidden', position: 'relative' }}>
         {/* Background glow */}
-        <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(20,184,166,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '250px', height: '250px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(18, 56, 232, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '250px', height: '250px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(43, 91, 255, 0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         <div className="dm-container" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }} className="ats-cta-grid">
 
             {/* Left — Copy */}
             <div>
-              <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.12)', border: '1px solid rgba(20,184,166,0.3)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-teal)', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-block', background: 'rgba(18, 56, 232, 0.12)', border: '1px solid rgba(18, 56, 232, 0.3)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-primary)', marginBottom: '1.5rem' }}>
                 Free Tool
               </div>
               <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '1rem', lineHeight: 1.25 }}>
@@ -841,14 +841,14 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   onClick={() => onNavigateToPath('ats')}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
-                    background: 'linear-gradient(135deg, var(--dm-teal) 0%, #0D9488 100%)',
+                    background: 'linear-gradient(135deg, var(--dm-primary) 0%, var(--dm-electric) 100%)',
                     color: '#fff', border: 'none', borderRadius: '12px',
                     padding: '1rem 2rem', fontSize: '1rem', fontWeight: 800,
                     fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(20,184,166,0.4)', transition: 'transform 0.15s, box-shadow 0.15s',
+                    boxShadow: '0 6px 24px rgba(18, 56, 232, 0.4)', transition: 'transform 0.15s, box-shadow 0.15s',
                   }}
-                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(20,184,166,0.5)'; }}
-                  onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(20,184,166,0.4)'; }}
+                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(43, 91, 255, 0.5)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.4)'; }}
                 >
                   🔍 Try the Live ATS Simulator →
                 </button>
@@ -910,7 +910,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 name: 'Maximiller A.',
                 role: 'Banking Professional, Nairobi',
                 initials: 'MA',
-                color: '#0D9488',
+                color: '#1238E8',
               },
               {
                 stars: '★★★★★',
@@ -918,7 +918,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 name: 'Jeniffer T.',
                 role: 'Independent Consultant',
                 initials: 'JT',
-                color: '#6366F1',
+                color: '#2B5BFF',
               },
               {
                 stars: '★★★★★',
@@ -926,7 +926,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 name: 'Edwin M.',
                 role: 'Finance & Operations Professional',
                 initials: 'EM',
-                color: '#F59E0B',
+                color: '#FFD21F',
               },
             ].map(t => (
               <div key={t.name} className="dm-testimonial-card">
@@ -965,7 +965,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 display: 'flex', flexDirection: 'column', gap: '0.2rem',
               }}>
                 <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>Duncan Makoyo</span>
-                <span style={{ fontSize: '0.78rem', color: 'var(--dm-teal)', fontWeight: 600, letterSpacing: '0.04em' }}>Career Consultant & Digital Strategist</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--dm-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>Career Consultant & Digital Strategist</span>
               </div>
             </div>
 
@@ -999,7 +999,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   href="https://wa.me/254794877125"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.9rem 1.5rem', borderRadius: '10px', background: '#25D366', color: '#fff', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif', transition: 'opacity 0.15s' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.9rem 1.5rem', borderRadius: '10px', background: 'linear-gradient(135deg, #63D11A, #4CAF0A)', color: '#fff', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif', transition: 'opacity 0.15s' }}
                 >
                   💬 WhatsApp Me
                 </a>
@@ -1157,7 +1157,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               href="https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%27d%20like%20to%20request%20a%20service."
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', borderRadius: '10px', background: '#25D366', color: '#fff', fontWeight: 700, fontSize: '1rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', borderRadius: '10px', background: 'linear-gradient(135deg, #63D11A, #4CAF0A)', color: '#fff', fontWeight: 700, fontSize: '1rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}
             >
               💬 WhatsApp Me
             </a>
