@@ -599,7 +599,7 @@ function App() {
       setCurrentPath('processor');
     } catch (err) {
       console.error('[processImage]', err);
-      setError(err.message || 'Failed to process image. Try a different photo.');
+      setError('Failed to process image. Please try a different photo.');
     } finally {
       setIsProcessing(false);
       setProcessingMsg('');
@@ -677,10 +677,7 @@ function App() {
                 setError('Payment was not confirmed. Please contact support if you were charged.');
               }
             } catch (err) {
-              setError(
-                err.response?.data?.error ||
-                'Payment verification failed. Contact support with your reference: ' + paystackResponse.reference
-              );
+              setError('Payment verification failed. Please try again or contact support.');
             } finally {
               setIsProcessing(false);
               setProcessingMsg('');
@@ -696,7 +693,7 @@ function App() {
       handler.openIframe();
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Could not start payment.';
-      setError(msg);
+      setError('Could not initialize payment. Please try again.');
       setIsPaying(false);
     }
   };
@@ -1635,7 +1632,7 @@ function App() {
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
           <li><b>Paystack:</b> Payment gateway processing.</li>
           <li><b>Render:</b> Hosting infrastructure and request proxy routing.</li>
-          <li><b>Google Gemini API:</b> Processing resume analysis requests securely via a private server-side connection (data is not used to train models).</li>
+          <li><b>Secure AI Parsing Engine:</b> Processing resume analysis requests securely via a private server-side connection (data is not used to train models).</li>
         </ul>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Legal Compliance</h3>
@@ -1734,7 +1731,7 @@ function App() {
       triggerDownload(content, cleanName);
     } catch (err) {
       console.error(err);
-      setError('Failed to bundle frames into ZIP: ' + err.message);
+      setError('Failed to bundle frames. Please try again.');
     } finally {
       setIsProcessing(false);
       setProcessingMsg('');
@@ -1820,7 +1817,7 @@ function App() {
       }
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Video processing failed. Try a shorter video.');
+      setError('Video processing failed. Please check your video length and format, then try again.');
     } finally {
       setIsProcessing(false);
       setProcessingMsg('');
@@ -1911,7 +1908,7 @@ function App() {
       }
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Failed to generate clean file.');
+      setError('Failed to generate high-quality output. Please try again.');
     } finally {
       setIsProcessing(false);
       setProcessingMsg('');

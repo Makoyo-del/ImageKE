@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
 import axios from 'axios';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -756,7 +755,7 @@ export default function ATSSimulator({ onBack }) {
       setView('results');
     } catch (err) {
       console.error(err);
-      setParseError(err.message || 'An unexpected error occurred during parsing.');
+      setParseError('An error occurred during resume parsing. Please check that your file is not corrupted and try again.');
       markStep(PARSE_STEPS[currentStepIndex]?.id, 'error');
     }
   }, [file]);
@@ -1348,7 +1347,7 @@ export default function ATSSimulator({ onBack }) {
           setExportError('Failed to fetch strategic advice review.');
         }
       } catch (err) {
-        setExportError(err.response?.data?.error || err.message || 'Error occurred generating report.');
+        setExportError('Failed to generate report. Please try again or contact support.');
       } finally {
         setExportLoading(false);
         setExportStatus('');
@@ -1402,7 +1401,7 @@ export default function ATSSimulator({ onBack }) {
               setExportError('Payment verified but strategic pitch could not be retrieved.');
             }
           } catch (err) {
-            setExportError(err.response?.data?.error || err.message || 'Report generation failed.');
+            setExportError('Verification completed but report generation failed. Please contact support.');
           } finally {
             setExportLoading(false);
             setExportStatus('');
@@ -1415,7 +1414,7 @@ export default function ATSSimulator({ onBack }) {
       });
       handler.openIframe();
     } catch (err) {
-      setExportError(err.response?.data?.error || err.message || 'Payment checkout initialization failed.');
+      setExportError('Could not initialize checkout. Please try again or contact support.');
       setExportLoading(false);
       setExportStatus('');
     }
@@ -2136,7 +2135,7 @@ export default function ATSSimulator({ onBack }) {
                 Download Your Branded ATS Audit PDF Report
               </h3>
               <p style={{ color: 'var(--dm-text-muted)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '580px', margin: '0 auto 1.5rem' }}>
-                Get a beautifully formatted, multi-page PDF audit report featuring a comprehensive checklist, full recommendations list, and a personalized strategic advice pitch written by Gemini.
+                Get a beautifully formatted, multi-page PDF audit report featuring a comprehensive checklist, full recommendations list, and a personalized strategic advice pitch compiled by our proprietary AI parsing engine.
               </p>
               
               <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -2265,7 +2264,7 @@ export default function ATSSimulator({ onBack }) {
                 {exportStatus === 'loading_paystack' && 'Loading payment gateway...'}
                 {exportStatus === 'paying' && 'Awaiting payment confirmation...'}
                 {exportStatus === 'verifying' && 'Verifying transaction reference...'}
-                {exportStatus === 'generating' && 'Strategic advice review by Gemini...'}
+                {exportStatus === 'generating' && 'Strategic advice compilation...'}
                 {exportStatus === 'done' && 'Done!'}
               </div>
             )}
