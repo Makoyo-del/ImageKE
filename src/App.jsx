@@ -154,11 +154,32 @@ function ErrorBanner({ message, onDismiss }) {
   );
 }
 
+// ─── Routing Helpers ───────────────────────────────────────────────────────────
+const getPathFromHash = () => {
+  const hash = window.location.hash;
+  if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
+  if (hash === '#/batch') return 'batch';
+  if (hash === '#/custom') return 'custom';
+  if (hash === '#/processor') return 'processor';
+  if (hash === '#/terms') return 'terms';
+  if (hash === '#/privacy') return 'privacy';
+  if (hash === '#/photo-tools' || hash === '#/photo-editor' || hash === '#/photoeditor') return 'home';
+  if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
+  if (hash === '#/home' || hash === '#/tools') return 'home';
+  return 'services';
+};
+
+const getTabFromHash = () => {
+  const hash = window.location.hash;
+  if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'videos';
+  return 'images';
+};
+
 // ─── Main App ──────────────────────────────────────────────────────────────────
 function App() {
   // 'services' | 'home' | 'processor' | 'custom' | 'batch' | 'terms' | 'privacy'
-  const [currentPath, setCurrentPath] = useState('services');
-  const [currentTab, setCurrentTab] = useState('images'); // 'images' | 'videos'
+  const [currentPath, setCurrentPath] = useState(getPathFromHash);
+  const [currentTab, setCurrentTab] = useState(getTabFromHash);
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [customSize, setCustomSize] = useState({
     name: 'Custom Size',
@@ -270,6 +291,68 @@ function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [currentPath, activeVideoTool]);
 
+  // Listen for hash changes to update navigation state
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentPath(getPathFromHash());
+      setCurrentTab(getTabFromHash());
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    // Initial sync
+    handleHashChange();
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Reactive cleanups when navigating away from specific tools
+  useEffect(() => {
+    if (currentPath !== 'processor') {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      setProcessedBlob(null);
+      setSelectedPreset(null);
+      setIsPaid(false);
+    }
+  }, [currentPath, previewUrl]);
+
+  useEffect(() => {
+    if (currentPath !== 'batch') {
+      if (batchFiles.length > 0) {
+        batchFiles.forEach(f => {
+          if (f.previewUrl) {
+            URL.revokeObjectURL(f.previewUrl);
+          }
+        });
+        setBatchFiles([]);
+        setIsPaid(false);
+      }
+    }
+  }, [currentPath, batchFiles]);
+
+  useEffect(() => {
+    const isVideoView = currentPath === 'home' && currentTab === 'videos';
+    if (!isVideoView && activeVideoTool) {
+      setVideoFile(null);
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+      setVideoUrl('');
+      setProcessedVideoBlob(null);
+      if (processedVideoUrl && processedVideoUrl !== 'extracted_frames') {
+        URL.revokeObjectURL(processedVideoUrl);
+      }
+      setProcessedVideoUrl('');
+      setExtractedFrames([]);
+      setPaidVideoTools({});
+      setCropOffsetPercent(50);
+      setWatermarkImageFile(null);
+      if (watermarkImagePreview) URL.revokeObjectURL(watermarkImagePreview);
+      setWatermarkImagePreview('');
+      setError('');
+    }
+  }, [currentPath, currentTab, activeVideoTool, videoUrl, processedVideoUrl, watermarkImagePreview]);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getActivePreset = () => selectedPreset || customSize;
 
@@ -285,7 +368,7 @@ function App() {
     setProcessedBlob(null);
     setPreviewUrl(null);
     setSelectedPreset(null);
-    setCurrentPath('home');
+    window.location.hash = '#/photo-tools';
     setIsPaid(false);
     setError('');
   };
@@ -730,7 +813,7 @@ function App() {
               fontWeight: 700,
               border: 'none',
             }}
-            onClick={() => setCurrentPath('batch')}
+            onClick={() => window.location.hash = '#/batch'}
           >
             Compress My Documents →
           </button>
@@ -745,10 +828,10 @@ function App() {
               className="card"
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && (setSelectedPreset(preset), setCurrentPath('processor'))}
+              onKeyDown={(e) => e.key === 'Enter' && (setSelectedPreset(preset), window.location.hash = '#/processor')}
               onClick={() => {
                 setSelectedPreset(preset);
-                setCurrentPath('processor');
+                window.location.hash = '#/processor';
               }}
               style={{
                 display: 'flex',
@@ -793,8 +876,8 @@ function App() {
             className="card"
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setCurrentPath('custom')}
-            onClick={() => setCurrentPath('custom')}
+            onKeyDown={(e) => e.key === 'Enter' && (window.location.hash = '#/custom')}
+            onClick={() => window.location.hash = '#/custom'}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -845,7 +928,7 @@ function App() {
         <button
           onClick={() => {
             resetBatch();
-            setCurrentPath('home');
+            window.location.hash = '#/photo-tools';
           }}
           className="btn"
           style={{
@@ -2626,9 +2709,19 @@ function App() {
   // ROOT
   // ─────────────────────────────────────────────────────────────────────────────
   // ─── Navigate to Tools from Services Page ────────────────────────────────────
+  const navigateToPath = (path) => {
+    if (path === 'services') window.location.hash = '#/';
+    else if (path === 'ats') window.location.hash = '#/ats';
+    else if (path === 'home') window.location.hash = '#/photo-tools';
+    else if (path === 'batch') window.location.hash = '#/batch';
+    else if (path === 'custom') window.location.hash = '#/custom';
+    else if (path === 'terms') window.location.hash = '#/terms';
+    else if (path === 'privacy') window.location.hash = '#/privacy';
+    else window.location.hash = `#/${path}`;
+  };
+
   const handleNavigateToTools = () => {
-    setCurrentPath('home');
-    setCurrentTab('images');
+    window.location.hash = '#/photo-tools';
   };
 
   return (
@@ -2638,13 +2731,13 @@ function App() {
       {currentPath === 'services' && (
         <ServicesPage
           onNavigateToTools={handleNavigateToTools}
-          onNavigateToPath={setCurrentPath}
+          onNavigateToPath={navigateToPath}
         />
       )}
 
       {/* ── ATS Simulator (standalone page) ── */}
       {currentPath === 'ats' && (
-        <ATSSimulator onBack={() => setCurrentPath('services')} />
+        <ATSSimulator onBack={() => window.location.hash = '#/'} />
       )}
 
       {/* ── Legal pages (standalone, minimal header) ── */}
@@ -2653,9 +2746,9 @@ function App() {
           <header className="app-header">
             <div
               className="app-logo"
-              onClick={() => setCurrentPath('services')}
+              onClick={() => window.location.hash = '#/'}
               role="button" tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && setCurrentPath('services')}
+              onKeyDown={e => e.key === 'Enter' && (window.location.hash = '#/')}
               aria-label="Back to home"
             >
               <span className="app-logo-text">🇰🇪 ImageKE <span className="app-logo-badge">PRO</span></span>
@@ -2680,10 +2773,10 @@ function App() {
           <header className="app-header">
             <div
               className="app-logo"
-              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('services'); }}
+              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/'; }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), setCurrentPath('services'))}
+              onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), window.location.hash = '#/')}
               aria-label="Home"
             >
               <span className="app-logo-text">
@@ -2693,21 +2786,21 @@ function App() {
             <nav className="app-nav" aria-label="Main navigation">
               <button
                 className={`app-nav-btn${currentTab === 'images' ? ' active-images' : ''}`}
-                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('images'); setCurrentPath('home'); }}
+                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/photo-tools'; }}
                 aria-current={currentTab === 'images' ? 'page' : undefined}
               >
                 📸 Photo Tools
               </button>
               <button
                 className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
-                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentTab('videos'); setCurrentPath('home'); }}
+                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/video-tools'; }}
                 aria-current={currentTab === 'videos' ? 'page' : undefined}
               >
                 🎥 Video Tools
               </button>
             </nav>
             <button
-              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); setCurrentPath('services'); }}
+              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/'; }}
               style={{ background: 'none', border: 'none', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'inherit' }}
             >
               ← Back to Services
@@ -2738,8 +2831,8 @@ function App() {
             <div className="container">
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
               <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
-                <button onClick={() => setCurrentPath('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
-                <button onClick={() => setCurrentPath('privacy')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
+                <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
+                <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
               </div>
             </div>
           </footer>
