@@ -4,6 +4,14 @@ import axios from 'axios';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+
+const OWNER_EMAILS = [
+  'duncanmakoyo@gmail.com',
+  'makoyoduncan@gmail.com',
+  'duncan@duncanmakoyo.com',
+  'info@duncanmakoyo.com'
+];
 
 // ─── Skills Dictionary (300+ keywords across domains) ────────────────────────
 const SKILLS_DICTIONARY = [
@@ -559,6 +567,13 @@ export default function ATSSimulator({ onBack }) {
   const [leadStatus, setLeadStatus] = useState(null); // null | 'sending' | 'success' | 'error'
   const [leadError, setLeadError] = useState('');
 
+  // Branded PDF export state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportEmail, setExportEmail] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const [exportStatus, setExportStatus] = useState(''); // '', 'loading_pdf', 'loading_paystack', 'paying', 'verifying', 'generating', 'done'
+
   // Reset window scroll to top when view changes (e.g. upload -> parsing -> results)
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -606,7 +621,7 @@ export default function ATSSimulator({ onBack }) {
     // NOTE: We intentionally do NOT read from localStorage — that would be a security risk
     // (any user could inject their own key and share it, exposing it in browser storage).
     let geminiPromise = null;
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    const apiKey = ''; // Always use secure backend proxy in production to prevent key exposure
 
     if (apiKey) {
       geminiPromise = (async () => {
@@ -777,6 +792,635 @@ export default function ATSSimulator({ onBack }) {
     }
   };
 
+  // ── jsPDF Loader ─────────────────────────────────────────────────────────────
+  const loadJsPdf = () => {
+    return new Promise((resolve, reject) => {
+      if (window.jspdf) { resolve(window.jspdf); return; }
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => resolve(window.jspdf);
+      script.onerror = () => reject(new Error('Failed to load jsPDF library.'));
+      document.head.appendChild(script);
+    });
+  };
+
+  // ── Paystack Script Loader ───────────────────────────────────────────────────
+  const loadPaystack = () => {
+    return new Promise((resolve, reject) => {
+      if (window.PaystackPop) { resolve(window.PaystackPop); return; }
+      if (document.getElementById('paystack-script')) {
+        let count = 0;
+        const interval = setInterval(() => {
+          if (window.PaystackPop) {
+            clearInterval(interval);
+            resolve(window.PaystackPop);
+          }
+          if (count++ > 50) {
+            clearInterval(interval);
+            reject(new Error('Paystack script failed to load.'));
+          }
+        }, 100);
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'paystack-script';
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.onload = () => resolve(window.PaystackPop);
+      script.onerror = () => reject(new Error('Failed to load Paystack script.'));
+      document.body.appendChild(script);
+    });
+  };
+
+  // ── Generate Report PDF ──────────────────────────────────────────────────────
+  const generateReportPDF = (parsedData, pitchCopy) => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+    
+    const score = parsedData.scores?.overallScore ?? 0;
+    const contact = parsedData.contact ?? {};
+    const sections = parsedData.sections ?? {};
+    const formatting = parsedData.formatting ?? {};
+    const expEval = parsedData.experienceEvaluation ?? {};
+    const recommendations = parsedData.recommendations ?? [];
+    const skills = parsedData.skills ?? [];
+    const yearsExp = parsedData.yearsExp ?? 'Not detected';
+    
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 40;
+    const contentWidth = pageWidth - (margin * 2); // 515 pt
+
+    // Colors
+    const navyDark = '#0F172A';
+    const textDark = '#1E293B';
+    const borderLight = '#E2E8F0';
+    
+    // Score color
+    const scoreColor = score >= 75 ? '#16A34A' : score >= 50 ? '#D97706' : '#DC2626';
+    
+    // Helper to draw header on each page
+    const drawPageHeader = (pageNum) => {
+      doc.setFillColor(15, 23, 42); // Navy Dark
+      doc.rect(0, 0, pageWidth, 60, 'F');
+      
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text('DUNCAN MAKOYO | CAREER SERVICES', margin, 35);
+      
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(200, 200, 200);
+      doc.text('ATS COMPLIANCE AUDIT REPORT', pageWidth - margin - 150, 35, { align: 'right' });
+      
+      doc.text(`Page ${pageNum}`, pageWidth - margin, 35, { align: 'right' });
+    };
+    
+    // Helper to draw footer on each page
+    const drawPageFooter = () => {
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text('© 2026 Duncan Makoyo. All rights reserved. | info@duncanmakoyo.com | duncanmakoyo.com', margin, pageHeight - 30);
+      doc.text('Confidential Career Audit Report', pageWidth - margin, pageHeight - 30, { align: 'right' });
+    };
+
+    // Helper for adding wrapped text with safety checks
+    const addWrappedText = (text, x, y, maxWidth, fontSize = 10, fontStyle = 'normal', color = textDark, lineHeight = 15) => {
+      doc.setFont('Helvetica', fontStyle);
+      doc.setFontSize(fontSize);
+      if (color.startsWith('#')) {
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        doc.setTextColor(r, g, b);
+      } else {
+        doc.setTextColor(30, 41, 59);
+      }
+      const lines = doc.splitTextToSize(text, maxWidth);
+      let currentY = y;
+      for (let i = 0; i < lines.length; i++) {
+        if (currentY > pageHeight - 60) {
+          doc.addPage();
+          drawPageHeader(doc.internal.getNumberOfPages());
+          drawPageFooter();
+          currentY = 90;
+        }
+        doc.text(lines[i], x, currentY);
+        currentY += lineHeight;
+      }
+      return currentY;
+    };
+
+    // ---------------- PAGE 1 ----------------
+    drawPageHeader(1);
+    drawPageFooter();
+
+    let y = 100;
+    
+    // Title
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(15, 23, 42);
+    doc.text('ATS RESUME PARSING AUDIT', margin, y);
+    y += 25;
+    
+    // Underline
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(1);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 25;
+
+    // Metadata Card
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, contentWidth, 70, 8, 8, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(margin, y, contentWidth, 70, 8, 8, 'D');
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Candidate Name:', margin + 15, y + 20);
+    doc.text('Email Address:', margin + 15, y + 38);
+    doc.text('Phone Number:', margin + 15, y + 56);
+
+    doc.text('Scan Date:', margin + 280, y + 20);
+    doc.text('LinkedIn Profile:', margin + 280, y + 38);
+    doc.text('Experience Level:', margin + 280, y + 56);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.text(contact.name || 'Not detected', margin + 120, y + 20);
+    doc.text(contact.email || 'Not detected', margin + 120, y + 38);
+    doc.text(contact.phone || 'Not detected', margin + 120, y + 56);
+
+    doc.text(new Date().toLocaleDateString(), margin + 380, y + 20);
+    doc.text(contact.linkedin || 'Not detected', margin + 380, y + 38);
+    doc.text(yearsExp, margin + 380, y + 56);
+
+    y += 95;
+
+    // Big Score Overview Box
+    doc.setFillColor(15, 23, 42);
+    doc.roundedRect(margin, y, contentWidth, 80, 8, 8, 'F');
+
+    doc.setFillColor(255, 255, 255, 0.1);
+    doc.circle(margin + 55, y + 40, 28, 'F');
+    
+    if (score >= 75) doc.setFillColor(22, 163, 74);
+    else if (score >= 50) doc.setFillColor(217, 119, 6);
+    else doc.setFillColor(220, 38, 38);
+    doc.circle(margin + 55, y + 40, 24, 'F');
+    
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${score}%`, margin + 55, y + 45, { align: 'center' });
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Overall ATS Readiness Score', margin + 120, y + 32);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(200, 220, 255);
+    const scoreDesc = score >= 85 ? 'Excellent. Your resume complies with standard ATS parsing criteria.' :
+                      score >= 70 ? 'Good Standing. Minor updates will maximize your compatibility.' :
+                      score >= 50 ? 'Needs Strategic Rewrite. Significant parsing issues found.' :
+                      'Critical Risk. High probability of being auto-rejected by automated systems.';
+    doc.text(scoreDesc, margin + 120, y + 52);
+    
+    y += 105;
+
+    // Score Breakdown Table Header
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text('ATS Audit Dimension Scores', margin, y);
+    y += 15;
+
+    // Draw table helper
+    const drawScoreRow = (label, scoreVal, desc, rowY) => {
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text(label, margin + 10, rowY + 18);
+
+      doc.setFillColor(226, 232, 240);
+      doc.roundedRect(margin + 160, rowY + 10, 150, 8, 4, 4, 'F');
+      
+      const barColor = scoreVal >= 75 ? [22, 163, 74] : scoreVal >= 50 ? [217, 119, 6] : [220, 38, 38];
+      doc.setFillColor(barColor[0], barColor[1], barColor[2]);
+      doc.roundedRect(margin + 160, rowY + 10, (scoreVal / 100) * 150, 8, 4, 4, 'F');
+
+      doc.setFont('Helvetica', 'bold');
+      doc.text(`${scoreVal}%`, margin + 325, rowY + 18);
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text(desc, margin + 370, rowY + 18);
+
+      doc.setDrawColor(241, 245, 249);
+      doc.line(margin, rowY + 28, pageWidth - margin, rowY + 28);
+    };
+
+    const parsedAccuracy = parsedData.scores?.parsingAccuracy ?? 0;
+    const sectionScore = parsedData.scores?.sectionScore ?? 0;
+    const keywordScore = parsedData.scores?.keywordScore ?? 0;
+    const formattingScore = parsedData.scores?.formattingScore ?? 0;
+
+    drawScoreRow('Parsing Accuracy', parsedAccuracy, parsedAccuracy >= 80 ? 'Excellent extraction' : 'Parsing issues detected', y);
+    y += 30;
+    drawScoreRow('Section Recognition', sectionScore, sectionScore >= 80 ? 'Standard sections found' : 'Missing standard headers', y);
+    y += 30;
+    drawScoreRow('Keyword Coverage', keywordScore, keywordScore >= 70 ? 'Strong industry terms' : 'Low keyword density', y);
+    y += 30;
+    drawScoreRow('Formatting Safety', formattingScore, formattingScore >= 80 ? 'Clean single-column' : 'Layout risks flagged', y);
+    y += 45;
+
+    // Section Presence Checklist
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Key Content Sections Audit', margin, y);
+    y += 20;
+
+    const drawCheck = (label, status, chX, chY) => {
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 41, 59);
+      doc.text(label, chX + 20, chY);
+
+      if (status) {
+        doc.setFillColor(34, 197, 94);
+        doc.circle(chX + 6, chY - 3, 5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('v', chX + 4, chY - 1);
+      } else {
+        doc.setFillColor(239, 68, 68);
+        doc.circle(chX + 6, chY - 3, 5, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('x', chX + 4, chY - 1);
+      }
+    };
+
+    const colWidth = 240;
+    drawCheck('Professional Summary', sections.summary, margin, y);
+    drawCheck('Work Experience', sections.experience, margin + colWidth, y);
+    y += 20;
+    drawCheck('Education History', educationFound, margin, y);
+    drawCheck('Skills & Competencies', sections.skills, margin + colWidth, y);
+    y += 20;
+    drawCheck('Professional Credentials', sections.certifications, margin, y);
+    drawCheck('Measurable Achievements', hasAchievements, margin + colWidth, y);
+    y += 20;
+    drawCheck('Language Proficiencies', sections.languages, margin, y);
+    drawCheck('Professional References', sections.references, margin + colWidth, y);
+
+    // ---------------- PAGE 2 ----------------
+    doc.addPage();
+    drawPageHeader(2);
+    drawPageFooter();
+    y = 90;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('DETAILED AUDIT FINDINGS & ATS COMPATIBILITY', margin, y);
+    y += 15;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 25;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Formatting & Parsing Compatibility Audit', margin, y);
+    y += 15;
+
+    const drawAuditRow = (metric, status, errorText, rowY) => {
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text(metric, margin + 10, rowY + 15);
+
+      doc.setFont('Helvetica', 'bold');
+      if (status) {
+        doc.setTextColor(22, 163, 74);
+        doc.text('PASS', margin + 250, rowY + 15);
+        doc.setFont('Helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
+        doc.text('Safe layout standard', margin + 300, rowY + 15);
+      } else {
+        doc.setTextColor(220, 38, 38);
+        doc.text('RISK', margin + 250, rowY + 15);
+        doc.setFont('Helvetica', 'normal');
+        doc.setTextColor(150, 80, 0);
+        doc.text(errorText.slice(0, 38), margin + 300, rowY + 15);
+      }
+
+      doc.setDrawColor(241, 245, 249);
+      doc.line(margin, rowY + 22, pageWidth - margin, rowY + 22);
+    };
+
+    drawAuditRow('Layout Structure', !formatting.multiColumnRisk, 'Multi-column layout is risky', y);
+    y += 24;
+    drawAuditRow('Tables Usage', !formatting.hasTables, 'Tables confuse text parsers', y);
+    y += 24;
+    drawAuditRow('Visual Clutter', !formatting.hasGraphics, 'Icons/charts confuse parsing', y);
+    y += 24;
+    drawAuditRow('Floating Elements', !formatting.hasTextBoxes, 'Floating text boxes ignored', y);
+    y += 24;
+    drawAuditRow('Colors & Backgrounds', !formatting.hasColoredTextOrBg, 'Non-black text can be unreadable', y);
+    y += 24;
+    drawAuditRow('Document Page Count', !formatting.isOverTwoPages, 'Keep under 2-page hard limit', y);
+    y += 24;
+    drawAuditRow('Section Headings Style', !formatting.hasCreativeHeadings, 'Use standard uppercase headers', y);
+    y += 35;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Resume Writing & Experience Quality Audit', margin, y);
+    y += 15;
+
+    drawAuditRow('STAR Method Structure', expEval.usesStarMethod, 'Structure experience bullets', y);
+    y += 24;
+    drawAuditRow('Quantified Results & Metrics', expEval.hasMetrics, 'Add numerical achievements', y);
+    y += 24;
+    drawAuditRow('First Phrase Bolded', expEval.boldsFirstWords, 'Bold first 3-5 words of bullets', y);
+    y += 24;
+    drawAuditRow('Key Metrics Bolded', expEval.boldsMetrics, 'Bold numbers & percentages', y);
+    y += 24;
+    drawAuditRow('Consistent Punctuation', expEval.grammarCapitalizationAndPeriods, 'Ensure capitals & full stops', y);
+    y += 35;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(`Recognized Industry Keywords (${skills.length} detected)`, margin, y);
+    y += 15;
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+    
+    if (skills.length > 0) {
+      const skillsList = skills.slice(0, 24).join('   |   ');
+      y = addWrappedText(skillsList, margin + 10, y, contentWidth - 20, 9, 'normal', '#475569', 15);
+      if (skills.length > 24) {
+        y += 5;
+        doc.setFont('Helvetica', 'italic');
+        doc.text(`... plus ${skills.length - 24} additional keywords recognized in document scan.`, margin + 10, y);
+        y += 10;
+      }
+    } else {
+      doc.setFont('Helvetica', 'italic');
+      doc.setTextColor(220, 38, 38);
+      doc.text('No standard industry keywords detected. Your CV lacks matching capability.', margin + 10, y);
+    }
+    
+    y += 35;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Key Technical Recommendations', margin, y);
+    y += 15;
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9);
+    
+    const criticalRecs = recommendations.filter(r => r.type === 'critical');
+    const warningRecs = recommendations.filter(r => r.type === 'warning');
+    const otherRecs = recommendations.filter(r => r.type !== 'critical' && r.type !== 'warning');
+    
+    const displayRecs = [...criticalRecs, ...warningRecs, ...otherRecs].slice(0, 4);
+
+    if (displayRecs.length > 0) {
+      for (let i = 0; i < displayRecs.length; i++) {
+        const rec = displayRecs[i];
+        const bullet = rec.type === 'critical' ? '• [CRITICAL] ' : rec.type === 'warning' ? '• [WARNING] ' : '• ';
+        const color = rec.type === 'critical' ? '#B91C1C' : rec.type === 'warning' ? '#B45309' : '#334155';
+        y = addWrappedText(bullet + rec.text, margin + 10, y, contentWidth - 20, 8.5, rec.type === 'critical' ? 'bold' : 'normal', color, 14);
+        y += 2;
+      }
+    } else {
+      doc.text('No formatting or structural issues detected. Outstanding work!', margin + 10, y);
+    }
+
+    // ---------------- PAGE 3 ----------------
+    doc.addPage();
+    drawPageHeader(3);
+    drawPageFooter();
+    y = 90;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text('STRATEGIC DEVELOPMENT REVIEW', margin, y);
+    y += 15;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 25;
+
+    doc.setFillColor(15, 23, 42);
+    doc.rect(margin, y, contentWidth, 30, 'F');
+    
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text('PERSONALIZED STRATEGIC ADVICE FROM DUNCAN MAKOYO', margin + 15, y + 18);
+    y += 30;
+
+    doc.setDrawColor(15, 23, 42);
+    doc.setFillColor(255, 255, 255);
+    doc.setLineWidth(3);
+    doc.setDrawColor(18, 56, 232);
+    
+    const pitchStartY = y + 20;
+    y = addWrappedText(pitchCopy, margin + 20, pitchStartY, contentWidth - 40, 10, 'normal', '#1E293B', 16);
+    const pitchEndY = y;
+    
+    doc.line(margin + 5, pitchStartY - 10, margin + 5, pitchEndY);
+    y += 35;
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Your Career Growth Action Plan', margin, y);
+    y += 18;
+
+    const drawActionStep = (num, title, body, rowY) => {
+      doc.setFillColor(18, 56, 232);
+      doc.circle(margin + 12, rowY + 8, 10, 'F');
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text(num.toString(), margin + 12, rowY + 11, { align: 'center' });
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(title, margin + 30, rowY + 11);
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      const bodyY = addWrappedText(body, margin + 30, rowY + 24, contentWidth - 40, 9, 'normal', '#475569', 14);
+      return bodyY;
+    };
+
+    y = drawActionStep(1, 'Fix Compatibility Barriers', 'Convert your CV into a single-column layout, delete visual graphs, and remove privacy risks (DOB, photos) to pass standard parser algorithms.', y);
+    y += 15;
+    y = drawActionStep(2, 'Apply STAR & Metric Bolding', 'Rewrite experience descriptions. Focus on achievements rather than duties, quantify outcomes with metrics, and bold the first 3-5 words of every bullet.', y);
+    y += 15;
+    y = drawActionStep(3, 'Order a Professional Executive Rewrite', 'Let Duncan Makoyo rebuild your professional narrative from the ground up, aligning your skills, goals, and history for premium recruiter positioning.', y);
+    y += 35;
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, contentWidth, 90, 8, 8, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(1);
+    doc.roundedRect(margin, y, contentWidth, 90, 8, 8, 'D');
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('GET PROFESSIONAL SUPPORT TODAY', margin + 20, y + 24);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Ready to double your interview invitations? Contact Duncan Makoyo directly:', margin + 20, y + 42);
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(18, 56, 232);
+    doc.text('Email: info@duncanmakoyo.com', margin + 20, y + 62);
+    doc.text('WhatsApp: +254 794 877 125', margin + 220, y + 62);
+    doc.text('Web: duncanmakoyo.com', margin + 390, y + 62);
+
+    doc.setFont('Helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('✦ Helping professionals secure promotions, transition careers, and command premium salaries.', margin + 20, y + 78);
+
+    const fileNameClean = (contact.name || 'Candidate').replace(/[^a-zA-Z0-9]/g, '_');
+    doc.save(`ATS_Audit_Report_${fileNameClean}.pdf`);
+  };
+
+  // ── Handle Initiate Export ───────────────────────────────────────────────────
+  const handleInitiateExport = async () => {
+    if (!exportEmail.trim() || !exportEmail.includes('@')) {
+      setExportError('Please enter a valid email address.');
+      return;
+    }
+    setExportError('');
+    setExportLoading(true);
+
+    const emailClean = exportEmail.trim().toLowerCase();
+    const isOwner = OWNER_EMAILS.includes(emailClean);
+
+    if (isOwner) {
+      setExportStatus('generating');
+      try {
+        const res = await axios.post(`${API_URL}/api/generate-ats-report`, {
+          email: emailClean,
+          candidateName: contact.name,
+          score: overallScore,
+          metrics: {
+            issues: recommendations.map(r => r.text),
+            missingSections: Object.keys(sections).filter(s => !sections[s])
+          }
+        });
+
+        if (res.data?.success && res.data?.pitch) {
+          setExportStatus('loading_pdf');
+          await loadJsPdf();
+          setExportStatus('generating');
+          generateReportPDF(parseResult, res.data.pitch);
+          setShowExportModal(false);
+        } else {
+          setExportError('Failed to fetch strategic advice review.');
+        }
+      } catch (err) {
+        setExportError(err.response?.data?.error || err.message || 'Error occurred generating report.');
+      } finally {
+        setExportLoading(false);
+        setExportStatus('');
+      }
+      return;
+    }
+
+    setExportStatus('loading_paystack');
+    try {
+      await loadPaystack();
+      
+      setExportStatus('verifying');
+      const initRes = await axios.post(`${API_URL}/api/initialize-payment`, {
+        email: emailClean,
+        metadata: { type: 'ats_report' }
+      });
+
+      if (!initRes.data?.status || !initRes.data?.data?.reference) {
+        throw new Error('Failed to initialize Paystack session.');
+      }
+
+      const { reference } = initRes.data.data;
+      setExportStatus('paying');
+
+      const handler = window.PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: emailClean,
+        amount: 99 * 100, // 99 KES in kobo
+        currency: 'KES',
+        ref: reference,
+        callback: async function (paystackResponse) {
+          setExportStatus('verifying');
+          try {
+            const res = await axios.post(`${API_URL}/api/generate-ats-report`, {
+              email: emailClean,
+              reference: paystackResponse.reference,
+              candidateName: contact.name,
+              score: overallScore,
+              metrics: {
+                issues: recommendations.map(r => r.text),
+                missingSections: Object.keys(sections).filter(s => !sections[s])
+              }
+            });
+
+            if (res.data?.success && res.data?.pitch) {
+              setExportStatus('loading_pdf');
+              await loadJsPdf();
+              generateReportPDF(parseResult, res.data.pitch);
+              setShowExportModal(false);
+            } else {
+              setExportError('Payment verified but strategic pitch could not be retrieved.');
+            }
+          } catch (err) {
+            setExportError(err.response?.data?.error || err.message || 'Report generation failed.');
+          } finally {
+            setExportLoading(false);
+            setExportStatus('');
+          }
+        },
+        onClose: () => {
+          setExportLoading(false);
+          setExportStatus('');
+        }
+      });
+      handler.openIframe();
+    } catch (err) {
+      setExportError(err.response?.data?.error || err.message || 'Payment checkout initialization failed.');
+      setExportLoading(false);
+      setExportStatus('');
+    }
+  };
+
   // ── Reset ────────────────────────────────────────────────────────────────
   const reset = () => {
     setView('upload');
@@ -789,6 +1433,11 @@ export default function ATSSimulator({ onBack }) {
     setLeadForm({ name: '', email: '', linkedin: '', consent: false });
     setLeadStatus(null);
     setLeadError('');
+    setShowExportModal(false);
+    setExportEmail('');
+    setExportLoading(false);
+    setExportError('');
+    setExportStatus('');
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1471,6 +2120,175 @@ export default function ATSSimulator({ onBack }) {
                 )}
               </div>
             </div>
+
+            {/* ── Branded PDF Export Section ────────────────────────────────── */}
+            <div style={{
+              marginTop: '1.5rem',
+              background: '#fff',
+              border: '1px solid var(--dm-border)',
+              borderRadius: '20px',
+              padding: '2rem',
+              textAlign: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
+              <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+                Download Your Branded ATS Audit PDF Report
+              </h3>
+              <p style={{ color: 'var(--dm-text-muted)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '580px', margin: '0 auto 1.5rem' }}>
+                Get a beautifully formatted, multi-page PDF audit report featuring a comprehensive checklist, full recommendations list, and a personalized strategic advice pitch written by Gemini.
+              </p>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--dm-slate)' }}>
+                  Price: <span style={{ color: 'var(--dm-primary)', fontWeight: 800 }}>99 KES</span> (M-Pesa / Card)
+                </span>
+                <span style={{ color: '#CBD5E1' }}>|</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--dm-text-muted)', fontStyle: 'italic' }}>
+                  ⚡ Instant secure download
+                </span>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setExportEmail(leadForm.email || '');
+                  setShowExportModal(true);
+                  setExportError('');
+                  setExportStatus('');
+                }}
+                style={{
+                  marginTop: '1.25rem',
+                  background: 'var(--dm-electric)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '0.9rem 2.5rem',
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  fontFamily: 'Montserrat, sans-serif',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(43, 91, 255, 0.25)',
+                  transition: 'transform 0.15s, box-shadow 0.15s'
+                }}
+                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(43, 91, 255, 0.35)'; }}
+                onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 14px rgba(43, 91, 255, 0.25)'; }}
+              >
+                📥 Get Premium Audit PDF Report
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Export Report Modal ── */}
+      {showExportModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '460px',
+            padding: '2rem',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid var(--dm-border)',
+            position: 'relative',
+            color: 'var(--dm-navy)'
+          }}>
+            <button
+              onClick={() => { if (!exportLoading) setShowExportModal(false); }}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1.25rem',
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: 'var(--dm-text-muted)',
+                lineHeight: 1
+              }}
+            >
+              &times;
+            </button>
+
+            <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Premium PDF Report
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--dm-text-muted)', lineHeight: 1.5, marginBottom: '1.5rem', textAlign: 'left' }}>
+              Please enter your email to secure your download reference and generate your strategic audit.
+            </p>
+
+            <div style={{ marginBottom: '1.25rem', textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--dm-slate)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address</label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={exportEmail}
+                onChange={e => setExportEmail(e.target.value)}
+                disabled={exportLoading}
+                style={{
+                  width: '100%',
+                  padding: '0.8rem 1rem',
+                  border: '1.5px solid var(--dm-border)',
+                  borderRadius: '10px',
+                  fontSize: '0.95rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {exportError && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1.25rem', color: '#991B1B', fontSize: '0.8rem', textAlign: 'left' }}>
+                ⚠️ {exportError}
+              </div>
+            )}
+
+            {exportStatus && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--dm-primary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1.25rem', textAlign: 'left' }}>
+                <span className="ats-spinner" style={{ borderColor: '#CBD5E1', borderTopColor: 'var(--dm-primary)', marginRight: '6px' }} />
+                {exportStatus === 'loading_pdf' && 'Loading PDF engine...'}
+                {exportStatus === 'loading_paystack' && 'Loading payment gateway...'}
+                {exportStatus === 'paying' && 'Awaiting payment confirmation...'}
+                {exportStatus === 'verifying' && 'Verifying transaction reference...'}
+                {exportStatus === 'generating' && 'Strategic advice review by Gemini...'}
+                {exportStatus === 'done' && 'Done!'}
+              </div>
+            )}
+
+            <button
+              onClick={handleInitiateExport}
+              disabled={exportLoading}
+              style={{
+                width: '100%',
+                background: 'var(--dm-primary)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '10px',
+                padding: '1rem',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                boxShadow: '0 4px 12px rgba(18, 56, 232, 0.2)'
+              }}
+            >
+              {exportLoading ? 'Processing...' : OWNER_EMAILS.includes(exportEmail.toLowerCase()) ? 'Generate Report (Free)' : 'Pay 99 KES & Export'}
+            </button>
           </div>
         </div>
       )}

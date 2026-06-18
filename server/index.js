@@ -250,6 +250,8 @@ function getExpectedAmount(metadata) {
         return null;
       }
     }
+  } else if (type === 'ats_report') {
+    amount = 99;
   } else {
     // Default fallback or photo_download
     amount = 49;
@@ -375,6 +377,127 @@ app.post('/api/verify-subscription-token', apiLimiter, (req, res) => {
     expiresAt: payload.expiresAt,
     expiresAtISO: new Date(payload.expiresAt).toISOString(),
   });
+});
+
+// ─── Generate ATS Report & Personalised Copy ──────────────────────────────────
+const OWNER_EMAILS = [
+  'duncanmakoyo@gmail.com',
+  'makoyoduncan@gmail.com',
+  'duncan@duncanmakoyo.com',
+  'info@duncanmakoyo.com'
+];
+
+app.post('/api/generate-ats-report', apiLimiter, async (req, res) => {
+  const { email, reference, candidateName, score, metrics } = req.body;
+
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: 'A valid email is required.' });
+  }
+
+  const isOwner = OWNER_EMAILS.includes(email.toLowerCase());
+
+  // 1. Validate payment if not owner
+  if (!isOwner) {
+    if (!reference || typeof reference !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(reference)) {
+      return res.status(400).json({ error: 'Invalid payment reference.' });
+    }
+
+    try {
+      const response = await axios.get(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        { headers: paystackHeaders }
+      );
+
+      const txData = response.data?.data;
+      if (txData?.status !== 'success') {
+        return res.status(402).json({ error: 'Payment not confirmed.', status: txData?.status });
+      }
+
+      // Check transaction timestamp (within 30 minutes)
+      const paidAtStr = txData?.paid_at;
+      if (paidAtStr) {
+        const paidAt = new Date(paidAtStr).getTime();
+        if (Math.abs(Date.now() - paidAt) > 30 * 60 * 1000) {
+          return res.status(403).json({ error: 'Payment reference expired. Verification must happen within 30 minutes.' });
+        }
+      }
+
+      const amountPaid = txData?.amount / 100; // kobo -> KES
+      const expectedAmount = 99;
+      if (amountPaid < expectedAmount) {
+        return res.status(400).json({ error: 'Security validation failed: Paid amount does not match the requested service price.' });
+      }
+
+      const type = txData?.metadata?.type;
+      if (type !== 'ats_report') {
+        return res.status(400).json({ error: 'Security validation failed: Payment was not for an ATS report.' });
+      }
+
+      // Multiuser Security: Verify that the customer email matches the requested email
+      const paidEmail = txData?.customer?.email;
+      if (!paidEmail || paidEmail.toLowerCase() !== email.toLowerCase()) {
+        return res.status(400).json({ error: 'Security validation failed: Payment customer email does not match the requested email.' });
+      }
+    } catch (error) {
+      console.error('[Paystack verification failed for report]', error.response?.data?.message || error.message);
+      return res.status(502).json({ error: 'Failed to verify payment reference.' });
+    }
+  }
+
+  // 2. Call Gemini to write the personalized strategic review
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    console.error('Error: GEMINI_API_KEY is not configured on the server.');
+    return res.status(500).json({ error: 'Gemini service is not configured on the server.' });
+  }
+
+  const issuesListStr = Array.isArray(metrics?.issues) ? metrics.issues.map(i => `- ${i}`).join('\n') : 'general formatting and keyword gaps';
+  const missingSectionsStr = Array.isArray(metrics?.missingSections) ? metrics.missingSections.join(', ') : 'none';
+
+  const systemPrompt = `You are an elite career consultant and executive resume writer. Your assistant Duncan Makoyo helps professionals rewrite resumes, pass ATS filters, and land high-paying roles.
+Write a highly personalized, compelling, and professional strategic advice pitch (150-200 words) for the candidate ${candidateName || 'Candidate'}.
+The candidate just ran their resume through our ATS Simulator and received an ATS score of ${score || 0}%.
+
+Their specific issues are:
+${issuesListStr}
+Missing sections: ${missingSectionsStr}
+
+Objectives of the pitch:
+1. Speak directly to ${candidateName || 'Candidate'} in an encouraging, authoritative, yet urgent tone.
+2. Acknowledge that the ATS score of ${score || 0}% shows specific technical gaps, but emphasize that the real value lies in the human strategic positioning. A resume is a marketing document, not a historical list.
+3. Convince them that they are leaving money on the table by applying with their current resume.
+4. Persuade them to book a professional CV rewrite and career consulting session with Duncan Makoyo by emailing info@duncanmakoyo.com or messaging on WhatsApp at +254 794 877 125 to unlock interviews and land promotions.
+5. Do NOT mention "AI", "Gemini", "Google", "LLM", or "machine learning" in your pitch. Avoid phrases like "our simulator". Treat this as a human audit review.
+6. Provide plain text, well-structured paragraphs, without markdown lists or asterisks. Make it look like a personal note written by Duncan's team.`;
+
+  try {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
+      {
+        contents: [{ parts: [{ text: systemPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 25000
+      }
+    );
+
+    const candidate = response.data?.candidates?.[0];
+    const pitch = candidate?.content?.parts?.[0]?.text;
+
+    if (!pitch) {
+      throw new Error('Gemini returned an empty pitch.');
+    }
+
+    res.json({ success: true, pitch });
+  } catch (error) {
+    console.error('[Gemini error in generate-ats-report]', error.response?.data?.error?.message || error.message);
+    res.status(502).json({ error: 'Failed to generate personalized strategic advice.' });
+  }
 });
 
 // ─── Paystack Webhook ─────────────────────────────────────────────────────────
