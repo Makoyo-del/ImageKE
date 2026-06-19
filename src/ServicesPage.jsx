@@ -80,6 +80,7 @@ function isValidEmail(email) {
 export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
   // Mobile navigation state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loadIframe, setLoadIframe] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -105,6 +106,14 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       script.async = true;
       document.head.appendChild(script);
     }
+  }, []);
+
+  // Optimize iframe loading to not block initial paint
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadIframe(true);
+    }, 400);
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Form handlers ──────────────────────────────────────────────────────────
@@ -308,6 +317,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <button className="dm-nav-link" onClick={() => scrollTo('process')}>Process</button>
           <button className="dm-nav-link" onClick={() => scrollTo('about')}>About</button>
           <button className="dm-nav-link" onClick={() => scrollTo('contact')}>Contact</button>
+          <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-nav-link" style={{ color: '#1dbf73', fontWeight: 600 }}>Fiverr</a>
+          <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-nav-link" style={{ color: '#14a800', fontWeight: 600 }}>Upwork</a>
           {onNavigateToPath && (
             <button
               className="dm-nav-link"
@@ -340,6 +351,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <button className="dm-mobile-link" onClick={() => { scrollTo('process'); setMobileMenuOpen(false); }}>Process</button>
           <button className="dm-mobile-link" onClick={() => { scrollTo('about'); setMobileMenuOpen(false); }}>About</button>
           <button className="dm-mobile-link" onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }}>Contact</button>
+          <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#1dbf73', fontWeight: 600 }} onClick={() => setMobileMenuOpen(false)}>Fiverr</a>
+          <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#14a800', fontWeight: 600 }} onClick={() => setMobileMenuOpen(false)}>Upwork</a>
           {onNavigateToPath && (
             <button className="dm-mobile-link ats-highlight" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
               🧠 ATS Simulator
@@ -384,57 +397,73 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
               <div className="dm-hero-btns">
                 <button className="dm-btn-primary" onClick={() => scrollTo('contact')}>
-                  Request a Service →
+                  Request Service →
                 </button>
-                <button className="dm-btn-outline" onClick={() => scrollTo('services')}>
-                  View Services
-                </button>
+                <a
+                  href="https://www.fiverr.com/s/LdwxP1Q"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dm-btn-fiverr"
+                >
+                  Hire me on Fiverr
+                </a>
+                <a
+                  href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dm-btn-upwork"
+                >
+                  Hire me on Upwork
+                </a>
               </div>
 
               <div className="dm-hero-social-proof">
                 <span className="dm-stars">★★★★★</span>
-                <span>Trusted by professionals and growing businesses across Kenya</span>
+                <span>Trusted by professionals and growing businesses worldwide</span>
               </div>
             </div>
 
-            {/* Right — Hero Image */}
-            <div className="dm-illustration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Right — Embedded LinkedIn Post */}
+            <div className="dm-illustration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
               <div style={{
                 position: 'relative',
                 borderRadius: '24px',
                 overflow: 'hidden',
                 boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(18, 56, 232, 0.2)',
                 width: '100%',
-                maxWidth: '500px',
+                maxWidth: '504px',
+                aspectRatio: '504 / 669',
+                maxHeight: '85vh',
+                background: 'rgba(30, 41, 59, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
               }}>
-                <img
-                  src="/hero.jpg"
-                  alt="Professional career consulting services"
-                  style={{ width: '100%', display: 'block', borderRadius: '24px' }}
-                />
-                {/* Floating badge overlay */}
-                <div style={{
-                  position: 'absolute', bottom: '20px', left: '20px',
-                  background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(18, 56, 232, 0.3)', borderRadius: '12px',
-                  padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px',
-                }}>
-                  <span style={{ fontSize: '1.5rem' }}>✅</span>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>100% Client Satisfaction</div>
-                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)' }}>Every client got interviews or a promotion</div>
+                {!loadIframe ? (
+                  <div style={{ color: '#fff', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>
+                    <div className="dm-spinner" style={{
+                      margin: '0 auto 15px',
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid rgba(255,255,255,0.1)',
+                      borderTop: '3px solid var(--dm-teal)',
+                      borderRadius: '50%'
+                    }} />
+                    <span>Loading LinkedIn Post...</span>
                   </div>
-                </div>
-                {/* ATS badge */}
-                <div style={{
-                  position: 'absolute', top: '16px', right: '16px',
-                  background: 'var(--dm-teal)', color: '#fff',
-                   fontSize: '0.72rem', fontWeight: 800, padding: '5px 14px',
-                   borderRadius: '20px', boxShadow: '0 4px 12px rgba(18, 56, 232, 0.45)',
-                   animation: 'float 3s ease-in-out infinite',
-                 }}>
-                  ATS Score: 94% ↑
-                </div>
+                ) : (
+                  <iframe
+                    src="https://www.linkedin.com/embed/feed/update/urn:li:share:7471190683199082497?collapsed=1"
+                    height="100%"
+                    width="100%"
+                    frameBorder="0"
+                    allowFullScreen=""
+                    title="Embedded post"
+                    loading="lazy"
+                    style={{ border: 'none', borderRadius: '24px', display: 'block' }}
+                  />
+                )}
               </div>
             </div>
           </div>

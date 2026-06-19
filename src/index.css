@@ -1970,4 +1970,64 @@ html, body {
   }
 }
 
+/* Spinner & Freelancing Platform Buttons */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.dm-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.dm-btn-fiverr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1dbf73;
+  color: #fff !important;
+  padding: 0.9rem 2rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(29, 191, 115, 0.35);
+  white-space: nowrap;
+}
+
+.dm-btn-fiverr:hover {
+  background: #19a965;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(29, 191, 115, 0.5);
+}
+
+.dm-btn-upwork {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #14a800;
+  color: #fff !important;
+  padding: 0.9rem 2rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(20, 168, 0, 0.3);
+  white-space: nowrap;
+}
+
+.dm-btn-upwork:hover {
+  background: #118f00;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(20, 168, 0, 0.45);
+}
+
 
