@@ -1654,7 +1654,9 @@ p { color: var(--text-muted); }
   }
 
   .dm-hero-btns .dm-btn-primary,
-  .dm-hero-btns .dm-btn-outline {
+  .dm-hero-btns .dm-btn-outline,
+  .dm-hero-btns .dm-btn-fiverr,
+  .dm-hero-btns .dm-btn-upwork {
     width: 100%;
     max-width: 280px;
     justify-content: center;
