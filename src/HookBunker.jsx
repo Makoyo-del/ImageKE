@@ -1035,6 +1035,13 @@ export function HookBunkerDashboard({ onNavigate }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [billingCurrency, setBillingCurrency] = useState('KES');
   
+  // Password Change states
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordUpdating, setPasswordUpdating] = useState(false);
+  
   // Auth state listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1358,6 +1365,37 @@ export function HookBunkerDashboard({ onNavigate }) {
     setSelectedProj(null);
     setLogs([]);
     setSelectedLog(null);
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    // Strong password check
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!strongPasswordRegex.test(newPassword)) {
+      setPasswordError('Password must be at least 8 characters long, and contain at least one uppercase letter, one lowercase letter, one numeric digit, and one special character (e.g. @$!%*?&).');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+
+    setPasswordUpdating(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordSuccess('Password changed successfully.');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setPasswordError(err.message || 'Failed to update password.');
+    } finally {
+      setPasswordUpdating(false);
+    }
   };
 
   const copyToClipboard = (text) => {
@@ -1888,6 +1926,57 @@ export function HookBunkerDashboard({ onNavigate }) {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Account Security Card */}
+          <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '1.5rem', borderRadius: '12px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
+              Account Security
+            </h3>
+            
+            {passwordError && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: theme.danger, padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                {passwordError}
+              </div>
+            )}
+            
+            {passwordSuccess && (
+              <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: theme.success, padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', marginBottom: '0.75rem' }}>
+                {passwordSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.textMuted, marginBottom: '2px' }}>New Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: `1px solid ${theme.border}`, background: '#0e1422', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: theme.textMuted, marginBottom: '2px' }}>Confirm New Password</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: `1px solid ${theme.border}`, background: '#0e1422', color: '#fff', fontSize: '0.85rem', outline: 'none' }}
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={passwordUpdating}
+                style={{ background: theme.primary, color: '#090d16', border: 'none', padding: '0.5rem', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.25rem' }}
+              >
+                {passwordUpdating ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
           </div>
         </div>
 
