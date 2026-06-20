@@ -270,8 +270,8 @@ router.post('/webhooks/:apiKey', async (req, res) => {
   }
 });
 
-// Retry Worker: Triggered via cron-job.org
-router.post('/jobs/process-retries', async (req, res) => {
+// Retry Worker: Triggered via cron-job.org (supports both GET and POST for convenience)
+router.all('/jobs/process-retries', async (req, res) => {
   const token = req.query.token || req.headers.authorization?.slice(7);
   const expectedToken = process.env.PING_SECRET || 'local_job_secret_key';
 
