@@ -320,13 +320,22 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-nav-link" style={{ color: '#1dbf73', fontWeight: 600 }}>Fiverr</a>
           <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-nav-link" style={{ color: '#14a800', fontWeight: 600 }}>Upwork</a>
           {onNavigateToPath && (
-            <button
-              className="dm-nav-link"
-              onClick={() => onNavigateToPath('ats')}
-              style={{ color: 'var(--dm-teal)', fontWeight: 700 }}
-            >
-              🧠 ATS Simulator
-            </button>
+            <>
+              <button
+                className="dm-nav-link"
+                onClick={() => onNavigateToPath('ats')}
+                style={{ color: 'var(--dm-teal)', fontWeight: 700 }}
+              >
+                🧠 ATS Simulator
+              </button>
+              <button
+                className="dm-nav-link"
+                onClick={() => onNavigateToPath('hookbunker')}
+                style={{ color: '#10b981', fontWeight: 700 }}
+              >
+                🛡 HookBunker
+              </button>
+            </>
           )}
           {onNavigateToTools && (
             <button className="dm-nav-link" onClick={onNavigateToTools} title="Photo & Video Tools">🛠 Tools</button>
@@ -354,9 +363,14 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#1dbf73', fontWeight: 600 }} onClick={() => setMobileMenuOpen(false)}>Fiverr</a>
           <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#14a800', fontWeight: 600 }} onClick={() => setMobileMenuOpen(false)}>Upwork</a>
           {onNavigateToPath && (
-            <button className="dm-mobile-link ats-highlight" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
-              🧠 ATS Simulator
-            </button>
+            <>
+              <button className="dm-mobile-link ats-highlight" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
+                🧠 ATS Simulator
+              </button>
+              <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ color: '#10b981', fontWeight: 700 }}>
+                🛡 HookBunker Proxy
+              </button>
+            </>
           )}
           {onNavigateToTools && (
             <button className="dm-mobile-link tools-highlight" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }}>
@@ -1236,6 +1250,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               {onNavigateToPath && (
                 <>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('ats')}>🧠 ATS Simulator</button>
+                  <button className="dm-footer-link" onClick={() => onNavigateToPath('hookbunker')} style={{ color: '#10b981', fontWeight: 600 }}>🛡 HookBunker Monitor</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('terms')}>Terms of Use</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('privacy')}>Privacy Policy</button>
                 </>

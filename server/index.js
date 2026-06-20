@@ -5,6 +5,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import hookBunkerRouter from './hookbunker.js';
 
 dotenv.config();
 
@@ -70,6 +71,9 @@ app.use(
     },
   })
 );
+
+// ─── HookBunker Mount ─────────────────────────────────────────────────────────
+app.use('/api/hookbunker', hookBunkerRouter);
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;

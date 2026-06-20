@@ -13,6 +13,7 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.108.2",
     "axios": "^1.16.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

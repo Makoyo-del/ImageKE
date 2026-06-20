@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
 import ServicesPage from './ServicesPage';
 import ATSSimulator from './ATSSimulator';
+import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard, HookBunkerTerms, HookBunkerPrivacy } from './HookBunker';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -166,6 +167,14 @@ const getPathFromHash = () => {
   if (hash === '#/photo-tools' || hash === '#/photo-editor' || hash === '#/photoeditor') return 'home';
   if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
   if (hash === '#/home' || hash === '#/tools') return 'home';
+  
+  // HookBunker paths
+  if (hash === '#/hookbunker') return 'hookbunker-landing';
+  if (hash === '#/hookbunker/docs') return 'hookbunker-docs';
+  if (hash === '#/hookbunker/dashboard') return 'hookbunker-dashboard';
+  if (hash === '#/hookbunker/terms') return 'hookbunker-terms';
+  if (hash === '#/hookbunker/privacy') return 'hookbunker-privacy';
+  
   return 'services';
 };
 
@@ -2714,6 +2723,14 @@ function App() {
     else if (path === 'custom') window.location.hash = '#/custom';
     else if (path === 'terms') window.location.hash = '#/terms';
     else if (path === 'privacy') window.location.hash = '#/privacy';
+    
+    // HookBunker paths navigation
+    else if (path === 'hookbunker') window.location.hash = '#/hookbunker';
+    else if (path === 'hookbunker-docs') window.location.hash = '#/hookbunker/docs';
+    else if (path === 'hookbunker-dashboard') window.location.hash = '#/hookbunker/dashboard';
+    else if (path === 'hookbunker-terms') window.location.hash = '#/hookbunker/terms';
+    else if (path === 'hookbunker-privacy') window.location.hash = '#/hookbunker/privacy';
+    
     else window.location.hash = `#/${path}`;
   };
 
@@ -2735,6 +2752,31 @@ function App() {
       {/* ── ATS Simulator (standalone page) ── */}
       {currentPath === 'ats' && (
         <ATSSimulator onBack={() => window.location.hash = '#/'} />
+      )}
+
+      {/* ── HookBunker Landing Page ── */}
+      {currentPath === 'hookbunker-landing' && (
+        <HookBunkerLanding onNavigate={navigateToPath} />
+      )}
+
+      {/* ── HookBunker Docs Page ── */}
+      {currentPath === 'hookbunker-docs' && (
+        <HookBunkerDocs onNavigate={navigateToPath} />
+      )}
+
+      {/* ── HookBunker Dashboard ── */}
+      {currentPath === 'hookbunker-dashboard' && (
+        <HookBunkerDashboard onNavigate={navigateToPath} />
+      )}
+
+      {/* ── HookBunker Terms ── */}
+      {currentPath === 'hookbunker-terms' && (
+        <HookBunkerTerms onNavigate={navigateToPath} />
+      )}
+
+      {/* ── HookBunker Privacy ── */}
+      {currentPath === 'hookbunker-privacy' && (
+        <HookBunkerPrivacy onNavigate={navigateToPath} />
       )}
 
       {/* ── Legal pages (standalone, minimal header) ── */}
@@ -2764,7 +2806,11 @@ function App() {
       )}
 
       {/* ── ImageKE Photo & Video Tools ── */}
-      {currentPath !== 'services' && currentPath !== 'terms' && currentPath !== 'privacy' && currentPath !== 'ats' && (
+      {currentPath !== 'services' && 
+       currentPath !== 'terms' && 
+       currentPath !== 'privacy' && 
+       currentPath !== 'ats' && 
+       !currentPath.startsWith('hookbunker') && (
         <>
           {/* Sticky Header */}
           <header className="app-header">
