@@ -294,24 +294,26 @@ export function HookBunkerDashboard({ onNavigate }) {
           tier: tierName,
           userId: user.id
         },
-        callback: async function (paystackResponse) {
-          try {
-            const session = await supabase.auth.getSession();
-            const token = session.data.session?.access_token;
+        callback: function (paystackResponse) {
+          (async () => {
+            try {
+              const session = await supabase.auth.getSession();
+              const token = session.data.session?.access_token;
 
-            const res = await axios.post(`${API_URL}/api/hookbunker/verify-subscription`, {
-              reference: paystackResponse.reference
-            }, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
+              const res = await axios.post(`${API_URL}/api/hookbunker/verify-subscription`, {
+                reference: paystackResponse.reference
+              }, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
 
-            if (res.data?.success) {
-              setProfile(res.data.profile);
-              showToast(`Your subscription has been updated to the ${tierName.toUpperCase()} plan.`, 'success');
+              if (res.data?.success) {
+                setProfile(res.data.profile);
+                showToast(`Your subscription has been updated to the ${tierName.toUpperCase()} plan.`, 'success');
+              }
+            } catch (verifyErr) {
+              showToast(verifyErr.response?.data?.error || 'Verification failed. Please contact support.', 'error');
             }
-          } catch (verifyErr) {
-            showToast(verifyErr.response?.data?.error || 'Verification failed. Please contact support.', 'error');
-          }
+          })();
         },
         onClose: function () {
           console.log('Subscription checkout closed.');
