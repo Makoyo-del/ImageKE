@@ -788,9 +788,9 @@ export function HookBunkerDashboard({ onNavigate }) {
                 <div style={{ marginTop: '0.5rem', display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: theme.textMuted, textTransform: 'uppercase', fontWeight: 700 }}>Ingestion Endpoint:</span>
                   <code style={{ background: '#050a14', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', color: theme.primary, fontFamily: 'monospace' }}>
-                    {`${window.location.origin}/api/hookbunker/webhooks/${selectedProj.api_key}`}
+                    {`${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}`}
                   </code>
-                  <button onClick={() => copyToClipboard(`${window.location.origin}/api/hookbunker/webhooks/${selectedProj.api_key}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: 0 }} title="Copy Endpoint"><Copy size={13} /></button>
+                  <button onClick={() => copyToClipboard(`${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: 0 }} title="Copy Endpoint"><Copy size={13} /></button>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -976,7 +976,7 @@ export function HookBunkerDashboard({ onNavigate }) {
                 <div>
                   <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>1. Safaricom M-Pesa Integration (STK Push &amp; Confirms)</h4>
                   <pre className="hb-code-box">
-{`// Proxy Endpoint: ${window.location.origin}/api/hookbunker/webhooks/${selectedProj.api_key}
+{`// Proxy Endpoint: ${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}
 
 const express = require('express');
 const app = express();
@@ -1010,7 +1010,7 @@ app.post('/api/mpesa-callback', (req, res) => {
                 <div>
                   <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>2. Paystack Webhook Verification (HMAC SHA512)</h4>
                   <pre className="hb-code-box">
-{`// Configure Webhook Target: ${window.location.origin}/api/hookbunker/webhooks/${selectedProj.api_key}
+{`// Configure Webhook Target: ${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}
 
 const express = require('express');
 const crypto = require('crypto');
@@ -1046,7 +1046,7 @@ app.post('/api/paystack-webhook', express.raw({ type: 'application/json' }), (re
                 <div>
                   <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>3. Payhero Callback Receiver</h4>
                   <pre className="hb-code-box">
-{`// Configure Ingestion Endpoint: ${window.location.origin}/api/hookbunker/webhooks/${selectedProj.api_key}
+{`// Configure Ingestion Endpoint: ${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}
 
 const express = require('express');
 const app = express();
