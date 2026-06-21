@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
 import ServicesPage from './ServicesPage';
 import ATSSimulator from './ATSSimulator';
-import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard, HookBunkerTerms, HookBunkerPrivacy } from './HookBunker';
+import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBunker';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -172,8 +172,8 @@ const getPathFromHash = () => {
   if (hash === '#/hookbunker') return 'hookbunker-landing';
   if (hash === '#/hookbunker/docs') return 'hookbunker-docs';
   if (hash === '#/hookbunker/dashboard') return 'hookbunker-dashboard';
-  if (hash === '#/hookbunker/terms') return 'hookbunker-terms';
-  if (hash === '#/hookbunker/privacy') return 'hookbunker-privacy';
+  if (hash === '#/hookbunker/terms') return 'terms';
+  if (hash === '#/hookbunker/privacy') return 'privacy';
   
   return 'services';
 };
@@ -1573,6 +1573,7 @@ function App() {
           <li><b>ImageKE Photo Utilities:</b> Automated image resizing and cropping for specific portal requirements (e.g. eCitizen, KRA iTax, HELB, US/Schengen Visa), custom dimensional resizing, and a Batch Document Compressor to optimize scanned page uploads for low-bandwidth connections.</li>
           <li><b>ImageKE Video Studio:</b> Client-side aspect ratio cropping (portrait 9:16, square 1:1, widescreen 16:9), size compressors (WhatsApp under 16MB, email under 25MB), text/image branding watermarkers, MP3 audio extractors, and video frame extraction tools.</li>
           <li><b>ATS Simulator (V2):</b> A secure resume parsing utility utilizing artificial intelligence to analyze formatting safety, structural ordering, privacy markers (e.g. photos, DOB, National ID risks), STAR methodology metrics, and keyword coverage.</li>
+          <li><b>HookBunker Webhook Proxy & Gateway:</b> A resilient developer-first webhook forwarding proxy designed to ingest callback events from payment gateways (Safaricom M-Pesa, Paystack, Payhero) and reliably dispatch them to configured application targets, complete with status logging, payload inspection, and auto-retry dispatching.</li>
           <li><b>Professional Career & Web Services:</b> Elite CV/resume copywriting, cover letter design, LinkedIn profile optimization, corporate web development, search engine optimization (SEO), and digital presence setup.</li>
         </ul>
 
@@ -1581,6 +1582,7 @@ function App() {
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
           <li><b>Pay-Per-Download Tools:</b> Single media fixes or batch document compression downloads require a fixed payment (e.g. KSh 49 or KSh 4) processed via Paystack. Because watermarked previews are displayed prior to purchase, all sales are final and non-refundable.</li>
           <li><b>Creator Subscription Plan:</b> A monthly subscription (KSh 499/month) granting unlimited downloads for video and photo tools. Subscriptions are billed automatically until canceled by the user via the local dashboard. Canceled subscriptions remain active until the end of the billing period and are non-refundable.</li>
+          <li><b>HookBunker Developer Subscription Plans:</b> Optional upgrade tiers (Team plan at KSh 3,400/month or $26/month; Business plan at KSh 11,500/month or $89/month) processed and auto-renewed securely via Paystack. Subscription renewals that fail or fail to clear will result in immediate down-grading to the Free Tier. When downgraded, active workspace slots are capped at 1; any excess projects are automatically suspended or deactivated in the developer dashboard. Suspended projects do not process callbacks, and we hold no responsibility or liability for missed gateway callbacks.</li>
           <li><b>Professional Consulting packages:</b> Custom branding, web development, and resume copywriting packages are subject to project-specific proposal pricing. Payments are due prior to commencement or at agreed milestones. Once project discovery or draft composition has started, fees are non-refundable.</li>
         </ul>
 
@@ -1593,11 +1595,12 @@ function App() {
           <li>Securing job interviews, callbacks, employment offers, salary raises, or recruitment opportunities from using the ATS Simulator or professional CV services.</li>
           <li>Increases in web traffic, business leads, sales conversions, search engine rankings, or digital revenue from custom web development and SEO packages.</li>
           <li>Acceptance of processed photos, videos, or documents by any third-party government portal (eCitizen, KRA), visa office, school portal, or corporate Applicant Tracking System.</li>
+          <li>Continuous callback deliveries, 100% gateway uptime, or immediate forwarding of payment hooks through HookBunker; system maintenance, API timeouts, or third-party outages may disrupt log captures.</li>
         </ul>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Limitation of Liability and Full Indemnification</h3>
-        <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL DUNCAN MAKOYO, THE SITE OPERATORS, ITS AGENTS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, EMPLOYMENT OPPORTUNITIES, BUSINESS DOWNTIME, OR SYSTEM FAILURES.</p>
-        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site or delivered assets; (ii) any career, financial, or business outcomes resulting from our consulting; (iii) any third-party claims regarding intellectual property infringement in materials you submitted; or (iv) any service interruptions, data losses, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
+        <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL DUNCAN MAKOYO, THE SITE OPERATORS, ITS AGENTS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, EMPLOYMENT OPPORTUNITIES, BUSINESS DOWNTIME, TRANSACTION FAILURES, REVENUE LOSSES, OR SYSTEM FAILURES.</p>
+        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site, HookBunker proxy gateways, or delivered assets; (ii) any career, financial, or business outcomes resulting from our consulting; (iii) any third-party claims regarding intellectual property infringement in materials you submitted; or (iv) any service interruptions, webhook delivery failures, callback queues delays, database data pruning, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>7. Governing Law and Disputes</h3>
         <p>These Terms of Use shall be governed by, construed, and enforced in accordance with the laws of the Republic of Kenya. Any legal actions or disputes arising from these Terms or the Services shall be submitted to the exclusive jurisdiction of the courts of Nairobi, Kenya.</p>
@@ -1617,7 +1620,7 @@ function App() {
       <h1>Privacy Policy</h1>
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
-        <p>This Privacy Policy describes how we collect, process, and protect your personal information when you use duncanmakoyo.com ("the Site"), our browser-native media tools (ImageKE), or our consulting services.</p>
+        <p>This Privacy Policy describes how we collect, process, and protect your personal information when you use duncanmakoyo.com ("the Site"), our browser-native media tools (ImageKE), our developer console (HookBunker), or our consulting services.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>1. Browser-Native Processing (Zero Server Transmission)</h3>
         <p>For the ImageKE Photo and Video editing tools (including compressor, aspect cropper, watermarker, and extractors), **all rendering is conducted locally in your web browser using WebAssembly and canvas technologies**. Your uploaded photos, logo overlays, and video streams never leave your device and are never sent to our servers.</p>
@@ -1627,11 +1630,12 @@ function App() {
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
           <li><b>Career Forms & Consultation:</b> When you submit service requests or sign up for CV audits, we collect your name, email, phone number, LinkedIn URL, target job fields, and uploaded CV files.</li>
           <li><b>ATS Simulator V2:</b> When you use the simulator, we temporarily process your resume data. If you upload a PDF, the file is converted to text/base64 and sent to our secure backend proxy route to be analyzed using artificial intelligence. **No resume files or personal text parsed by the simulator are ever stored on our servers.** They are held in memory solely to compile your score card and are immediately discarded.</li>
+          <li><b>HookBunker Transaction Logs:</b> We temporarily collect and store transactional payload information received from payment gateways (Safaricom M-Pesa, Paystack, and Payhero) on your behalf. This parsed metadata contains payment references, transaction amounts, customer emails, and phone numbers in order to populate your developer log console. All webhook database records are stored in secure Supabase PostgreSQL database tables with strict Row-Level Security (RLS) policies to ensure absolute tenant isolation. Logs and payloads are automatically pruned from active tables based on your active plan tier (3 days for Free, 14 days for Team, 30 days for Business).</li>
           <li><b>Billing Data:</b> Email addresses and transaction references collected during Paystack checkout are processed securely. Card numbers, bank log-ins, and M-Pesa PINs are handled directly by Paystack and are never visible to or stored by us.</li>
         </ul>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. How We Use and Share Information</h3>
-        <p>We use your information exclusively to deliver the requested Services, refine your CV drafts, host client websites, verify payments, and communicate project updates. We **never sell, share, rent, or trade your personal data, resume details, contact lists, or media files** with third-party advertising or marketing agencies.</p>
+        <p>We use your information exclusively to deliver the requested Services, refine your CV drafts, host client websites, verify payments, route webhook payloads, and communicate project updates. We **never sell, share, rent, or trade your personal data, resume details, contact lists, developer transaction payloads, or media files** with third-party advertising or marketing agencies.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Data Protection and Retention</h3>
         <p>We store financial transaction records for 7 years to comply with Kenyan tax accounting audits. Completed client CV drafts, SEO audit logs, and custom web source code are retained for 1 year to assist you with future revisions, after which they are permanently deleted. You can request the immediate deletion of your career files at any time by contacting us.</p>
@@ -1639,7 +1643,8 @@ function App() {
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Third-Party Services</h3>
         <p>We utilize the following secure integrations to facilitate Site operations:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>Paystack:</b> Payment gateway processing.</li>
+          <li><b>Paystack:</b> Payment gateway processing and subscription billing.</li>
+          <li><b>Safaricom M-Pesa & Payhero:</b> Ingesting transaction webhook notification callbacks.</li>
           <li><b>Render:</b> Hosting infrastructure and request proxy routing.</li>
           <li><b>Secure AI Parsing Engine:</b> Processing resume analysis requests securely via a private server-side connection (data is not used to train models).</li>
         </ul>
@@ -2728,8 +2733,8 @@ function App() {
     else if (path === 'hookbunker') window.location.hash = '#/hookbunker';
     else if (path === 'hookbunker-docs') window.location.hash = '#/hookbunker/docs';
     else if (path === 'hookbunker-dashboard') window.location.hash = '#/hookbunker/dashboard';
-    else if (path === 'hookbunker-terms') window.location.hash = '#/hookbunker/terms';
-    else if (path === 'hookbunker-privacy') window.location.hash = '#/hookbunker/privacy';
+    else if (path === 'hookbunker-terms') window.location.hash = '#/terms';
+    else if (path === 'hookbunker-privacy') window.location.hash = '#/privacy';
     
     else window.location.hash = `#/${path}`;
   };
@@ -2769,15 +2774,7 @@ function App() {
         <HookBunkerDashboard onNavigate={navigateToPath} />
       )}
 
-      {/* ── HookBunker Terms ── */}
-      {currentPath === 'hookbunker-terms' && (
-        <HookBunkerTerms onNavigate={navigateToPath} />
-      )}
 
-      {/* ── HookBunker Privacy ── */}
-      {currentPath === 'hookbunker-privacy' && (
-        <HookBunkerPrivacy onNavigate={navigateToPath} />
-      )}
 
       {/* ── Legal pages (standalone, minimal header) ── */}
       {(currentPath === 'terms' || currentPath === 'privacy') && (
