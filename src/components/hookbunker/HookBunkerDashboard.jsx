@@ -140,6 +140,32 @@ export function HookBunkerDashboard({ onNavigate }) {
     }
   }, [selectedProj]);
 
+  // Real-time subscription to auto-refresh logs instantly on database updates
+  useEffect(() => {
+    if (!selectedProj) return;
+
+    const channel = supabase
+      .channel(`hb-realtime-logs-${selectedProj.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'webhooks',
+          filter: `project_id=eq.${selectedProj.id}`
+        },
+        () => {
+          // Re-fetch logs automatically on any database modification
+          fetchLogs(selectedProj.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedProj]);
+
   // Inactivity Auto-Logout Timer (15 minutes limit)
   useEffect(() => {
     if (!user) return;
@@ -853,7 +879,13 @@ export function HookBunkerDashboard({ onNavigate }) {
           {activeProjTab === 'logs' && (
             <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '2rem', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Webhook Event Logs</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Webhook Event Logs</h3>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>
+                    <span className="live-pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
+                    LIVE
+                  </span>
+                </div>
                 <button 
                   onClick={() => fetchLogs(selectedProj.id)}
                   style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255, 255, 255, 0.05)', border: `1px solid ${theme.border}`, color: theme.text, padding: '0.45rem 1rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}

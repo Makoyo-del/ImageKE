@@ -142,7 +142,7 @@ const parsePayload = (payload, gateway) => {
 };
 
 // Helper: Async Webhook Forwarding Job
-const forwardWebhookAsync = async (webhookId, targetUrl, payload) => {
+const forwardWebhookAsync = async (webhookId, targetUrl, payload, customHeaders = {}) => {
   const attempt_number = 1;
   const startTime = Date.now();
   let response_status = null;
@@ -152,7 +152,10 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload) => {
 
   try {
     const response = await axios.post(targetUrl, payload, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...customHeaders
+      },
       timeout: 8000,
     });
     response_status = response.status;
@@ -244,6 +247,15 @@ router.post('/webhooks/:apiKey', async (req, res) => {
     const gateway = req.query.gateway || (payload.Body?.stkCallback ? 'mpesa' : payload.reference ? 'payhero' : payload.event ? 'paystack' : 'generic');
     const { transaction_code, amount, phone, email, payment_method, currency } = parsePayload(payload, gateway);
 
+    // Extract signature and validation headers to forward
+    const forwardHeaders = {};
+    for (const [key, val] of Object.entries(req.headers)) {
+      const lowerKey = key.toLowerCase();
+      if (lowerKey.startsWith('x-') || lowerKey === 'authorization') {
+        forwardHeaders[key] = val;
+      }
+    }
+
     const { data: webhook, error: webError } = await supabase
       .from('webhooks')
       .insert({
@@ -257,6 +269,7 @@ router.post('/webhooks/:apiKey', async (req, res) => {
         email,
         payment_method,
         currency,
+        headers: forwardHeaders,
       })
       .select()
       .single();
@@ -268,7 +281,7 @@ router.post('/webhooks/:apiKey', async (req, res) => {
 
     res.status(200).json({ status: 'received', id: webhook.id });
 
-    forwardWebhookAsync(webhook.id, project.target_url, payload);
+    forwardWebhookAsync(webhook.id, project.target_url, payload, forwardHeaders);
 
   } catch (err) {
     console.error('[Ingestion Crash]', err.message);
@@ -313,7 +326,7 @@ router.all('/jobs/process-retries', async (req, res) => {
       }
 
       processedCount++;
-      forwardWebhookAsync(webhook.id, webhook.projects.target_url, webhook.payload);
+      forwardWebhookAsync(webhook.id, webhook.projects.target_url, webhook.payload, webhook.headers || {});
     }
 
     res.json({ processed: processedCount });
@@ -582,7 +595,7 @@ router.post('/webhooks/:webhookId/retry', authenticateUser, async (req, res) => 
 
   await supabase.from('webhooks').update({ status: 'pending' }).eq('id', webhookId);
 
-  forwardWebhookAsync(webhook.id, webhook.projects.target_url, webhook.payload);
+  forwardWebhookAsync(webhook.id, webhook.projects.target_url, webhook.payload, webhook.headers || {});
 
   res.json({ success: true, message: 'Retry initiated.' });
 });
