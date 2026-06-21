@@ -575,7 +575,14 @@ router.get('/projects/:id/logs', authenticateUser, async (req, res) => {
     .limit(100);
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(logs);
+
+  // Backend is the source of truth for currency fallbacks
+  const enrichedLogs = logs.map(log => ({
+    ...log,
+    currency: log.currency || (log.gateway === 'mpesa' ? 'KES' : log.gateway === 'payhero' ? 'KES' : 'KES')
+  }));
+
+  res.json(enrichedLogs);
 });
 
 // Manual retry of single webhook

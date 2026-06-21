@@ -968,7 +968,7 @@ export function HookBunkerDashboard({ onNavigate }) {
                                   {log.email && log.phone && <span style={{ color: theme.textMuted, fontSize: '0.7rem' }}>{log.phone}</span>}
                                 </div>
                               </td>
-                              <td style={{ fontWeight: 600 }}>{log.amount ? `${log.currency || (log.gateway === 'mpesa' ? 'KES' : log.gateway === 'payhero' ? 'KES' : 'KES')} ${log.amount}` : '—'}</td>
+                              <td style={{ fontWeight: 600 }}>{log.amount ? `${log.currency || 'KES'} ${log.amount}` : '—'}</td>
                               <td style={{ textAlign: 'center' }}>
                                 <span style={{
                                   fontSize: '0.75rem',
