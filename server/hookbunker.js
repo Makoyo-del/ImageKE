@@ -61,9 +61,11 @@ const parsePayload = (payload, gateway) => {
   let phone = null;
   let email = null;
   let payment_method = null;
+  let currency = null;
 
   try {
     if (gateway === 'mpesa') {
+      currency = 'KES';
       const stkCallback = payload.Body?.stkCallback;
       if (stkCallback) {
         transaction_code = stkCallback.CheckoutRequestID;
@@ -100,8 +102,11 @@ const parsePayload = (payload, gateway) => {
         phone = data.customer?.phone || null;
         email = data.customer?.email || null;
         payment_method = data.channel || 'card';
+        // Extract actual currency from Paystack payload (KES, NGN, USD, GHS, ZAR, etc.)
+        currency = data.currency || 'KES';
       }
     } else if (gateway === 'payhero') {
+      currency = 'KES'; // Payhero is Kenya-only
       transaction_code = payload.reference || payload.transaction_id || null;
       amount = payload.amount || null;
       phone = payload.phone || payload.phone_number || null;
@@ -133,7 +138,7 @@ const parsePayload = (payload, gateway) => {
     console.error('[Payload Parse Error]', e.message);
   }
 
-  return { transaction_code, amount, phone, email, payment_method };
+  return { transaction_code, amount, phone, email, payment_method, currency };
 };
 
 // Helper: Async Webhook Forwarding Job
@@ -204,7 +209,7 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload) => {
               <p>HookBunker will automatically retry this delivery according to your plan schedule. You can inspect logs or manually trigger a retry in your dashboard.</p>
               
               <div style="margin-top: 30px; text-align: center;">
-                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
               </div>
             </div>
           `,
@@ -237,7 +242,7 @@ router.post('/webhooks/:apiKey', async (req, res) => {
     }
 
     const gateway = req.query.gateway || (payload.Body?.stkCallback ? 'mpesa' : payload.reference ? 'payhero' : payload.event ? 'paystack' : 'generic');
-    const { transaction_code, amount, phone, email, payment_method } = parsePayload(payload, gateway);
+    const { transaction_code, amount, phone, email, payment_method, currency } = parsePayload(payload, gateway);
 
     const { data: webhook, error: webError } = await supabase
       .from('webhooks')
@@ -251,6 +256,7 @@ router.post('/webhooks/:apiKey', async (req, res) => {
         phone,
         email,
         payment_method,
+        currency,
       })
       .select()
       .single();
@@ -750,7 +756,7 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
           <p>Your new limits are applied immediately to all your projects.</p>
           
           <div style="margin-top: 30px; text-align: center;">
-            <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Developer Console</a>
+            <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Developer Console</a>
           </div>
         </div>
       `
@@ -913,7 +919,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
               <p>Your premium HookBunker subscription has been disabled. Your account has reverted to the <strong>Developer (Free)</strong> tier limits. Additional active projects have been suspended.</p>
               <p>If this was unintentional, you can re-upgrade at any time from your console dashboard.</p>
               <div style="margin-top: 30px; text-align: center;">
-                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Billing Panel</a>
+                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Billing Panel</a>
               </div>
             </div>
           `
@@ -949,7 +955,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
               <p>We were unable to process your subscription renewal payment for HookBunker.</p>
               <p>Please update your billing card details on Paystack to avoid plan disruption and downgrades.</p>
               <div style="margin-top: 30px; text-align: center;">
-                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Update Payment Details</a>
+                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Update Payment Details</a>
               </div>
             </div>
           `

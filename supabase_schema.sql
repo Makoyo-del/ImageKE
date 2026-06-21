@@ -85,6 +85,7 @@ create table if not exists public.webhooks (
   phone text,
   email text,
   payment_method text, -- 'card', 'mpesa_stk', 'mpesa_paybill', 'mpesa_till', etc.
+  currency text default 'KES', -- 'KES', 'NGN', 'USD', 'GHS', 'ZAR', etc.
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -177,3 +178,8 @@ create index if not exists idx_webhooks_payment_method on public.webhooks(paymen
 create index if not exists idx_deliveries_webhook_id on public.deliveries(webhook_id);
 create index if not exists idx_feedback_user_id on public.feedback(user_id);
 create index if not exists idx_feedback_type on public.feedback(type);
+
+-- =============================================================================
+-- MIGRATION: Add currency column to existing webhooks table (run if upgrading)
+-- =============================================================================
+alter table public.webhooks add column if not exists currency text default 'KES';
