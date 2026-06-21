@@ -204,7 +204,7 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload) => {
               <p>HookBunker will automatically retry this delivery according to your plan schedule. You can inspect logs or manually trigger a retry in your dashboard.</p>
               
               <div style="margin-top: 30px; text-align: center;">
-                <a href="https://duncanmakoyo.com/hookbunker/dashboard" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
               </div>
             </div>
           `,
@@ -331,7 +331,9 @@ router.get('/projects', authenticateUser, async (req, res) => {
 
 // Project Creation
 router.post('/projects', authenticateUser, async (req, res) => {
-  const { name, target_url } = req.body;
+  // Accept both snake_case (target_url) and camelCase (targetUrl) from the frontend
+  const { name } = req.body;
+  const target_url = req.body.target_url || req.body.targetUrl;
   if (!name || !target_url) {
     return res.status(400).json({ error: 'Name and target URL are required.' });
   }
@@ -401,6 +403,35 @@ router.post('/projects', authenticateUser, async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('[Project Creation Limit Check Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Project Update (name + target URL)
+router.put('/projects/:id', authenticateUser, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  const target_url = req.body.target_url || req.body.targetUrl;
+
+  if (!name || !target_url) {
+    return res.status(400).json({ error: 'Name and target URL are required.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .update({ name: name.trim(), target_url: target_url.trim() })
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(404).json({ error: 'Project not found.' });
+
+    res.json(data);
+  } catch (err) {
+    console.error('[Project Update Error]', err.message);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });
@@ -719,7 +750,7 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
           <p>Your new limits are applied immediately to all your projects.</p>
           
           <div style="margin-top: 30px; text-align: center;">
-            <a href="https://duncanmakoyo.com/hookbunker/dashboard" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Developer Console</a>
+            <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Developer Console</a>
           </div>
         </div>
       `
@@ -771,32 +802,32 @@ const enforceProjectLimits = async (userId, tier) => {
     // Fetch user's projects ordered by created_at (keep oldest projects active)
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('id, name, active')
+      .select('id, name, active, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     if (error || !projects) return;
 
-    if (projects.length > limit) {
-      const activeProjects = projects.slice(0, limit);
-      const inactiveProjects = projects.slice(limit);
+    // Count currently active projects
+    const currentlyActive = projects.filter(p => p.active);
 
-      const activeIds = activeProjects.map(p => p.id);
-      const inactiveIds = inactiveProjects.map(p => p.id);
+    if (currentlyActive.length > limit) {
+      // Sort active projects by created_at (keep oldest active)
+      const sortedActive = [...currentlyActive].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      );
+      const toKeepActive = sortedActive.slice(0, limit);
+      const toDeactivate = sortedActive.slice(limit);
 
-      // Keep N projects active
-      await supabase
-        .from('projects')
-        .update({ active: true })
-        .in('id', activeIds);
+      const deactivateIds = toDeactivate.map(p => p.id);
 
-      // Deactivate projects exceeding limit
+      // Only deactivate the excess projects — do NOT force-activate already-suspended projects
       await supabase
         .from('projects')
         .update({ active: false })
-        .in('id', inactiveIds);
+        .in('id', deactivateIds);
 
-      console.log(`[Limits Enforced] User ${userId} downgraded to ${tier}. Active: ${activeProjects.length}, Deactivated: ${inactiveProjects.length}`);
+      console.log(`[Limits Enforced] User ${userId} downgraded to ${tier}. Deactivated ${toDeactivate.length} excess project(s).`);
     }
   } catch (err) {
     console.error('[Error Enforcing Project Limits]', err.message);
@@ -882,7 +913,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
               <p>Your premium HookBunker subscription has been disabled. Your account has reverted to the <strong>Developer (Free)</strong> tier limits. Additional active projects have been suspended.</p>
               <p>If this was unintentional, you can re-upgrade at any time from your console dashboard.</p>
               <div style="margin-top: 30px; text-align: center;">
-                <a href="https://duncanmakoyo.com/hookbunker/dashboard" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Billing Panel</a>
+                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Billing Panel</a>
               </div>
             </div>
           `
@@ -918,14 +949,14 @@ router.post('/billing/paystack-webhook', async (req, res) => {
               <p>We were unable to process your subscription renewal payment for HookBunker.</p>
               <p>Please update your billing card details on Paystack to avoid plan disruption and downgrades.</p>
               <div style="margin-top: 30px; text-align: center;">
-                <a href="https://duncanmakoyo.com/hookbunker/dashboard" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Update Payment Details</a>
+                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Update Payment Details</a>
               </div>
             </div>
           `
         }).catch(e => console.error('[Billing Webhook Email Error]', e));
       }
     }
-    else if (event === 'invoice.create' && data.subscription_code) {
+    else if (event === 'invoice.payment_successful' && data.subscription_code) {
       const subCode = data.subscription_code;
       const amountPaid = data.amount / 100;
       const currency = data.currency;

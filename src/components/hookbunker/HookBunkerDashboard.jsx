@@ -414,7 +414,7 @@ export function HookBunkerDashboard({ onNavigate }) {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
 
-      const res = await axios.post(`${API_URL}/api/hookbunker/logs/${logId}/retry`, {}, {
+      const res = await axios.post(`${API_URL}/api/hookbunker/webhooks/${logId}/retry`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -629,26 +629,31 @@ export function HookBunkerDashboard({ onNavigate }) {
           )}
 
           {/* Project Capacity Limit Indicator */}
-          {!profileLoading && (
-            <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '1.25rem 1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, color: theme.textMuted, marginBottom: '8px' }}>
-                <span>Active Channels: {projects.length} / {profile?.subscription_tier === 'team' ? '5' : profile?.subscription_tier === 'business' ? 'Unlimited' : '1'}</span>
+          {!profileLoading && (() => {
+            const activeCount = projects.filter(p => p.active).length;
+            const tierLimit = profile?.subscription_tier === 'team' ? 5 : profile?.subscription_tier === 'business' ? Infinity : 1;
+            const tierLimitLabel = profile?.subscription_tier === 'team' ? '5' : profile?.subscription_tier === 'business' ? 'Unlimited' : '1';
+            return (
+              <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '1.25rem 1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, color: theme.textMuted, marginBottom: '8px' }}>
+                  <span>Active Channels: {activeCount} / {tierLimitLabel}</span>
+                  {profile?.subscription_tier !== 'business' && (
+                    <span style={{ color: theme.primary }}>Free accounts are capped at 1 ingestion channel. Upgrade to expand capacity.</span>
+                  )}
+                </div>
                 {profile?.subscription_tier !== 'business' && (
-                  <span style={{ color: theme.primary }}>Free accounts are capped at 1 ingestion channel. Upgrade to expand capacity.</span>
+                  <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${Math.min(100, (activeCount / tierLimit) * 100)}%`, 
+                      height: '100%', 
+                      background: activeCount >= tierLimit ? theme.danger : theme.primary,
+                      borderRadius: '999px'
+                    }} />
+                  </div>
                 )}
               </div>
-              {profile?.subscription_tier !== 'business' && (
-                <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div style={{ 
-                    width: `${Math.min(100, (projects.length / (profile?.subscription_tier === 'team' ? 5 : 1)) * 100)}%`, 
-                    height: '100%', 
-                    background: projects.length >= (profile?.subscription_tier === 'team' ? 5 : 1) ? theme.danger : theme.primary,
-                    borderRadius: '999px'
-                  }} />
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Projects Listing Grid */}
           {projectsLoading ? (
@@ -1289,7 +1294,7 @@ app.post('/api/payhero-callback', (req, res) => {
 
       {/* ── Feedback / Feature Request Modal ── */}
       {showFeedbackModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifycontent: 'center', zIndex: 110 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110 }}>
           <div style={{ width: '100%', maxWidth: '460px', background: '#0b111e', border: `1px solid ${theme.border}`, borderRadius: '16px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
