@@ -162,8 +162,8 @@ const getPathFromHash = () => {
   
   // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
   if (
-    hash.startsWith('#access_token=') || 
-    hash.startsWith('#error=') ||
+    hash.includes('access_token=') || 
+    hash.includes('error=') ||
     searchParams.has('code') ||
     searchParams.has('error') ||
     searchParams.has('error_description')
@@ -318,9 +318,12 @@ function App() {
     let authType = null;
     let hasAccessToken = false;
 
-    if (hash.startsWith('#access_token=') || hash.startsWith('#error=')) {
+    if (hash.includes('access_token=') || hash.includes('error=')) {
       isAuthRedirect = true;
-      const params = new URLSearchParams(hash.substring(1));
+      const paramString = hash.includes('access_token=')
+        ? hash.substring(hash.indexOf('access_token='))
+        : hash.substring(hash.indexOf('error='));
+      const params = new URLSearchParams(paramString);
       errorMsg = params.get('error_description') || params.get('error');
       authType = params.get('type');
       hasAccessToken = params.has('access_token');
