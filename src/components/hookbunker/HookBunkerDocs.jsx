@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { BunkerLayout, theme } from './theme';
+import './HookBunkerDocs.css';
 
 export function HookBunkerDocs({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('mpesa');

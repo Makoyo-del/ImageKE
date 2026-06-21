@@ -180,9 +180,9 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload) => {
   await supabase.from('webhooks').update({ status }).eq('id', webhookId);
 
   if (status === 'failed') {
-    const { data: webhook } = await supabase.from('webhooks').select('*, projects(*)').eq('id', webhookId).single();
+    const { data: webhook } = await supabase.from('webhooks').select('*, projects(*)').eq('id', webhookId).maybeSingle();
     if (webhook && webhook.projects) {
-      const { data: profile } = await supabase.from('profiles').select('email').eq('id', webhook.projects.user_id).single();
+      const { data: profile } = await supabase.from('profiles').select('email').eq('id', webhook.projects.user_id).maybeSingle();
       if (profile) {
         await sendEmail({
           to: profile.email,
@@ -226,7 +226,7 @@ router.post('/webhooks/:apiKey', async (req, res) => {
       .from('projects')
       .select('*')
       .eq('api_key', apiKey)
-      .single();
+      .maybeSingle();
 
     if (projError || !project) {
       return res.status(404).json({ error: 'Project not found.' });
@@ -338,14 +338,29 @@ router.post('/projects', authenticateUser, async (req, res) => {
 
   try {
     // 1. Fetch user's profile to get subscription tier
-    const { data: profile, error: profError } = await supabase
+    let { data: profile, error: profError } = await supabase
       .from('profiles')
       .select('subscription_tier')
       .eq('id', req.user.id)
-      .single();
+      .maybeSingle();
 
-    if (profError || !profile) {
+    if (profError) {
       return res.status(500).json({ error: 'Failed to retrieve subscription profile.' });
+    }
+
+    if (!profile) {
+      // Auto-create missing profile row
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({ id: req.user.id, email: req.user.email, subscription_tier: 'free', subscription_status: 'active' })
+        .select('subscription_tier')
+        .maybeSingle();
+
+      if (createError || !newProfile) {
+        console.error('Failed to create profile dynamically:', createError?.message);
+        return res.status(500).json({ error: 'Failed to initialize subscription profile.' });
+      }
+      profile = newProfile;
     }
 
     const tier = profile.subscription_tier || 'free';
@@ -424,14 +439,29 @@ router.patch('/projects/:id/toggle', authenticateUser, async (req, res) => {
     }
 
     // 2. Fetch profile to check limits
-    const { data: profile, error: profError } = await supabase
+    let { data: profile, error: profError } = await supabase
       .from('profiles')
       .select('subscription_tier')
       .eq('id', req.user.id)
-      .single();
+      .maybeSingle();
 
-    if (profError || !profile) {
+    if (profError) {
       return res.status(500).json({ error: 'Failed to retrieve profile.' });
+    }
+
+    if (!profile) {
+      // Auto-create missing profile row
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({ id: req.user.id, email: req.user.email, subscription_tier: 'free', subscription_status: 'active' })
+        .select('subscription_tier')
+        .maybeSingle();
+
+      if (createError || !newProfile) {
+        console.error('Failed to create profile dynamically:', createError?.message);
+        return res.status(500).json({ error: 'Failed to initialize profile.' });
+      }
+      profile = newProfile;
     }
 
     const tier = profile.subscription_tier || 'free';
@@ -483,7 +513,7 @@ router.get('/projects/:id/logs', authenticateUser, async (req, res) => {
     .select('id')
     .eq('id', id)
     .eq('user_id', req.user.id)
-    .single();
+    .maybeSingle();
 
   if (!project) return res.status(404).json({ error: 'Project not found.' });
 
@@ -506,7 +536,7 @@ router.post('/webhooks/:webhookId/retry', authenticateUser, async (req, res) => 
     .from('webhooks')
     .select('*, projects(*)')
     .eq('id', webhookId)
-    .single();
+    .maybeSingle();
 
   if (error || !webhook) return res.status(404).json({ error: 'Webhook not found.' });
   if (webhook.projects.user_id !== req.user.id) {
@@ -645,18 +675,19 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
       });
     }
 
-    // Upgrade profile tier in database
+    // Upgrade profile tier in database (using upsert to avoid missing profile errors)
     const { data: updatedProfile, error: updateError } = await supabase
       .from('profiles')
-      .update({
+      .upsert({
+        id: req.user.id,
+        email: req.user.email,
         subscription_tier: tier,
         subscription_status: 'active',
         paystack_customer_code: txData.customer?.customer_code || null,
         paystack_subscription_code: txData.subscription || null,
       })
-      .eq('id', req.user.id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) throw updateError;
 
@@ -803,7 +834,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
         .from('profiles')
         .select('*')
         .eq('email', customerEmail)
-        .single();
+        .maybeSingle();
 
       if (profile) {
         await supabase
@@ -824,7 +855,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
         .from('profiles')
         .select('*')
         .eq('paystack_subscription_code', subCode)
-        .single();
+        .maybeSingle();
 
       if (profile) {
         await supabase
@@ -865,7 +896,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
         .from('profiles')
         .select('*')
         .eq('paystack_subscription_code', subCode)
-        .single();
+        .maybeSingle();
 
       if (profile) {
         await supabase
@@ -903,7 +934,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
         .from('profiles')
         .select('*')
         .eq('paystack_subscription_code', subCode)
-        .single();
+        .maybeSingle();
 
       if (profile) {
         await supabase

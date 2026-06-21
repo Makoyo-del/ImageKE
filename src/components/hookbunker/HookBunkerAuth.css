@@ -1,0 +1,101 @@
+/* ─── HookBunker Authentication Stylesheet ─── */
+
+/* Glassmorphism Auth Card */
+.hb-auth-container {
+  max-width: 440px;
+  margin: 5rem auto 0;
+  background: var(--hb-card-bg);
+  border: 1px solid rgba(43, 91, 255, 0.25);
+  border-radius: var(--hb-radius-lg);
+  padding: 3rem 2.5rem;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45), 0 0 40px rgba(43, 91, 255, 0.08);
+}
+
+.hb-auth-icon-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(43, 91, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  border: 1px solid rgba(43, 91, 255, 0.25);
+  box-shadow: 0 0 15px rgba(43, 91, 255, 0.15);
+}
+
+.hb-auth-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--hb-text);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.hb-auth-subtitle {
+  color: var(--hb-text-muted);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+
+.hb-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.hb-input-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--hb-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.hb-form-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: var(--hb-radius);
+  border: 1px solid rgba(43, 91, 255, 0.2);
+  background: rgba(8, 18, 54, 0.75);
+  color: var(--hb-text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+
+.hb-form-input:focus {
+  border-color: var(--hb-primary);
+  box-shadow: 0 0 0 3px rgba(43, 91, 255, 0.25);
+}
+
+/* Gradient Submission Button */
+.hb-submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--hb-primary) 0%, var(--hb-primary-hover) 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.9rem;
+  border-radius: var(--hb-radius);
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 0.75rem;
+  box-shadow: 0 4px 15px rgba(43, 91, 255, 0.3);
+  font-family: 'Montserrat', sans-serif;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.hb-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(43, 91, 255, 0.45);
+}
+
+.hb-submit-btn:active {
+  transform: translateY(0);
+}

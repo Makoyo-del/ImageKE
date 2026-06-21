@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import { supabase } from '../../supabase';
 import { BunkerLayout, theme } from './theme';
-import './HookBunker.css';
+import './HookBunkerAuth.css';
 
 export function HookBunkerAuth({ onNavigate }) {
   const [email, setEmail] = useState('');
@@ -10,6 +10,15 @@ export function HookBunkerAuth({ onNavigate }) {
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   const [authError, setAuthError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [inactivityNotice, setInactivityNotice] = useState('');
+
+  useEffect(() => {
+    const reason = sessionStorage.getItem('hb_logout_reason');
+    if (reason === 'inactivity') {
+      setInactivityNotice('You have been signed out due to inactivity to protect your account security.');
+      sessionStorage.removeItem('hb_logout_reason');
+    }
+  }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -80,6 +89,21 @@ export function HookBunkerAuth({ onNavigate }) {
             {authMode === 'login' ? 'Login to access your project gateways' : 'Sign up to protect your webhook payloads'}
           </p>
         </div>
+
+        {inactivityNotice && (
+          <div style={{ 
+            background: 'rgba(96, 165, 250, 0.08)', 
+            border: '1px solid rgba(96, 165, 250, 0.25)', 
+            color: '#60a5fa', 
+            padding: '0.85rem 1rem', 
+            borderRadius: '10px', 
+            fontSize: '0.85rem', 
+            marginBottom: '1.5rem', 
+            lineHeight: 1.5 
+          }}>
+            {inactivityNotice}
+          </div>
+        )}
 
         {authError && (
           <div style={{ 

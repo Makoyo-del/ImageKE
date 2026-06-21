@@ -1,0 +1,14 @@
+/* ─── HookBunker Documentation Stylesheet ─── */
+
+/* Documentation pre-formatted boxes */
+.hb-code-box {
+  background: rgba(5, 8, 22, 0.85);
+  border: 1px solid var(--hb-border);
+  padding: 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #34d399;
+}

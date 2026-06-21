@@ -31,7 +31,7 @@ import {
 import axios from 'axios';
 import { BunkerLayout, theme } from './theme';
 import { HookBunkerAuth } from './HookBunkerAuth';
-import './HookBunker.css';
+import './HookBunkerDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -81,6 +81,19 @@ export function HookBunkerDashboard({ onNavigate }) {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordUpdating, setPasswordUpdating] = useState(false);
 
+  // Custom Toast State
+  const [toast, setToast] = useState(null); // { message, type: 'info' | 'success' | 'error' }
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+  };
+  
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   // Auth session listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -124,8 +137,8 @@ export function HookBunkerDashboard({ onNavigate }) {
 
     const handleLogoutOnInactivity = async () => {
       console.log('Session expired due to user inactivity.');
+      sessionStorage.setItem('hb_logout_reason', 'inactivity');
       await supabase.auth.signOut();
-      alert('You have been signed out due to inactivity to protect your account security.');
     };
 
     const resetTimer = () => {
@@ -294,10 +307,10 @@ export function HookBunkerDashboard({ onNavigate }) {
 
             if (res.data?.success) {
               setProfile(res.data.profile);
-              alert(`Your subscription has been updated to the ${tierName.toUpperCase()} plan.`);
+              showToast(`Your subscription has been updated to the ${tierName.toUpperCase()} plan.`, 'success');
             }
           } catch (verifyErr) {
-            alert(verifyErr.response?.data?.error || 'Verification failed. Please contact support.');
+            showToast(verifyErr.response?.data?.error || 'Verification failed. Please contact support.', 'error');
           }
         },
         onClose: function () {
@@ -393,14 +406,14 @@ export function HookBunkerDashboard({ onNavigate }) {
       });
 
       if (res.data?.success) {
-        alert('Manual redelivery request dispatched successfully.');
+        showToast('Manual redelivery request dispatched successfully.', 'success');
         if (selectedProj) {
           fetchLogs(selectedProj.id);
         }
         setSelectedLog(null);
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Redelivery attempt failed.');
+      showToast(err.response?.data?.error || 'Redelivery attempt failed.', 'error');
     }
   };
 
@@ -439,7 +452,7 @@ export function HookBunkerDashboard({ onNavigate }) {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard.');
+    showToast('Copied to clipboard.', 'success');
   };
 
   const handleFeedbackSubmit = async (e) => {
@@ -465,7 +478,7 @@ export function HookBunkerDashboard({ onNavigate }) {
         setFeedbackContent('');
       }, 2000);
     } catch (err) {
-      alert('Failed to transmit feedback. Please try again.');
+      showToast('Failed to transmit feedback. Please try again.', 'error');
     } finally {
       setFeedbackSubmitting(false);
     }
@@ -1055,7 +1068,7 @@ app.post('/api/payhero-callback', (req, res) => {
                     setSelectedProj(res.data);
                     const updated = projects.map(p => p.id === selectedProj.id ? res.data : p);
                     setProjects(updated);
-                    alert('Destination URL updated successfully.');
+                    showToast('Destination URL updated successfully.', 'success');
                   } catch (err) {
                     setActionError(err.response?.data?.error || 'Failed to update endpoint.');
                   }
@@ -1400,6 +1413,28 @@ app.post('/api/payhero-callback', (req, res) => {
               <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>Thank you for your rating!</p>
             </div>
           )}
+        </div>
+      )}
+
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : '#2b5bff',
+          color: '#ffffff',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 9999,
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          animation: 'slideIn 0.25s ease-out'
+        }}>
+          {toast.message}
         </div>
       )}
     </BunkerLayout>

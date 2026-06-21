@@ -1,0 +1,28 @@
+/* ─── HookBunker Common Stylesheet ─── */
+
+:root {
+  --hb-bg: #081236;
+  --hb-card-bg: rgba(13, 18, 54, 0.7);
+  --hb-border: rgba(220, 229, 255, 0.08);
+  --hb-primary: #2b5bff;
+  --hb-primary-hover: #1238E8;
+  --hb-primary-glow: rgba(43, 91, 255, 0.15);
+  --hb-text: #ffffff;
+  --hb-text-muted: #94a3b8;
+  --hb-danger: #ef2a2a;
+  --hb-warning: #ffd21f;
+  --hb-success: #63d11a;
+  --hb-accent: #0ea5e9;
+  --hb-radius: 12px;
+  --hb-radius-lg: 24px;
+}
+
+/* Base resets inside the HookBunker namespace */
+.hb-wrapper {
+  background-color: var(--hb-bg);
+  color: var(--hb-text);
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}

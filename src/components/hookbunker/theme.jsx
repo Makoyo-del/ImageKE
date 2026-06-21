@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Shield, BookOpen, Activity } from 'lucide-react';
-import './HookBunker.css';
+import './HookBunkerCommon.css';
 
 // Sleek Midnight Dark Navy Theme
 export const theme = {
