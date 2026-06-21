@@ -18,6 +18,12 @@ export function HookBunkerAuth({ onNavigate }) {
       setInactivityNotice('You have been signed out due to inactivity to protect your account security.');
       sessionStorage.removeItem('hb_logout_reason');
     }
+
+    const pendingError = sessionStorage.getItem('hb_auth_error');
+    if (pendingError) {
+      setAuthError(pendingError);
+      sessionStorage.removeItem('hb_auth_error');
+    }
   }, []);
 
   const handleAuth = async (e) => {

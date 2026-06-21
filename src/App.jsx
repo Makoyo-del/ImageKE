@@ -158,6 +158,19 @@ function ErrorBanner({ message, onDismiss }) {
 // ─── Routing Helpers ───────────────────────────────────────────────────────────
 const getPathFromHash = () => {
   const hash = window.location.hash;
+  const searchParams = new URLSearchParams(window.location.search);
+  
+  // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
+  if (
+    hash.startsWith('#access_token=') || 
+    hash.startsWith('#error=') ||
+    searchParams.has('code') ||
+    searchParams.has('error') ||
+    searchParams.has('error_description')
+  ) {
+    return 'hookbunker-dashboard';
+  }
+
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
   if (hash === '#/batch') return 'batch';
   if (hash === '#/custom') return 'custom';
@@ -292,6 +305,62 @@ function App() {
     } else {
       setIsSubscribed(false);
       localStorage.removeItem('imageke_creator_subscription');
+    }
+  }, []);
+
+  // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
+  useEffect(() => {
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    let isAuthRedirect = false;
+    let errorMsg = null;
+    let authType = null;
+    let hasAccessToken = false;
+
+    if (hash.startsWith('#access_token=') || hash.startsWith('#error=')) {
+      isAuthRedirect = true;
+      const params = new URLSearchParams(hash.substring(1));
+      errorMsg = params.get('error_description') || params.get('error');
+      authType = params.get('type');
+      hasAccessToken = params.has('access_token');
+    } else if (searchParams.has('code') || searchParams.has('error') || searchParams.has('error_description')) {
+      isAuthRedirect = true;
+      errorMsg = searchParams.get('error_description') || searchParams.get('error');
+      authType = searchParams.get('type');
+      hasAccessToken = searchParams.has('code');
+    }
+
+    if (isAuthRedirect) {
+      if (errorMsg) {
+        const decodedError = decodeURIComponent(errorMsg).replace(/\+/g, ' ');
+        sessionStorage.setItem('hb_auth_error', `Authentication failed: ${decodedError}`);
+      } else if (hasAccessToken) {
+        if (authType === 'signup') {
+          sessionStorage.setItem('hb_toast_message', 'Email verified successfully. Welcome to your HookBunker dashboard!');
+          sessionStorage.setItem('hb_toast_type', 'success');
+        } else if (authType === 'recovery') {
+          sessionStorage.setItem('hb_toast_message', 'Credentials confirmed. Please update your password in the settings.');
+          sessionStorage.setItem('hb_toast_type', 'success');
+        } else if (authType === 'invite') {
+          sessionStorage.setItem('hb_toast_message', 'Invitation accepted. Welcome to HookBunker!');
+          sessionStorage.setItem('hb_toast_type', 'success');
+        } else {
+          sessionStorage.setItem('hb_toast_message', 'Email verified and logged in successfully.');
+          sessionStorage.setItem('hb_toast_type', 'success');
+        }
+      }
+
+      // Clear search query parameters or hash redirects from URL to keep it clean
+      if (window.location.search) {
+        const cleanUrl = window.location.origin + window.location.pathname + '#/hookbunker/dashboard';
+        window.history.replaceState(null, '', cleanUrl);
+      } else {
+        window.location.hash = '#/hookbunker/dashboard';
+      }
+
+      // Manually trigger local path state update
+      setCurrentPath('hookbunker-dashboard');
     }
   }, []);
 

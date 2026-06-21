@@ -94,6 +94,17 @@ export function HookBunkerDashboard({ onNavigate }) {
     }
   }, [toast]);
 
+  // Check for pending toast notifications (e.g. from email confirmation redirects)
+  useEffect(() => {
+    const pendingMsg = sessionStorage.getItem('hb_toast_message');
+    const pendingType = sessionStorage.getItem('hb_toast_type') || 'success';
+    if (pendingMsg) {
+      showToast(pendingMsg, pendingType);
+      sessionStorage.removeItem('hb_toast_message');
+      sessionStorage.removeItem('hb_toast_type');
+    }
+  }, []);
+
   // Auth session listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
