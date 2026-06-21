@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Zap } from 'lucide-react';
 import { BunkerLayout, theme } from './theme';
 import './HookBunkerDocs.css';
 
@@ -86,6 +86,26 @@ export function HookBunkerDocs({ onNavigate }) {
               <p style={{ color: theme.textMuted, lineHeight: 1.7, marginBottom: '2rem', fontSize: '0.95rem' }}>
                 Safaricom's Daraja API imposes a strict <b>3-second timeout limit</b> on callback responses. If your application server undergoes cold starts, handles background tasks, or experiences latency, Safaricom drops the webhook and marks the transaction as failed.
               </p>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: `1px solid ${theme.border}`, padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
+                <h4 style={{ color: '#38BDF8', fontSize: '1rem', fontWeight: 700, marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Zap size={16} /> Webhook Proxy / Forwarder Configuration Flow
+                </h4>
+                <ol style={{ paddingLeft: '1.2rem', margin: 0, color: theme.textMuted, fontSize: '0.9rem', lineHeight: '1.6rem' }}>
+                  <li style={{ marginBottom: '0.75rem' }}>
+                    <strong>In HookBunker Dashboard</strong>: Create a <em>New Ingestion Target</em>. This will generate a unique webhook ingestion endpoint URL in the format:<br />
+                    <code style={{ background: '#090d16', color: '#f43f5e', padding: '0.2rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                      https://imageke-api.onrender.com/api/hookbunker/webhooks/&lt;your_project_api_key&gt;
+                    </code>
+                  </li>
+                  <li style={{ marginBottom: '0.75rem' }}>
+                    <strong>In Safaricom Daraja Portal</strong>: Paste the generated HookBunker ingestion URL into your <strong>Callback URL</strong> settings field. You can optionally append <code style={{ background: '#090d16', color: '#34d399', padding: '0.1rem 0.3rem', borderRadius: '4px', fontFamily: 'monospace' }}>?gateway=mpesa</code> to force explicit parsing.
+                  </li>
+                  <li style={{ marginBottom: 0 }}>
+                    <strong>In HookBunker Dashboard (Project Target URL)</strong>: Set the <strong>Target URL</strong> to your actual backend server's webhook endpoint where HookBunker should securely proxy and forward the verified requests.
+                  </li>
+                </ol>
+              </div>
               
               <h3 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.75rem', marginTop: '2rem' }}>1. How HookBunker Ingests M-Pesa Callbacks</h3>
               <p style={{ color: theme.textMuted, fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>
@@ -150,6 +170,26 @@ app.listen(5000, () => console.log('Callback processor online on port 5000'));`}
               <p style={{ color: theme.textMuted, lineHeight: 1.7, marginBottom: '2rem', fontSize: '0.95rem' }}>
                 Secure your Paystack callbacks against network delays and service updates. HookBunker stores all charge alerts and handles automatic redeliveries if your application endpoint returns a non-200 HTTP code.
               </p>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: `1px solid ${theme.border}`, padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
+                <h4 style={{ color: '#38BDF8', fontSize: '1rem', fontWeight: 700, marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Zap size={16} /> Webhook Proxy / Forwarder Configuration Flow
+                </h4>
+                <ol style={{ paddingLeft: '1.2rem', margin: 0, color: theme.textMuted, fontSize: '0.9rem', lineHeight: '1.6rem' }}>
+                  <li style={{ marginBottom: '0.75rem' }}>
+                    <strong>In HookBunker Dashboard</strong>: Create a <em>New Ingestion Target</em>. This will generate a unique webhook ingestion endpoint URL in the format:<br />
+                    <code style={{ background: '#090d16', color: '#f43f5e', padding: '0.2rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                      https://imageke-api.onrender.com/api/hookbunker/webhooks/&lt;your_project_api_key&gt;
+                    </code>
+                  </li>
+                  <li style={{ marginBottom: '0.75rem' }}>
+                    <strong>In Paystack Dashboard (Settings → API Keys &amp; Webhooks)</strong>: Paste the generated HookBunker ingestion URL into the <strong>Webhook URL</strong> field. You can optionally append <code style={{ background: '#090d16', color: '#34d399', padding: '0.1rem 0.3rem', borderRadius: '4px', fontFamily: 'monospace' }}>?gateway=paystack</code> to force explicit parsing.
+                  </li>
+                  <li style={{ marginBottom: 0 }}>
+                    <strong>In HookBunker Dashboard (Project Target URL)</strong>: Set the <strong>Target URL</strong> to your actual backend server's webhook endpoint where HookBunker should securely proxy and forward the verified requests.
+                  </li>
+                </ol>
+              </div>
               
               <h3 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.75rem', marginTop: '2rem' }}>1. Secure Signature Verification (HMAC SHA512)</h3>
               <p style={{ color: theme.textMuted, fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
@@ -216,6 +256,26 @@ app.listen(5000, () => console.log('Secure webhook listener running on port 5000
               <p style={{ color: theme.textMuted, lineHeight: 1.7, marginBottom: '2rem', fontSize: '0.95rem' }}>
                 Decouple Payhero transaction callbacks from server downtimes. HookBunker logs incoming Payhero parameters, immediately replies with standard confirmation responses, and handles forwarding.
               </p>
+
+              <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: `1px solid ${theme.border}`, padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
+                <h4 style={{ color: '#38BDF8', fontSize: '1rem', fontWeight: 700, marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Zap size={16} /> Webhook Proxy / Forwarder Configuration Flow
+                </h4>
+                <ol style={{ paddingLeft: '1.2rem', margin: 0, color: theme.textMuted, fontSize: '0.9rem', lineHeight: '1.6rem' }}>
+                  <li style={{ marginBottom: '0.75rem' }}>
+                    <strong>In HookBunker Dashboard</strong>: Create a <em>New Ingestion Target</em>. This will generate a unique webhook ingestion endpoint URL in the format:<br />
+                    <code style={{ background: '#090d16', color: '#f43f5e', padding: '0.2rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                      https://imageke-api.onrender.com/api/hookbunker/webhooks/&lt;your_project_api_key&gt;
+                    </code>
+                  </li>
+                  <li style={{ marginBottom: '0.75rem' }}>
+                    <strong>In Payhero Portal</strong>: Paste the generated HookBunker ingestion URL into the <strong>Callback URL</strong> settings field. You can optionally append <code style={{ background: '#090d16', color: '#34d399', padding: '0.1rem 0.3rem', borderRadius: '4px', fontFamily: 'monospace' }}>?gateway=payhero</code> to force explicit parsing.
+                  </li>
+                  <li style={{ marginBottom: 0 }}>
+                    <strong>In HookBunker Dashboard (Project Target URL)</strong>: Set the <strong>Target URL</strong> to your actual backend server's webhook endpoint where HookBunker should securely proxy and forward the verified requests.
+                  </li>
+                </ol>
+              </div>
               
               <h3 style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.75rem', marginTop: '2rem' }}>1. Signature Validation Check</h3>
               <p style={{ color: theme.textMuted, fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1rem' }}>
