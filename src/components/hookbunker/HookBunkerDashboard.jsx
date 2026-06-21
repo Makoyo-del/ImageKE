@@ -44,6 +44,7 @@ export function HookBunkerDashboard({ onNavigate }) {
   const [projects, setProjects] = useState([]);
   const [selectedProj, setSelectedProj] = useState(null);
   const [activeProjTab, setActiveProjTab] = useState('logs'); // 'logs' | 'integration' | 'settings' | 'billing'
+  const [selectedLang, setSelectedLang] = useState('node'); // 'node' | 'python' | 'php' | 'go'
   const [logs, setLogs] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -964,19 +965,18 @@ export function HookBunkerDashboard({ onNavigate }) {
           )}
 
           {/* TAB 2: Dynamic Integration guides containing real API keys */}
-          {activeProjTab === 'integration' && (
-            <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '2.5rem', borderRadius: '16px' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', fontFamily: 'Montserrat, sans-serif' }}>Decoupled Integration Code for {selectedProj.name}</h3>
-              <p style={{ color: theme.textMuted, fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Use these customized, production-ready templates to securely parse forward webhooks on your server. Your Ingestion Proxy URL and project API keys are pre-injected.
-              </p>
+          {activeProjTab === 'integration' && (() => {
+            const ENDPOINT = `${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}`;
+            const langs = [
+              { id: 'node', label: 'Node.js' },
+              { id: 'python', label: 'Python' },
+              { id: 'php', label: 'PHP' },
+              { id: 'go', label: 'Go' },
+            ];
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* Safaricom M-Pesa Code */}
-                <div>
-                  <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>1. Safaricom M-Pesa Integration (STK Push &amp; Confirms)</h4>
-                  <pre className="hb-code-box">
-{`// Proxy Endpoint: ${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}
+            const snippets = {
+              mpesa: {
+                node: `// Proxy Endpoint: ${ENDPOINT}
 
 const express = require('express');
 const app = express();
@@ -984,86 +984,366 @@ app.use(express.json());
 
 app.post('/api/mpesa-callback', (req, res) => {
   const payload = req.body;
-  
-  if (payload.Body && payload.Body.stkCallback) {
-    const callbackData = payload.Body.stkCallback;
-    if (callbackData.ResultCode === 0) {
-      const metadata = callbackData.CallbackMetadata.Item;
-      const amount = metadata.find(item => item.Name === 'Amount')?.Value;
-      const receipt = metadata.find(item => item.Name === 'MpesaReceiptNumber')?.Value;
-      const phone = metadata.find(item => item.Name === 'PhoneNumber')?.Value;
-      
-      console.log(\`[SUCCESS] STK Push: Receipt \${receipt} confirmed for KES \${amount}\`);
-      // Update buyer record to active
+  if (payload.Body?.stkCallback) {
+    const cb = payload.Body.stkCallback;
+    if (cb.ResultCode === 0) {
+      const items = cb.CallbackMetadata.Item;
+      const amount  = items.find(i => i.Name === 'Amount')?.Value;
+      const receipt = items.find(i => i.Name === 'MpesaReceiptNumber')?.Value;
+      const phone   = items.find(i => i.Name === 'PhoneNumber')?.Value;
+      console.log(\`[SUCCESS] Receipt \${receipt} | KES \${amount} | \${phone}\`);
+      // activate subscription / update order here
     }
   } else if (payload.TransactionType) {
-    // C2B Confirms
-    console.log(\`[SUCCESS] C2B confirmation receipt: \${payload.TransID} value: \${payload.TransAmount}\`);
+    console.log(\`[C2B] \${payload.TransID} | KES \${payload.TransAmount}\`);
   }
-  
-  res.status(200).json({ ResultCode: 0, ResultDesc: "Success" });
-});`}
-                  </pre>
-                </div>
+  res.status(200).json({ ResultCode: 0, ResultDesc: 'Success' });
+});
 
-                {/* Paystack Webhook Code */}
-                <div>
-                  <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>2. Paystack Webhook Verification (HMAC SHA512)</h4>
-                  <pre className="hb-code-box">
-{`// Configure Webhook Target: ${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}
+app.listen(5000);`,
+                python: `# Proxy Endpoint: ${ENDPOINT}
+
+from flask import Flask, request, jsonify
+app = Flask(__name__)
+
+@app.route('/api/mpesa-callback', methods=['POST'])
+def mpesa_callback():
+    payload = request.get_json()
+    stk = payload.get('Body', {}).get('stkCallback')
+    if stk:
+        if stk.get('ResultCode') == 0:
+            items = stk['CallbackMetadata']['Item']
+            amount  = next((i['Value'] for i in items if i['Name'] == 'Amount'), None)
+            receipt = next((i['Value'] for i in items if i['Name'] == 'MpesaReceiptNumber'), None)
+            phone   = next((i['Value'] for i in items if i['Name'] == 'PhoneNumber'), None)
+            print(f"[SUCCESS] Receipt {receipt} | KES {amount} | {phone}")
+            # activate subscription / update order here
+    elif payload.get('TransactionType'):
+        print(f"[C2B] {payload.get('TransID')} | KES {payload.get('TransAmount')}")
+    return jsonify({"ResultCode": 0, "ResultDesc": "Success"})
+
+if __name__ == '__main__':
+    app.run(port=5000)`,
+                php: `<?php
+// Proxy Endpoint: ${ENDPOINT}
+
+$payload = json_decode(file_get_contents('php://input'), true);
+$stk = $payload['Body']['stkCallback'] ?? null;
+
+if ($stk) {
+    if ($stk['ResultCode'] === 0) {
+        $items   = $stk['CallbackMetadata']['Item'];
+        $amount  = collect($items)->firstWhere('Name', 'Amount')['Value'] ?? null;
+        $receipt = collect($items)->firstWhere('Name', 'MpesaReceiptNumber')['Value'] ?? null;
+        $phone   = collect($items)->firstWhere('Name', 'PhoneNumber')['Value'] ?? null;
+        error_log("[SUCCESS] Receipt $receipt | KES $amount | $phone");
+        // activate subscription / update order here
+    }
+} elseif (!empty($payload['TransactionType'])) {
+    error_log("[C2B] {$payload['TransID']} | KES {$payload['TransAmount']}");
+}
+
+http_response_code(200);
+echo json_encode(['ResultCode' => 0, 'ResultDesc' => 'Success']);`,
+                go: `// Proxy Endpoint: ${ENDPOINT}
+
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+func mpesaCallback(w http.ResponseWriter, r *http.Request) {
+    var payload map[string]interface{}
+    json.NewDecoder(r.Body).Decode(&payload)
+
+    if body, ok := payload["Body"].(map[string]interface{}); ok {
+        if stk, ok := body["stkCallback"].(map[string]interface{}); ok {
+            if code, _ := stk["ResultCode"].(float64); code == 0 {
+                meta := stk["CallbackMetadata"].(map[string]interface{})
+                items := meta["Item"].([]interface{})
+                for _, item := range items {
+                    i := item.(map[string]interface{})
+                    fmt.Printf("%v: %v\\n", i["Name"], i["Value"])
+                }
+                // activate subscription / update order here
+            }
+        }
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(200)
+    json.NewEncoder(w).Encode(map[string]interface{}{"ResultCode": 0, "ResultDesc": "Success"})
+}
+
+func main() {
+    http.HandleFunc("/api/mpesa-callback", mpesaCallback)
+    http.ListenAndServe(":5000", nil)
+}`
+              },
+              paystack: {
+                node: `// Webhook Ingestion URL: ${ENDPOINT}
 
 const express = require('express');
-const crypto = require('crypto');
-const app = express();
+const crypto  = require('crypto');
+const app     = express();
 
 app.post('/api/paystack-webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  const secretKey = process.env.PAYSTACK_SECRET_KEY; // your live secret key
+  const secret    = process.env.PAYSTACK_SECRET_KEY;
   const signature = req.headers['x-paystack-signature'];
-  
-  const hash = crypto
-    .createHmac('sha512', secretKey)
-    .update(req.body)
-    .digest('hex');
-    
+  const hash      = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
+
   if (hash !== signature) {
-    console.error('Webhook signature validation failed. Spoofed payload warning.');
+    console.error('[SECURITY] Spoofed Paystack payload rejected.');
     return res.status(401).send('Invalid signature');
   }
-  
-  const eventData = JSON.parse(req.body.toString());
-  if (eventData.event === 'charge.success') {
-    const data = eventData.data;
-    console.log(\`Payment reference confirmed: \${data.reference} | Customer: \${data.customer.email}\`);
-    // Upgrade account subscription level
-  }
-  
-  res.status(200).send('Verified');
-});`}
-                  </pre>
-                </div>
 
-                {/* Payhero Webhook Code */}
-                <div>
-                  <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>3. Payhero Callback Receiver</h4>
-                  <pre className="hb-code-box">
-{`// Configure Ingestion Endpoint: ${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}
+  const event = JSON.parse(req.body.toString());
+  if (event.event === 'charge.success') {
+    const { reference, amount, customer } = event.data;
+    console.log(\`[PAID] Ref: \${reference} | NGN/KES \${amount / 100} | \${customer.email}\`);
+    // upgrade subscription tier here
+  }
+  res.status(200).send('OK');
+});
+
+app.listen(5000);`,
+                python: `# Webhook Ingestion URL: ${ENDPOINT}
+
+import hmac, hashlib, os
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+
+@app.route('/api/paystack-webhook', methods=['POST'])
+def paystack_webhook():
+    secret    = os.environ['PAYSTACK_SECRET_KEY'].encode()
+    signature = request.headers.get('x-paystack-signature', '')
+    expected  = hmac.new(secret, request.data, hashlib.sha512).hexdigest()
+
+    if not hmac.compare_digest(expected, signature):
+        abort(401, 'Invalid signature')
+
+    event = request.get_json(force=True)
+    if event.get('event') == 'charge.success':
+        data = event['data']
+        print(f"[PAID] Ref: {data['reference']} | {data['amount']/100} | {data['customer']['email']}")
+        # upgrade subscription tier here
+    return 'OK', 200
+
+if __name__ == '__main__':
+    app.run(port=5000)`,
+                php: `<?php
+// Webhook Ingestion URL: ${ENDPOINT}
+
+$secret    = getenv('PAYSTACK_SECRET_KEY');
+$signature = $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'] ?? '';
+$body      = file_get_contents('php://input');
+$expected  = hash_hmac('sha512', $body, $secret);
+
+if (!hash_equals($expected, $signature)) {
+    http_response_code(401);
+    exit('Invalid signature');
+}
+
+$event = json_decode($body, true);
+if (($event['event'] ?? '') === 'charge.success') {
+    $data = $event['data'];
+    error_log("[PAID] Ref: {$data['reference']} | {$data['customer']['email']}");
+    // upgrade subscription tier here
+}
+
+http_response_code(200);
+echo 'OK';`,
+                go: `// Webhook Ingestion URL: ${ENDPOINT}
+
+package main
+
+import (
+    "crypto/hmac"
+    "crypto/sha512"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+    "os"
+)
+
+func paystackWebhook(w http.ResponseWriter, r *http.Request) {
+    body, _ := io.ReadAll(r.Body)
+    secret   := []byte(os.Getenv("PAYSTACK_SECRET_KEY"))
+    mac      := hmac.New(sha512.New, secret)
+    mac.Write(body)
+    expected := hex.EncodeToString(mac.Sum(nil))
+
+    if r.Header.Get("x-paystack-signature") != expected {
+        http.Error(w, "Invalid signature", http.StatusUnauthorized)
+        return
+    }
+
+    var event map[string]interface{}
+    json.Unmarshal(body, &event)
+    if event["event"] == "charge.success" {
+        data := event["data"].(map[string]interface{})
+        fmt.Printf("[PAID] Ref: %v | %v\\n", data["reference"], data["customer"])
+        // upgrade subscription tier here
+    }
+    w.WriteHeader(200)
+    fmt.Fprintln(w, "OK")
+}
+
+func main() {
+    http.HandleFunc("/api/paystack-webhook", paystackWebhook)
+    http.ListenAndServe(":5000", nil)
+}`
+              },
+              payhero: {
+                node: `// Ingestion Endpoint: ${ENDPOINT}
 
 const express = require('express');
-const app = express();
+const app     = express();
 app.use(express.json());
 
 app.post('/api/payhero-callback', (req, res) => {
-  const { status, transaction_id, amount, reference } = req.body;
+  const { status, transaction_id, amount, reference, phone } = req.body;
   if (status === 'Success') {
-    console.log(\`Payhero Payment confirmed: \${transaction_id} Amount: \${amount} Ref: \${reference}\`);
+    console.log(\`[PAID] TxID: \${transaction_id} | KES \${amount} | \${phone} | Ref: \${reference}\`);
+    // fulfill order or activate subscription here
+  } else {
+    console.warn(\`[FAILED] TxID: \${transaction_id} | Status: \${status}\`);
   }
   res.status(200).json({ success: true });
-});`}
-                  </pre>
+});
+
+app.listen(5000);`,
+                python: `# Ingestion Endpoint: ${ENDPOINT}
+
+from flask import Flask, request, jsonify
+app = Flask(__name__)
+
+@app.route('/api/payhero-callback', methods=['POST'])
+def payhero_callback():
+    data = request.get_json()
+    if data.get('status') == 'Success':
+        print(f"[PAID] TxID: {data.get('transaction_id')} | "
+              f"KES {data.get('amount')} | Ref: {data.get('reference')}")
+        # fulfill order or activate subscription here
+    else:
+        print(f"[FAILED] TxID: {data.get('transaction_id')} | Status: {data.get('status')}")
+    return jsonify({"success": True})
+
+if __name__ == '__main__':
+    app.run(port=5000)`,
+                php: `<?php
+// Ingestion Endpoint: ${ENDPOINT}
+
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (($data['status'] ?? '') === 'Success') {
+    error_log("[PAID] TxID: {$data['transaction_id']} | KES {$data['amount']} | Ref: {$data['reference']}");
+    // fulfill order or activate subscription here
+} else {
+    error_log("[FAILED] TxID: {$data['transaction_id']} | Status: {$data['status']}");
+}
+
+http_response_code(200);
+echo json_encode(['success' => true]);`,
+                go: `// Ingestion Endpoint: ${ENDPOINT}
+
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+type PayheroPayload struct {
+    Status        string  \`json:"status"\`
+    TransactionID string  \`json:"transaction_id"\`
+    Amount        float64 \`json:"amount"\`
+    Reference     string  \`json:"reference"\`
+    Phone         string  \`json:"phone"\`
+}
+
+func payheroCallback(w http.ResponseWriter, r *http.Request) {
+    var p PayheroPayload
+    json.NewDecoder(r.Body).Decode(&p)
+
+    if p.Status == "Success" {
+        fmt.Printf("[PAID] TxID: %s | KES %.2f | Ref: %s\\n", p.TransactionID, p.Amount, p.Reference)
+        // fulfill order or activate subscription here
+    } else {
+        fmt.Printf("[FAILED] TxID: %s | Status: %s\\n", p.TransactionID, p.Status)
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(200)
+    json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+func main() {
+    http.HandleFunc("/api/payhero-callback", payheroCallback)
+    http.ListenAndServe(":5000", nil)
+}`
+              },
+            };
+
+            const gateways = [
+              { key: 'mpesa', label: '1. Safaricom M-Pesa (STK Push & Confirms)' },
+              { key: 'paystack', label: '2. Paystack Webhook Verification (HMAC SHA512)' },
+              { key: 'payhero', label: '3. Payhero Callback Receiver' },
+            ];
+
+            const langBtnStyle = (id) => ({
+              padding: '0.35rem 0.85rem',
+              borderRadius: '6px',
+              border: selectedLang === id ? `1px solid ${theme.primary}` : `1px solid ${theme.border}`,
+              background: selectedLang === id ? `rgba(43,91,255,0.18)` : 'rgba(255,255,255,0.03)',
+              color: selectedLang === id ? '#fff' : theme.textMuted,
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            });
+
+            return (
+              <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '2.5rem', borderRadius: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, fontFamily: 'Montserrat, sans-serif' }}>Decoupled Integration Code for {selectedProj.name}</h3>
+                    <p style={{ color: theme.textMuted, fontSize: '0.9rem', lineHeight: 1.6, margin: '0.5rem 0 0' }}>
+                      Production-ready templates in your language. Ingestion URL and API key pre-injected.
+                    </p>
+                  </div>
+                  {/* Language Selector */}
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {langs.map(l => (
+                      <button key={l.id} onClick={() => setSelectedLang(l.id)} style={langBtnStyle(l.id)}>
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '2rem' }}>
+                  {gateways.map(gw => (
+                    <div key={gw.key}>
+                      <h4 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '0.5rem' }}>
+                        {gw.label}
+                      </h4>
+                      <pre className="hb-code-box" style={{ position: 'relative' }}>
+                        {snippets[gw.key][selectedLang]}
+                      </pre>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB 3: Project Settings (Update destination, toggle, delete) */}
           {activeProjTab === 'settings' && (
