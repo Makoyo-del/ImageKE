@@ -287,7 +287,12 @@ router.post('/webhooks/:apiKey', ingestionLimiter, async (req, res) => {
       .eq('api_key', apiKey)
       .maybeSingle();
 
-    if (projError || !project) {
+    if (projError) {
+      console.error('[Ingestion Error] Supabase database query failed:', projError.message || projError);
+      return res.status(404).json({ error: 'Project not found.' });
+    }
+    if (!project) {
+      console.warn(`[Ingestion Warning] Project lookup returned empty for API Key: ${apiKey.substring(0, 8)}...`);
       return res.status(404).json({ error: 'Project not found.' });
     }
 

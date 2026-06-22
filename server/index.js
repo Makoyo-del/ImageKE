@@ -14,6 +14,12 @@ if (!process.env.PAYSTACK_SECRET_KEY) {
   console.error('FATAL: PAYSTACK_SECRET_KEY is not set. Server cannot start.');
   process.exit(1);
 }
+if (!process.env.SUPABASE_URL || process.env.SUPABASE_URL.includes('your-supabase') || process.env.SUPABASE_URL.includes('placeholder')) {
+  console.warn('[WARN] SUPABASE_URL is not set or is using a placeholder. Database connections will fail.');
+}
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY.includes('service_role') || process.env.SUPABASE_SERVICE_ROLE_KEY.includes('placeholder')) {
+  console.warn('[WARN] SUPABASE_SERVICE_ROLE_KEY is not set or is using a placeholder. Database connections will fail.');
+}
 if (!process.env.PING_SECRET) {
   console.warn('[WARN] PING_SECRET is not set. The /api/ping endpoint will be UNPROTECTED. Set it in your environment variables.');
 }
