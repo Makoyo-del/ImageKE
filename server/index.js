@@ -75,6 +75,19 @@ app.use(
 // ─── HookBunker Mount ─────────────────────────────────────────────────────────
 app.use('/api/hookbunker', hookBunkerRouter);
 
+// ─── Health Check (for UptimeRobot / monitoring) ──────────────────────────────
+// Ping this endpoint every 5 minutes from UptimeRobot to:
+//   1. Detect downtime instantly and get alerted
+//   2. Keep Render from spinning down the service on free/starter tier
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'HookBunker API',
+    timestamp: new Date().toISOString(),
+    uptime_seconds: Math.floor(process.uptime()),
+  });
+});
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PING_SECRET = process.env.PING_SECRET || null;
