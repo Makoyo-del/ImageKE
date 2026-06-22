@@ -57,6 +57,7 @@ create table if not exists public.projects (
   target_url text not null,
   api_key text unique not null,
   active boolean default true not null,
+  max_retries integer default 5 not null, -- Max delivery retry attempts before stopping (1-10)
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -112,6 +113,18 @@ create policy "Users can update webhooks for their projects"
     exists (
       select 1 from public.projects 
       where projects.id = webhooks.project_id 
+      and projects.user_id = auth.uid()
+    )
+  );
+
+-- Allow project owners to delete their own webhook logs (delivery attempts cascade automatically)
+drop policy if exists "Users can delete webhooks for their projects" on public.webhooks;
+create policy "Users can delete webhooks for their projects"
+  on public.webhooks for delete
+  using (
+    exists (
+      select 1 from public.projects
+      where projects.id = webhooks.project_id
       and projects.user_id = auth.uid()
     )
   );
@@ -185,3 +198,9 @@ create index if not exists idx_feedback_type on public.feedback(type);
 -- =============================================================================
 alter table public.webhooks add column if not exists currency text default 'KES';
 alter table public.webhooks add column if not exists headers jsonb;
+
+-- =============================================================================
+-- MIGRATION: Add max_retries to existing projects table (run if upgrading)
+-- Default is 5 retries before stopping auto-retry and stopping email alerts.
+-- =============================================================================
+alter table public.projects add column if not exists max_retries integer default 5;

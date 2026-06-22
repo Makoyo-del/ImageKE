@@ -190,33 +190,56 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload, customHeaders 
   if (status === 'failed') {
     const { data: webhook } = await supabase.from('webhooks').select('*, projects(*)').eq('id', webhookId).maybeSingle();
     if (webhook && webhook.projects) {
-      const { data: profile } = await supabase.from('profiles').select('email').eq('id', webhook.projects.user_id).maybeSingle();
-      if (profile) {
-        await sendEmail({
-          to: profile.email,
-          subject: `[HookBunker] Delivery Failed for Project: ${webhook.projects.name}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 8px; background: #0F172A; color: #F8FAFC;">
-              <h2 style="color: #EF4444; margin-top: 0;">Webhook Delivery Failed</h2>
-              <p>Your project <strong>${webhook.projects.name}</strong> failed to process an incoming payment webhook callback.</p>
-              
-              <div style="background: #1E293B; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                  <tr><td style="color: #94A3B8; padding: 4px 0; width: 120px;">Target URL:</td><td style="font-family: monospace; color: #38BDF8;">${targetUrl}</td></tr>
-                  <tr><td style="color: #94A3B8; padding: 4px 0;">Status:</td><td style="color: #F87171; font-weight: bold;">${response_status || 'Network Error'}</td></tr>
-                  <tr><td style="color: #94A3B8; padding: 4px 0;">Error:</td><td style="color: #F87171;">${error_message || 'HTTP Error Code'}</td></tr>
-                  <tr><td style="color: #94A3B8; padding: 4px 0;">Transaction Ref:</td><td style="font-family: monospace; color: #34D399;">${webhook.transaction_code || '—'}</td></tr>
-                </table>
+      // Count how many delivery attempts have been made for this webhook
+      const { count: attemptCount } = await supabase
+        .from('deliveries')
+        .select('*', { count: 'exact', head: true })
+        .eq('webhook_id', webhookId);
+
+      const maxRetries = webhook.projects.max_retries || 5;
+      const isFirstFailure = attemptCount === 1;
+      const isRetryExhausted = attemptCount >= maxRetries;
+
+      // Only email on the first failure (immediate alert) or when retries are exhausted (final notice)
+      // This prevents flooding the developer's inbox on every retry attempt
+      if (isFirstFailure || isRetryExhausted) {
+        const { data: profile } = await supabase.from('profiles').select('email').eq('id', webhook.projects.user_id).maybeSingle();
+        if (profile) {
+          const isFinal = isRetryExhausted;
+          const emailSubject = isFinal
+            ? `[HookBunker] ⛔ All ${maxRetries} Retries Exhausted — ${webhook.projects.name}`
+            : `[HookBunker] Delivery Failed for Project: ${webhook.projects.name}`;
+          const statusNote = isFinal
+            ? `All <strong>${maxRetries} retry attempts</strong> have been exhausted. HookBunker will no longer automatically retry this webhook. Please investigate the target URL or delete the failed log and re-configure.`
+            : `HookBunker will automatically retry this delivery up to <strong>${maxRetries} times</strong>. You can inspect logs or manually trigger a retry in your dashboard.`;
+
+          await sendEmail({
+            to: profile.email,
+            subject: emailSubject,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E2E8F0; border-radius: 8px; background: #0F172A; color: #F8FAFC;">
+                <h2 style="color: ${isFinal ? '#F59E0B' : '#EF4444'}; margin-top: 0;">${isFinal ? '⛔ Retries Exhausted' : 'Webhook Delivery Failed'}</h2>
+                <p>Your project <strong>${webhook.projects.name}</strong> failed to deliver an incoming payment webhook.</p>
+                
+                <div style="background: #1E293B; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr><td style="color: #94A3B8; padding: 4px 0; width: 140px;">Target URL:</td><td style="font-family: monospace; color: #38BDF8;">${targetUrl}</td></tr>
+                    <tr><td style="color: #94A3B8; padding: 4px 0;">HTTP Status:</td><td style="color: #F87171; font-weight: bold;">${response_status || 'Network Error'}</td></tr>
+                    <tr><td style="color: #94A3B8; padding: 4px 0;">Error:</td><td style="color: #F87171;">${error_message || 'Non-2xx response'}</td></tr>
+                    <tr><td style="color: #94A3B8; padding: 4px 0;">Transaction Ref:</td><td style="font-family: monospace; color: #34D399;">${webhook.transaction_code || '—'}</td></tr>
+                    <tr><td style="color: #94A3B8; padding: 4px 0;">Attempt #:</td><td style="color: #F87171; font-weight: bold;">${attemptCount} of ${maxRetries}</td></tr>
+                  </table>
+                </div>
+                
+                <p>${statusNote}</p>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                  <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+                </div>
               </div>
-              
-              <p>HookBunker will automatically retry this delivery according to your plan schedule. You can inspect logs or manually trigger a retry in your dashboard.</p>
-              
-              <div style="margin-top: 30px; text-align: center;">
-                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
-              </div>
-            </div>
-          `,
-        });
+            `,
+          });
+        }
       }
     }
   }
@@ -319,7 +342,8 @@ router.all('/jobs/process-retries', async (req, res) => {
 
       if (countError) continue;
 
-      const maxRetries = 5;
+      // Use project-level max_retries setting (defaults to 5 if not configured)
+      const maxRetries = webhook.projects?.max_retries || 5;
       if (count >= maxRetries) {
         await supabase.from('webhooks').update({ status: 'failed_max_retries' }).eq('id', webhook.id);
         continue;
@@ -406,6 +430,9 @@ router.post('/projects', authenticateUser, async (req, res) => {
 
     const api_key = crypto.randomBytes(24).toString('hex');
 
+    const rawMaxRetries = parseInt(req.body.max_retries || req.body.maxRetries, 10);
+    const max_retries = (rawMaxRetries >= 1 && rawMaxRetries <= 10) ? rawMaxRetries : 5;
+
     const { data, error } = await supabase
       .from('projects')
       .insert({
@@ -414,6 +441,7 @@ router.post('/projects', authenticateUser, async (req, res) => {
         target_url,
         api_key,
         active: true,
+        max_retries,
       })
       .select()
       .single();
@@ -436,10 +464,16 @@ router.put('/projects/:id', authenticateUser, async (req, res) => {
     return res.status(400).json({ error: 'Name and target URL are required.' });
   }
 
+  const updateData = { name: name.trim(), target_url: target_url.trim() };
+  const rawMaxRetries = parseInt(req.body.max_retries || req.body.maxRetries, 10);
+  if (rawMaxRetries >= 1 && rawMaxRetries <= 10) {
+    updateData.max_retries = rawMaxRetries;
+  }
+
   try {
     const { data, error } = await supabase
       .from('projects')
-      .update({ name: name.trim(), target_url: target_url.trim() })
+      .update(updateData)
       .eq('id', id)
       .eq('user_id', req.user.id)
       .select()
@@ -605,6 +639,38 @@ router.post('/webhooks/:webhookId/retry', authenticateUser, async (req, res) => 
   forwardWebhookAsync(webhook.id, webhook.projects.target_url, webhook.payload, webhook.headers || {});
 
   res.json({ success: true, message: 'Retry initiated.' });
+});
+
+// Delete a webhook log (and all its delivery attempts via CASCADE)
+router.delete('/webhooks/:webhookId', authenticateUser, async (req, res) => {
+  const { webhookId } = req.params;
+
+  // Ownership check: only the project owner can delete its webhook logs
+  const { data: webhook, error: fetchError } = await supabase
+    .from('webhooks')
+    .select('id, project_id, projects(user_id)')
+    .eq('id', webhookId)
+    .maybeSingle();
+
+  if (fetchError || !webhook) {
+    return res.status(404).json({ error: 'Webhook log not found.' });
+  }
+
+  if (webhook.projects?.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Unauthorized. You do not own this webhook log.' });
+  }
+
+  const { error: deleteError } = await supabase
+    .from('webhooks')
+    .delete()
+    .eq('id', webhookId);
+
+  if (deleteError) {
+    console.error('[Webhook Delete Error]', deleteError.message);
+    return res.status(500).json({ error: 'Failed to delete webhook log.' });
+  }
+
+  res.json({ success: true, message: 'Webhook log and all delivery attempts deleted.' });
 });
 
 // Submit Feedback or Feature Request (Optionally Authenticated)

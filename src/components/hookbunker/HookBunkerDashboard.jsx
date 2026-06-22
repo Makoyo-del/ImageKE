@@ -34,6 +34,10 @@ import { HookBunkerAuth } from './HookBunkerAuth';
 import './HookBunkerDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
+// INGESTION_BASE is the public-facing URL shown to developers for their webhook endpoint.
+// Set VITE_INGESTION_BASE_URL in .env to mask the real backend (e.g. a custom Render domain or proxy subdomain).
+// This hides imageke-api.onrender.com from developers and is the standard enterprise approach.
+const INGESTION_BASE = import.meta.env.VITE_INGESTION_BASE_URL || API_URL;
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
 export function HookBunkerDashboard({ onNavigate }) {
@@ -457,6 +461,29 @@ export function HookBunkerDashboard({ onNavigate }) {
     }
   };
 
+  const handleDeleteWebhook = async (logId) => {
+    if (!window.confirm('Permanently delete this webhook log and all its delivery attempts? This cannot be undone.')) {
+      return;
+    }
+    setActionError('');
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      await axios.delete(`${API_URL}/api/hookbunker/webhooks/${logId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      showToast('Webhook log deleted successfully.', 'success');
+      setSelectedLog(null);
+      if (selectedProj) {
+        fetchLogs(selectedProj.id);
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to delete webhook log.', 'error');
+    }
+  };
+
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setPasswordError('');
@@ -815,9 +842,9 @@ export function HookBunkerDashboard({ onNavigate }) {
                 <div style={{ marginTop: '0.5rem', display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', color: theme.textMuted, textTransform: 'uppercase', fontWeight: 700 }}>Ingestion Endpoint:</span>
                   <code style={{ background: '#050a14', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', color: theme.primary, fontFamily: 'monospace' }}>
-                    {`${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}`}
+                    {`${INGESTION_BASE}/api/hookbunker/webhooks/${selectedProj.api_key}`}
                   </code>
-                  <button onClick={() => copyToClipboard(`${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: 0 }} title="Copy Endpoint"><Copy size={13} /></button>
+                  <button onClick={() => copyToClipboard(`${INGESTION_BASE}/api/hookbunker/webhooks/${selectedProj.api_key}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: 0 }} title="Copy Endpoint"><Copy size={13} /></button>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1391,14 +1418,15 @@ func main() {
                     const token = session.data.session?.access_token;
                     const res = await axios.put(`${API_URL}/api/hookbunker/projects/${selectedProj.id}`, {
                       name: selectedProj.name,
-                      targetUrl: selectedProj.target_url
+                      targetUrl: selectedProj.target_url,
+                      max_retries: selectedProj.max_retries ?? 5,
                     }, {
                       headers: { Authorization: `Bearer ${token}` }
                     });
                     setSelectedProj(res.data);
                     const updated = projects.map(p => p.id === selectedProj.id ? res.data : p);
                     setProjects(updated);
-                    showToast('Destination URL updated successfully.', 'success');
+                    showToast('Configuration saved successfully.', 'success');
                   } catch (err) {
                     setActionError(err.response?.data?.error || 'Failed to update endpoint.');
                   }
@@ -1423,6 +1451,19 @@ func main() {
                         required
                         style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
                       />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Max Retry Attempts (1–10)</label>
+                      <input 
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={selectedProj.max_retries ?? 5}
+                        onChange={e => setSelectedProj({ ...selectedProj, max_retries: parseInt(e.target.value, 10) })}
+                        required
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+                      />
+                      <p style={{ fontSize: '0.75rem', color: theme.textMuted, margin: '6px 0 0', lineHeight: 1.4 }}>Emails are sent only on the first failure and when all retries are exhausted. Reducing this stops retry spam faster.</p>
                     </div>
                   </div>
                   <button type="submit" style={{ background: theme.primary, color: '#fff', border: 'none', padding: '0.65rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>Save Changes</button>
@@ -1591,13 +1632,20 @@ func main() {
               </pre>
             </div>
 
-            {/* Manual Retry Trigger */}
-            <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '1.25rem', marginTop: 'auto' }}>
+            {/* Action buttons: Redeliver + Delete */}
+            <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '1.25rem', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <button 
                 onClick={() => handleForceRedeliver(selectedLog.id)}
                 style={{ width: '100%', background: theme.primary, color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
                 <RefreshCw size={14} /> Force Manual Redeliver
+              </button>
+              <button 
+                onClick={() => handleDeleteWebhook(selectedLog.id)}
+                style={{ width: '100%', background: 'rgba(239,68,68,0.1)', color: theme.danger, border: `1px solid rgba(239,68,68,0.25)`, padding: '0.75rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                title="Permanently delete this log and stop all future retries"
+              >
+                <Trash2 size={14} /> Delete Log &amp; Stop Retries
               </button>
             </div>
           </div>
