@@ -1,8 +1,11 @@
 import crypto from 'crypto';
 import axios from 'axios';
+import dotenv from 'dotenv';
 
-// Paystack Test Secret Key (from user)
-const PAYSTACK_SECRET = 'sk_test_159516125cd847310d709c442425ef166d09c12e';
+dotenv.config();
+
+// Paystack Test Secret Key (from env or fallback)
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || 'sk_test_159516125cd847310d709c442425ef166d09c12e';
 
 // Choose target URL:
 // Remote: 'https://imageke-api.onrender.com'

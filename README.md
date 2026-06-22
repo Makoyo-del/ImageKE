@@ -1,101 +1,225 @@
-# ImageKE & HookBunker Developer Workspace
+# HookBunker — Resilient Webhook Proxy for African Payment Gateways
 
-This workspace contains two high-performance web applications designed for utility, reliability, and monetization in the Kenyan market:
+HookBunker is a production-grade webhook proxy and delivery engine built for developers integrating Safaricom M-Pesa (Daraja), Paystack, and Payhero into their applications.
 
-1. **ImageKE**: A mobile-first passport photo resizer and compressor tailored to Kenyan government portals (e-Citizen, iTax, HELB) and international Visa applications.
-2. **HookBunker**: A highly resilient webhook proxy and transaction logging engine for Safaricom M-Pesa (Daraja), Paystack, and Payhero callbacks. It absorbs gateway payloads instantly, acknowledges receipt in under 20ms, logs requests to a PostgreSQL instance, and manages automated retry loops.
+It absorbs payment gateway callbacks instantly, logs every payload to a persistent database, forwards to your server with automatic retries, and alerts you on failure — all behind a clean developer dashboard.
 
----
-
-## 🚀 ImageKE - Passport Photo Resizer
-
-ImageKE solves the common pain point of photo rejection on Kenyan public and private portals by resizing images to exact specifications client-side.
-
-### Key Features
-- **Portal Presets**: Ready-to-use sizes for eCitizen (350x450px, <50KB), KRA iTax, HELB, and US Visa (600x600px).
-- **Local Client-Side Processing**: Resizing and compression happen inside the browser (using Pica). Images are never uploaded to a server, ensuring user privacy and low bandwidth costs.
-- **Paystack Checkout Integration**: Uses Paystack Inline checkout to process KES payments (STK Push, Credit Card) for watermarked vs. clean high-resolution downloads.
+**Live:** [hookbunker.duncanmakoyo.com](https://duncanmakoyo.com/#/hookbunker) · **API:** [api.duncanmakoyo.com](https://api.duncanmakoyo.com/health)
 
 ---
 
-## 🛡️ HookBunker - Webhook Proxy & Queue
+## What Problem Does It Solve?
 
-HookBunker protects payment integration channels against target server downtime and connection timeouts.
+Payment gateways fire webhooks once and move on. If your server is down, cold-starting, or slow to respond, the callback is **lost forever**. HookBunker sits in front of your server and:
 
-### Problem Solved
-- **Timeout Mitigation**: Safaricom M-Pesa (Daraja) callbacks require a response in under 3 seconds. HookBunker absorbs payloads, saves them, and responds immediately in under 20ms, completely avoiding gateway drops.
-- **Downtime Buffering**: If your server is down, HookBunker captures the transaction log and schedules automatic retries.
-- **Local Debugging**: Inspect exact gateway JSON payloads and replay them to your local environment with a single click.
-
-### Database Tables (Supabase)
-HookBunker runs on a relational PostgreSQL database schema. The complete migration script is available in [supabase_schema.sql](file:///c:/Users/USER/Desktop/Duncan%20Makoyo/DunMak/supabase_schema.sql):
-- **profiles**: Tracks subscription tiers (Developer, Team, Business) and billing references.
-- **projects**: Stores client API keys and target routing endpoints.
-- **webhooks**: Ingests raw transaction payloads and current delivery states.
-- **deliveries**: Records every request duration, status code, and HTTP response body.
-- **feedback**: Logs user feature requests, ratings, and feedback.
+- Returns `HTTP 200` to the gateway in **< 20ms** (before M-Pesa's 3-second timeout)
+- Stores the full JSON payload in PostgreSQL
+- Forwards asynchronously to your real server
+- Retries automatically if your server is down (up to configurable max)
+- Sends email alerts on first failure and when retries are exhausted
 
 ---
 
-## 🛠️ Architecture & Setup
-
-The workspace is structured as a monorepo containing a React client and an Express backend.
+## Architecture
 
 ```
-/                   <- React Client Workspace (Vite + CSS)
-/server             <- Node.js + Express Backend Workspace
-/supabase_schema.sql <- Database Schema Migrations
+Payment Gateway (M-Pesa / Paystack / Payhero)
+        │
+        ▼
+api.duncanmakoyo.com/api/hookbunker/webhooks/<api_key>
+        │  ← responds 200 in < 20ms
+        │
+   HookBunker Engine (Express / Node.js on Render)
+        │
+        ├── Logs to Supabase PostgreSQL (webhooks + deliveries tables)
+        ├── Forwards to developer's target_url asynchronously
+        └── Retry cron (every 5 min) re-attempts failed deliveries
 ```
 
-### 1. Database Configuration
-1. Create a Supabase project.
-2. Open the SQL Editor in your Supabase dashboard.
-3. Copy the contents of `supabase_schema.sql` and run the script to initialize tables, Row-Level Security (RLS) policies, and indexes.
-
-### 2. Frontend Configuration
-Set up your environment values in `.env` (root directory):
-```env
-VITE_API_URL=http://localhost:5000
-VITE_PAYSTACK_PUBLIC_KEY=your_paystack_public_key
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+/                        ← React Frontend (Vite, deployed to Hostinger)
+/server                  ← Express Backend (deployed to Render)
+/supabase_schema.sql     ← Full database schema with RLS policies
 ```
 
-Run the frontend client:
+---
+
+## Security Model
+
+| Layer | Implementation |
+|---|---|
+| **Authentication** | All developer API calls use Supabase JWT (RS256) |
+| **Ingestion Rate Limiting** | 60 req/min per IP on the public ingestion endpoint |
+| **General API Rate Limiting** | 50 req/15 min per IP on all other API routes |
+| **Payment Validation** | Server-side amount verification — client cannot override pricing |
+| **Subscription Replay Prevention** | `last_payment_reference` stored on profile; same reference rejected |
+| **Billing Webhook Verification** | HMAC-SHA512 signature checked on all Paystack billing events |
+| **Ingestion URL Masking** | Real backend URL hidden behind `api.duncanmakoyo.com` (custom Render domain) |
+| **Ownership Verification** | Every webhook/project operation verifies `user_id` against JWT |
+| **No Secrets on Frontend** | All keys are `VITE_`-prefixed (public-safe: anon key, public Paystack key only) |
+| **Row-Level Security** | Supabase RLS isolates all data by `auth.uid()` |
+
+### What is Safe to Expose on the Frontend?
+- `VITE_SUPABASE_ANON_KEY` — Supabase design: this is intentionally public. RLS policies enforce isolation.
+- `VITE_PAYSTACK_PUBLIC_KEY` — Paystack design: public key is for client-side checkout only.
+- `VITE_API_URL` / `VITE_INGESTION_BASE_URL` — URLs, not secrets.
+
+### What Must NEVER Be on the Frontend?
+- `PAYSTACK_SECRET_KEY` — backend only (server/.env)
+- `SUPABASE_SERVICE_ROLE_KEY` — backend only (server/.env), bypasses RLS
+- `RESEND_API_KEY` — backend only
+- `PING_SECRET` — backend only
+
+---
+
+## Database Schema (Supabase PostgreSQL)
+
+Run `supabase_schema.sql` in your Supabase SQL Editor. It creates:
+
+| Table | Purpose |
+|---|---|
+| `profiles` | Subscription tier, billing references, payment replay guard |
+| `projects` | Developer API keys, target URLs, max retry config |
+| `webhooks` | Captured gateway payloads, delivery status, currency, headers |
+| `deliveries` | Per-attempt delivery logs (status code, response body, latency) |
+| `feedback` | Feature requests and user ratings |
+
+All tables have Row-Level Security (RLS) enabled. The backend uses the `service_role` key which bypasses RLS for operational writes (ingestion, retry jobs).
+
+---
+
+## Subscription Tiers & Limits
+
+| Feature | Developer (Free) | Team | Business |
+|---|---|---|---|
+| Monthly Webhooks | 500 | 25,000 | 150,000 |
+| Active Projects | 1 | 5 | Unlimited |
+| Data Retention | 3 days | 14 days | 30 days |
+| Max Retries | 1–10 (configurable) | 1–10 | 1–10 |
+| Price | KES 0 | KES 3,400/mo | KES 11,500/mo |
+
+Limits are enforced server-side on every ingestion request and project creation. Downgrade enforcement runs automatically on `subscription.disable` Paystack events.
+
+---
+
+## Local Development Setup
+
+### Prerequisites
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- A [Paystack](https://paystack.com) account (for billing features)
+- A [Resend](https://resend.com) account (for email alerts)
+
+### 1. Database
+
+```sql
+-- Run in Supabase SQL Editor:
+-- Paste the full contents of supabase_schema.sql
+```
+
+### 2. Frontend
+
 ```bash
-# From the root directory
+# Root directory
+cp .env.example .env
+# Fill in your values (see .env.example for all required keys)
 npm install
 npm run dev
 ```
 
-### 3. Backend Configuration
-Set up your environment values in `server/.env`:
+**Frontend `.env` keys:**
 ```env
-PORT=5000
-PAYSTACK_SECRET_KEY=your_paystack_secret_key
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-RESEND_API_KEY=your_resend_api_key
-RESEND_FROM_EMAIL=alerts@duncanmakoyo.com
-PING_SECRET=your_cron_worker_authentication_secret
-TOKEN_SECRET=your_token_signing_secret
+VITE_API_URL=http://localhost:5000
+VITE_INGESTION_BASE_URL=http://localhost:5000   # Use API_URL locally
+VITE_PAYSTACK_PUBLIC_KEY=pk_test_...            # Your Paystack public key
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...                   # Supabase anon (safe to expose)
 ```
 
-Run the backend API:
+### 3. Backend
+
 ```bash
-# From the server directory
 cd server
+cp .env.example .env
+# Fill in your values
 npm install
 node index.js
 ```
 
+**Backend `server/.env` keys:**
+```env
+PORT=5000
+PAYSTACK_SECRET_KEY=sk_test_...                 # NEVER expose on frontend
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...                # NEVER expose on frontend
+RESEND_API_KEY=re_...                           # NEVER expose on frontend
+RESEND_FROM_EMAIL=alerts@yourdomain.com
+PING_SECRET=your_strong_random_secret           # For cron job authentication
+TOKEN_SECRET=your_strong_random_secret          # For subscription token signing
+ALLOWED_ORIGINS=https://yourdomain.com
+HOOKBUNKER_DASHBOARD_URL=https://yourdomain.com/#/hookbunker/dashboard
+```
+
 ---
 
-## 🌐 Production Deployment (Render)
+## Production Deployment
 
-This repository contains a `render.yaml` blueprint defining the environment:
+### Frontend (Hostinger / Static Host)
+```bash
+npm run build
+# Upload the /dist folder to your Hostinger file manager
+```
 
-- **imageke-frontend**: Direct static build mapping client routes.
-- **imageke-api**: Background Express web service mapping proxy calls.
+### Backend (Render)
+- Connect the GitHub repository to Render
+- Set all `server/.env` keys as Environment Variables in the Render dashboard
+- The `render.yaml` blueprint defines the service configuration
+- Add `api.yourdomain.com` as a Custom Domain in Render settings
+- Create a CNAME DNS record: `api` → `your-service.onrender.com`
 
-Ensure that all production secrets are set securely in your hosting dashboard, and that the external cron URL `/api/hookbunker/jobs/process-retries` is triggered periodically by a cron runner (e.g., cron-job.org) with the `Authorization: Bearer <PING_SECRET>` header.
+### Cron Jobs (Required for Retry Processing)
+
+Two cron jobs must run to keep HookBunker operational:
+
+| Job | Endpoint | Frequency | Auth |
+|---|---|---|---|
+| **Keep-Alive** | `GET /api/ping?token=<PING_SECRET>` | Every 5 min | `?token=` query param |
+| **Retry Worker** | `POST /api/hookbunker/jobs/process-retries?token=<PING_SECRET>` | Every 5 min | `?token=` query param |
+
+Use [cron-job.org](https://cron-job.org) (free) or any cron runner.
+
+---
+
+## API Reference (HookBunker Backend)
+
+### Public (No Auth Required)
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/hookbunker/webhooks/:apiKey` | Ingest a gateway webhook payload |
+| `GET` | `/health` | Service health check |
+
+### Authenticated (Supabase JWT Required)
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/hookbunker/projects` | List developer's projects |
+| `POST` | `/api/hookbunker/projects` | Create a new ingestion project |
+| `PUT` | `/api/hookbunker/projects/:id` | Update project name, URL, max retries |
+| `DELETE` | `/api/hookbunker/projects/:id` | Delete a project and all its data |
+| `PATCH` | `/api/hookbunker/projects/:id/toggle` | Activate / suspend a project |
+| `GET` | `/api/hookbunker/projects/:id/logs` | Fetch webhook logs for a project |
+| `POST` | `/api/hookbunker/webhooks/:id/retry` | Force-redeliver a single webhook |
+| `DELETE` | `/api/hookbunker/webhooks/:id` | Delete a webhook log and its delivery attempts |
+| `POST` | `/api/hookbunker/verify-subscription` | Verify Paystack payment and upgrade tier |
+| `POST` | `/api/hookbunker/feedback` | Submit feedback or feature request |
+
+---
+
+## Contributing
+
+This is a private commercial project. If you have found a security vulnerability, please disclose responsibly to `duncan@duncanmakoyo.com`.
+
+---
+
+## License
+
+All rights reserved. © 2026 Duncan Makoyo. Unauthorized copying, distribution, or modification of this software is strictly prohibited.

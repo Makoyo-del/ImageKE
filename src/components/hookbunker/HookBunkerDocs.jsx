@@ -3,6 +3,9 @@ import { ChevronRight, Zap } from 'lucide-react';
 import { BunkerLayout, theme } from './theme';
 import './HookBunkerDocs.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
+const INGESTION_BASE = import.meta.env.VITE_INGESTION_BASE_URL || API_URL;
+
 export function HookBunkerDocs({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('mpesa');
 
@@ -95,7 +98,7 @@ export function HookBunkerDocs({ onNavigate }) {
                   <li style={{ marginBottom: '0.75rem' }}>
                     <strong>In HookBunker Dashboard</strong>: Create a <em>New Ingestion Target</em>. This will generate a unique webhook ingestion endpoint URL in the format:<br />
                     <code style={{ background: '#090d16', color: '#f43f5e', padding: '0.2rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.25rem', fontFamily: 'monospace' }}>
-                      https://imageke-api.onrender.com/api/hookbunker/webhooks/&lt;your_project_api_key&gt;
+                      {`${INGESTION_BASE}/api/hookbunker/webhooks/<your_project_api_key>`}
                     </code>
                   </li>
                   <li style={{ marginBottom: '0.75rem' }}>
@@ -179,7 +182,7 @@ app.listen(5000, () => console.log('Callback processor online on port 5000'));`}
                   <li style={{ marginBottom: '0.75rem' }}>
                     <strong>In HookBunker Dashboard</strong>: Create a <em>New Ingestion Target</em>. This will generate a unique webhook ingestion endpoint URL in the format:<br />
                     <code style={{ background: '#090d16', color: '#f43f5e', padding: '0.2rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.25rem', fontFamily: 'monospace' }}>
-                      https://imageke-api.onrender.com/api/hookbunker/webhooks/&lt;your_project_api_key&gt;
+                      {`${INGESTION_BASE}/api/hookbunker/webhooks/<your_project_api_key>`}
                     </code>
                   </li>
                   <li style={{ marginBottom: '0.75rem' }}>
@@ -265,7 +268,7 @@ app.listen(5000, () => console.log('Secure webhook listener running on port 5000
                   <li style={{ marginBottom: '0.75rem' }}>
                     <strong>In HookBunker Dashboard</strong>: Create a <em>New Ingestion Target</em>. This will generate a unique webhook ingestion endpoint URL in the format:<br />
                     <code style={{ background: '#090d16', color: '#f43f5e', padding: '0.2rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.25rem', fontFamily: 'monospace' }}>
-                      https://imageke-api.onrender.com/api/hookbunker/webhooks/&lt;your_project_api_key&gt;
+                      {`${INGESTION_BASE}/api/hookbunker/webhooks/<your_project_api_key>`}
                     </code>
                   </li>
                   <li style={{ marginBottom: '0.75rem' }}>
