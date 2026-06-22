@@ -204,3 +204,10 @@ alter table public.webhooks add column if not exists headers jsonb;
 -- Default is 5 retries before stopping auto-retry and stopping email alerts.
 -- =============================================================================
 alter table public.projects add column if not exists max_retries integer default 5;
+
+-- =============================================================================
+-- MIGRATION: Add last_payment_reference to profiles table (run if upgrading)
+-- Prevents replay attacks where a developer submits the same Paystack reference
+-- twice to get a second tier upgrade from a single payment.
+-- =============================================================================
+alter table public.profiles add column if not exists last_payment_reference text;

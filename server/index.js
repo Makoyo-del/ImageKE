@@ -161,11 +161,6 @@ const pingLimiter = rateLimit({
   message: { error: 'Too many ping requests.' },
 });
 
-// ─── Health Check (public — no auth required) ────────────────────────────────
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
 // ─── Secure Ping / Keep-Alive Endpoint ───────────────────────────────────────
 // Used by an external cron job (e.g., cron-job.org, UptimeRobot, GitHub Actions)
 // to prevent the Render free-tier service from sleeping after 15 min of inactivity.

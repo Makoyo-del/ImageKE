@@ -2,8 +2,28 @@ import express from 'express';
 import { supabase } from './supabase.js';
 import axios from 'axios';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// ─── Rate Limiter: Webhook Ingestion (public endpoint — must be protected) ─────
+// Payment gateways typically fire 1-5 req/min per project. 60/min is generous
+// but blocks any flood/DoS attempt before it hits the database.
+const ingestionLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 60,             // 60 ingestion requests per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please slow down.' },
+  keyGenerator: (req) => req.ip,
+});
+
+// ─── Monthly Volume Limits Per Tier ───────────────────────────────────────────
+const MONTHLY_VOLUME_LIMITS = {
+  free:     500,
+  team:     25000,
+  business: 150000,
+};
 
 // Middleware: Authenticate user using Supabase JWT
 const authenticateUser = async (req, res, next) => {
@@ -248,14 +268,14 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload, customHeaders 
 // ─── ENDPOINTS ───
 
 // Webhook Ingestion endpoint (public proxy URL)
-router.post('/webhooks/:apiKey', async (req, res) => {
+router.post('/webhooks/:apiKey', ingestionLimiter, async (req, res) => {
   const { apiKey } = req.params;
   const payload = req.body;
 
   try {
     const { data: project, error: projError } = await supabase
       .from('projects')
-      .select('*')
+      .select('*, profiles!projects_user_id_fkey(subscription_tier)')
       .eq('api_key', apiKey)
       .maybeSingle();
 
@@ -265,6 +285,29 @@ router.post('/webhooks/:apiKey', async (req, res) => {
 
     if (!project.active) {
       return res.status(403).json({ error: 'Project is inactive.' });
+    }
+
+    // ── Monthly Volume Enforcement ──────────────────────────────────────────
+    // Check how many webhooks this user has ingested this calendar month.
+    // This is the gate that ensures paid tiers are required for heavy usage.
+    const tier = project.profiles?.subscription_tier || 'free';
+    const volumeLimit = MONTHLY_VOLUME_LIMITS[tier] ?? MONTHLY_VOLUME_LIMITS.free;
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const { count: monthlyCount } = await supabase
+      .from('webhooks')
+      .select('id', { count: 'exact', head: true })
+      .eq('project_id', project.id)
+      .gte('created_at', monthStart.toISOString());
+
+    if (monthlyCount >= volumeLimit) {
+      console.warn(`[Volume Limit] User ${project.user_id} (${tier}) hit ${volumeLimit} webhooks/month limit.`);
+      return res.status(429).json({
+        error: `Monthly ingestion limit reached (${volumeLimit.toLocaleString()} webhooks for ${tier.toUpperCase()} plan). Upgrade your plan to continue receiving webhooks.`,
+      });
     }
 
     const gateway = req.query.gateway || (payload.Body?.stkCallback ? 'mpesa' : payload.reference ? 'payhero' : payload.event ? 'paystack' : 'generic');
@@ -769,6 +812,27 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
       }
     }
 
+    // ── Duplicate Reference Guard (Replay Attack Prevention) ────────────────
+    // A reference should only ever result in one upgrade. This prevents a
+    // developer from calling this endpoint twice with the same payment reference.
+    const { data: existingByRef } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('paystack_customer_code', txData.customer?.customer_code || '__NONE__')
+      .neq('id', req.user.id)
+      .maybeSingle();
+    // Also check via a dedicated payment_references log in the profiles metadata
+    // Simple approach: check if transaction reference is already stored
+    const { data: selfProfile } = await supabase
+      .from('profiles')
+      .select('last_payment_reference')
+      .eq('id', req.user.id)
+      .maybeSingle();
+
+    if (selfProfile?.last_payment_reference === reference) {
+      return res.status(409).json({ error: 'This payment reference has already been used to activate a subscription.' });
+    }
+
     const { type, tier, userId } = txData.metadata || {};
     if (type !== 'hookbunker_subscription' || userId !== req.user.id) {
       return res.status(400).json({ error: 'Security validation failed: Invalid transaction metadata.' });
@@ -808,6 +872,7 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
         subscription_status: 'active',
         paystack_customer_code: txData.customer?.customer_code || null,
         paystack_subscription_code: txData.subscription || null,
+        last_payment_reference: reference, // Prevents replay of same reference
       })
       .select()
       .maybeSingle();
