@@ -213,3 +213,62 @@
 .live-pulse-dot {
   animation: livePulse 2s infinite;
 }
+
+/* ─── Responsive Adjustments ─── */
+@media (max-width: 1024px) {
+  .hb-projects-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hb-drawer-body {
+    max-width: 100%;
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+  
+  .hb-projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hb-project-card {
+    padding: 1.25rem;
+    min-height: auto;
+  }
+
+  .hb-tabs-row {
+    margin-bottom: 1.5rem;
+  }
+
+  .hb-tab-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Make tables readable and scrollable without stretching viewport */
+  .hb-table th, .hb-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* Prevent long endpoint URLs from pushing mobile boundaries */
+  .hb-endpoint-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 6px;
+  }
+  
+  .hb-endpoint-row code {
+    word-break: break-all;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hb-tab-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}

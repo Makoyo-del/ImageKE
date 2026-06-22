@@ -1565,13 +1565,51 @@ p { color: var(--text-muted); }
 
 /* ─── Tablet (768–1024px) ────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
+  /* Hide desktop navbar links and show mobile menu toggle on tablet */
+  .dm-nav {
+    padding: 0 1rem;
+    height: 60px;
+    gap: 0.75rem;
+  }
+
+  .dm-nav-links {
+    display: none !important;
+  }
+
+  .dm-mobile-toggle {
+    display: flex !important;
+  }
+
+  .dm-nav-cta {
+    display: none !important;
+  }
+
+  .dm-mobile-menu {
+    top: 60px;
+  }
+
+  /* Stack hero layout columns on tablet to prevent text and LinkedIn iframe spill-off */
   .dm-hero-grid {
+    grid-template-columns: 1fr;
     gap: 2.5rem;
     padding: 4rem 0;
+    text-align: center;
+  }
+
+  .dm-hero-sub {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .dm-hero-btns {
+    justify-content: center;
+  }
+
+  .dm-hero-social-proof {
+    justify-content: center;
   }
 
   .dm-illustration {
-    /* Keep on tablet but constrain */
     max-width: 380px;
     margin: 0 auto;
   }
@@ -1604,8 +1642,12 @@ p { color: var(--text-muted); }
     gap: 2rem;
   }
 
+  /* Stack pricing cards on tablet to fit width */
   .dm-pricing-grid {
-    grid-template-columns: repeat(3, 1fr); /* keep 3 on tablet */
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .dm-pricing-card.featured {

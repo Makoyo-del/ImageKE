@@ -26,7 +26,9 @@ import {
   Activity,
   FileCode,
   Sliders,
-  DollarSign
+  DollarSign,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import axios from 'axios';
 import { BunkerLayout, theme } from './theme';
@@ -53,6 +55,7 @@ export function HookBunkerDashboard({ onNavigate }) {
   const [selectedLog, setSelectedLog] = useState(null);
   const [logsLoading, setLogsLoading] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   
   // Project creation form
   const [projName, setProjName] = useState('');
@@ -141,6 +144,7 @@ export function HookBunkerDashboard({ onNavigate }) {
     if (selectedProj) {
       fetchLogs(selectedProj.id);
       setActiveProjTab('logs');
+      setShowApiKey(false); // Reset key visibility for security
     }
   }, [selectedProj]);
 
@@ -159,8 +163,8 @@ export function HookBunkerDashboard({ onNavigate }) {
           filter: `project_id=eq.${selectedProj.id}`
         },
         () => {
-          // Re-fetch logs automatically on any database modification
-          fetchLogs(selectedProj.id);
+          // Re-fetch logs automatically on any database modification (silent background update)
+          fetchLogs(selectedProj.id, false);
         }
       )
       .subscribe();
@@ -272,8 +276,8 @@ export function HookBunkerDashboard({ onNavigate }) {
     }
   };
 
-  const fetchLogs = async (projId) => {
-    setLogsLoading(true);
+  const fetchLogs = async (projId, showLoader = true) => {
+    if (showLoader) setLogsLoading(true);
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
@@ -285,7 +289,7 @@ export function HookBunkerDashboard({ onNavigate }) {
     } catch (err) {
       console.error(err);
     } finally {
-      setLogsLoading(false);
+      if (showLoader) setLogsLoading(false);
     }
   };
 
@@ -839,12 +843,29 @@ export function HookBunkerDashboard({ onNavigate }) {
                     {selectedProj.active ? 'Ingesting' : 'Suspended'}
                   </span>
                 </div>
-                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <div className="hb-endpoint-row" style={{ marginTop: '0.5rem', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.75rem', color: theme.textMuted, textTransform: 'uppercase', fontWeight: 700 }}>Ingestion Endpoint:</span>
-                  <code style={{ background: '#050a14', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', color: theme.primary, fontFamily: 'monospace' }}>
-                    {`${INGESTION_BASE}/api/hookbunker/webhooks/${selectedProj.api_key}`}
-                  </code>
-                  <button onClick={() => copyToClipboard(`${INGESTION_BASE}/api/hookbunker/webhooks/${selectedProj.api_key}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: 0 }} title="Copy Endpoint"><Copy size={13} /></button>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#050a14', padding: '3px 8px', borderRadius: '4px', maxWidth: '100%', overflowX: 'auto' }}>
+                    <code style={{ fontSize: '0.75rem', color: theme.primary, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                      {`${INGESTION_BASE}/api/hookbunker/webhooks/${showApiKey ? selectedProj.api_key : '••••••••••••••••••••••••••••••••'}`}
+                    </code>
+                  </div>
+                  <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                    <button 
+                      onClick={() => setShowApiKey(!showApiKey)} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: '2px', display: 'inline-flex', alignItems: 'center' }} 
+                      title={showApiKey ? "Hide Ingestion Key" : "Reveal Ingestion Key"}
+                    >
+                      {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                    <button 
+                      onClick={() => copyToClipboard(`${INGESTION_BASE}/api/hookbunker/webhooks/${selectedProj.api_key}`)} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: '2px', display: 'inline-flex', alignItems: 'center' }} 
+                      title="Copy Ingestion URL"
+                    >
+                      <Copy size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1025,7 +1046,9 @@ export function HookBunkerDashboard({ onNavigate }) {
 
           {/* TAB 2: Dynamic Integration guides containing real API keys */}
           {activeProjTab === 'integration' && (() => {
-            const ENDPOINT = `${API_URL}/api/hookbunker/webhooks/${selectedProj.api_key}`;
+            const ENDPOINT = showApiKey 
+              ? `${INGESTION_BASE}/api/hookbunker/webhooks/${selectedProj.api_key}` 
+              : `${INGESTION_BASE}/api/hookbunker/webhooks/••••••••••••••••••••••••••••••••`;
             const langs = [
               { id: 'node', label: 'Node.js' },
               { id: 'python', label: 'Python' },
