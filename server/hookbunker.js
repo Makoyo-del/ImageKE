@@ -278,12 +278,12 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload, customHeaders 
 // Webhook Ingestion endpoint (public proxy URL)
 router.post('/webhooks/:apiKey', ingestionLimiter, async (req, res) => {
   const { apiKey } = req.params;
-  const payload = req.body;
+  const payload = req.body || {};
 
   try {
     const { data: project, error: projError } = await supabase
       .from('projects')
-      .select('*, profiles!projects_user_id_fkey(subscription_tier)')
+      .select('*')
       .eq('api_key', apiKey)
       .maybeSingle();
 
@@ -303,7 +303,19 @@ router.post('/webhooks/:apiKey', ingestionLimiter, async (req, res) => {
     // ── Monthly Volume Enforcement ──────────────────────────────────────────
     // Check how many webhooks this user has ingested this calendar month.
     // This is the gate that ensures paid tiers are required for heavy usage.
-    const tier = project.profiles?.subscription_tier || 'free';
+    let tier = 'free';
+    const { data: profile, error: profError } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', project.user_id)
+      .maybeSingle();
+
+    if (profError) {
+      console.error('[Ingestion Error] Supabase profile query failed:', profError.message || profError);
+    } else if (profile) {
+      tier = profile.subscription_tier || 'free';
+    }
+
     const volumeLimit = MONTHLY_VOLUME_LIMITS[tier] ?? MONTHLY_VOLUME_LIMITS.free;
 
     const monthStart = new Date();
