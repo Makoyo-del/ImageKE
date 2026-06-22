@@ -6,6 +6,14 @@ import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
+const getDashboardUrl = () => {
+  let url = process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard';
+  if (url.endsWith('/hookbunker/dashboard') && !url.includes('/#/')) {
+    url = url.replace('/hookbunker/dashboard', '/#/hookbunker/dashboard');
+  }
+  return url;
+};
+
 // ─── Rate Limiter: Webhook Ingestion (public endpoint — must be protected) ─────
 // Payment gateways typically fire 1-5 req/min per project. 60/min is generous
 // but blocks any flood/DoS attempt before it hits the database.
@@ -254,7 +262,7 @@ const forwardWebhookAsync = async (webhookId, targetUrl, payload, customHeaders 
                 <p>${statusNote}</p>
                 
                 <div style="margin-top: 30px; text-align: center;">
-                  <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+                  <a href="${getDashboardUrl()}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
                 </div>
               </div>
             `,
@@ -881,8 +889,8 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
 
     // Send emails asynchronously (fire-and-forget, with error logging)
     const tierFeatures = tier === 'team' 
-      ? 'Up to 5 active projects, 25,000 webhooks / month, 14 days retention, 5-minute retry intervals, and Slack + Email alerts.'
-      : 'Unlimited active projects, 150,000 webhooks / month, 30 days retention, 1-minute retry intervals, priority queue execution, custom payload filtering, and Slack + SMS + Email alerts.';
+      ? 'Up to 5 active projects, 25,000 webhooks / month, 14 days retention, 5-minute retry intervals, and Email alerts.'
+      : 'Unlimited active projects, 150,000 webhooks / month, 30 days retention, 1-minute retry intervals, priority queue execution, custom payload filtering, and Email alerts.';
 
     // Developer Receipt Email (plain text/styled without emojis)
     sendEmail({
@@ -907,7 +915,7 @@ router.post('/verify-subscription', authenticateUser, async (req, res) => {
           <p>Your new limits are applied immediately to all your projects.</p>
           
           <div style="margin-top: 30px; text-align: center;">
-            <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Developer Console</a>
+            <a href="${getDashboardUrl()}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Developer Console</a>
           </div>
         </div>
       `
@@ -1070,7 +1078,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
               <p>Your premium HookBunker subscription has been disabled. Your account has reverted to the <strong>Developer (Free)</strong> tier limits. Additional active projects have been suspended.</p>
               <p>If this was unintentional, you can re-upgrade at any time from your console dashboard.</p>
               <div style="margin-top: 30px; text-align: center;">
-                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Billing Panel</a>
+                <a href="${getDashboardUrl()}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Go to Billing Panel</a>
               </div>
             </div>
           `
@@ -1106,7 +1114,7 @@ router.post('/billing/paystack-webhook', async (req, res) => {
               <p>We were unable to process your subscription renewal payment for HookBunker.</p>
               <p>Please update your billing card details on Paystack to avoid plan disruption and downgrades.</p>
               <div style="margin-top: 30px; text-align: center;">
-                <a href="${process.env.HOOKBUNKER_DASHBOARD_URL || 'https://duncanmakoyo.com/#/hookbunker/dashboard'}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Update Payment Details</a>
+                <a href="${getDashboardUrl()}" style="background: #10B981; color: #0F172A; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; display: inline-block;">Update Payment Details</a>
               </div>
             </div>
           `

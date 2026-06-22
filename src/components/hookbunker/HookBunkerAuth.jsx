@@ -61,7 +61,14 @@ export function HookBunkerAuth({ onNavigate }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const redirectUrl = window.location.origin + '/#/hookbunker/dashboard';
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: redirectUrl
+          }
+        });
         if (error) throw error;
         setAuthError('Signup successful! Check your email inbox to verify your account and complete registration.');
         setAuthMode('login');
