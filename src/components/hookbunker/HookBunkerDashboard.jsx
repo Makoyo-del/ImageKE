@@ -85,9 +85,12 @@ export function HookBunkerDashboard({ onNavigate }) {
   // Password Change states
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordUpdating, setPasswordUpdating] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
 
   // Custom Toast State
   const [toast, setToast] = useState(null); // { message, type: 'info' | 'success' | 'error' }
@@ -493,6 +496,11 @@ export function HookBunkerDashboard({ onNavigate }) {
     setPasswordError('');
     setPasswordSuccess('');
 
+    if (!currentPassword) {
+      setPasswordError('Please enter your current password to confirm your identity.');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setPasswordError('Passwords do not match.');
       return;
@@ -503,11 +511,32 @@ export function HookBunkerDashboard({ onNavigate }) {
       return;
     }
 
+    // Strong password validation check (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character)
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!strongPasswordRegex.test(newPassword)) {
+      setPasswordError('New password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character (e.g. @$!%*?&).');
+      return;
+    }
+
     setPasswordUpdating(true);
     try {
+      // Re-authenticate first to confirm the initiating user knows the current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        setPasswordError('Current password is incorrect. Please verify and try again.');
+        setPasswordUpdating(false);
+        return;
+      }
+
+      // Identity confirmed — now update the password
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       setPasswordSuccess('Access credentials updated successfully.');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
@@ -810,12 +839,28 @@ export function HookBunkerDashboard({ onNavigate }) {
 
               <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>Current Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', paddingRight: '2.5rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>New Password</label>
-                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem' }} />
+                  <div style={{ position: 'relative' }}>
+                    <input type={showNewPwd ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', paddingRight: '2.5rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowNewPwd(!showNewPwd)} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: '2px', display: 'flex', alignItems: 'center' }} title={showNewPwd ? 'Hide password' : 'Show password'}>
+                      {showNewPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>Confirm Password</label>
-                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem' }} />
+                  <div style={{ position: 'relative' }}>
+                    <input type={showConfirmPwd ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', paddingRight: '2.5rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: '2px', display: 'flex', alignItems: 'center' }} title={showConfirmPwd ? 'Hide password' : 'Show password'}>
+                      {showConfirmPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" disabled={passwordUpdating} style={{ background: theme.primary, color: '#fff', border: 'none', padding: '0.6rem', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', marginTop: '0.25rem' }}>
                   {passwordUpdating ? 'Updating...' : 'Update Password'}
@@ -1561,12 +1606,28 @@ func main() {
 
                 <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>Current Password</label>
+                    <div style={{ position: 'relative' }}>
+                      <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', paddingRight: '2.5rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                    </div>
+                  </div>
+                  <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>New Password</label>
-                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem' }} />
+                    <div style={{ position: 'relative' }}>
+                      <input type={showNewPwd ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', paddingRight: '2.5rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                      <button type="button" onClick={() => setShowNewPwd(!showNewPwd)} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: '2px', display: 'flex', alignItems: 'center' }} title={showNewPwd ? 'Hide password' : 'Show password'}>
+                        {showNewPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>Confirm Password</label>
-                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem' }} />
+                    <div style={{ position: 'relative' }}>
+                      <input type={showConfirmPwd ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required style={{ width: '100%', padding: '0.6rem', paddingRight: '2.5rem', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                      <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted, padding: '2px', display: 'flex', alignItems: 'center' }} title={showConfirmPwd ? 'Hide password' : 'Show password'}>
+                        {showConfirmPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" disabled={passwordUpdating} style={{ background: theme.primary, color: '#fff', border: 'none', padding: '0.6rem', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', marginTop: '0.25rem' }}>
                     {passwordUpdating ? 'Updating...' : 'Update Password'}

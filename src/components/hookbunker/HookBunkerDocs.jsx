@@ -11,69 +11,42 @@ export function HookBunkerDocs({ onNavigate }) {
 
   return (
     <BunkerLayout onNavigate={onNavigate}>
-      <div style={{ display: 'flex', gap: '2.5rem', flexWrap: 'wrap' }}>
+      <div className="hb-docs-layout">
         {/* Sidebar Nav */}
-        <div style={{ width: '100%', maxWidth: '240px' }}>
+        <div className="hb-docs-sidebar">
           <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', textTransform: 'uppercase', marginBottom: '1.25rem', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>
             Integration Guides
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <button 
               onClick={() => setActiveTab('mpesa')}
+              className="hb-docs-sidebar-btn"
               style={{
-                textAlign: 'left',
-                padding: '0.85rem 1rem',
-                borderRadius: '10px',
                 background: activeTab === 'mpesa' ? 'rgba(43, 91, 255, 0.12)' : 'transparent',
                 border: activeTab === 'mpesa' ? '1px solid rgba(43, 91, 255, 0.25)' : '1px solid transparent',
                 color: activeTab === 'mpesa' ? '#fff' : theme.textMuted,
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s'
               }}
             >
               Safaricom M-Pesa <ChevronRight size={14} />
             </button>
             <button 
               onClick={() => setActiveTab('paystack')}
+              className="hb-docs-sidebar-btn"
               style={{
-                textAlign: 'left',
-                padding: '0.85rem 1rem',
-                borderRadius: '10px',
                 background: activeTab === 'paystack' ? 'rgba(43, 91, 255, 0.12)' : 'transparent',
                 border: activeTab === 'paystack' ? '1px solid rgba(43, 91, 255, 0.25)' : '1px solid transparent',
                 color: activeTab === 'paystack' ? '#fff' : theme.textMuted,
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s'
               }}
             >
               Paystack <ChevronRight size={14} />
             </button>
             <button 
               onClick={() => setActiveTab('payhero')}
+              className="hb-docs-sidebar-btn"
               style={{
-                textAlign: 'left',
-                padding: '0.85rem 1rem',
-                borderRadius: '10px',
                 background: activeTab === 'payhero' ? 'rgba(43, 91, 255, 0.12)' : 'transparent',
                 border: activeTab === 'payhero' ? '1px solid rgba(43, 91, 255, 0.25)' : '1px solid transparent',
                 color: activeTab === 'payhero' ? '#fff' : theme.textMuted,
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s'
               }}
             >
               Payhero <ChevronRight size={14} />
@@ -82,7 +55,7 @@ export function HookBunkerDocs({ onNavigate }) {
         </div>
 
         {/* Content Panel */}
-        <div style={{ flex: 1, minWidth: '320px', background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '2.5rem', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
+        <div className="hb-docs-content" style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, padding: '2.5rem', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
           {activeTab === 'mpesa' && (
             <div>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '1rem', color: '#fff', fontFamily: 'Montserrat, sans-serif' }}>Integrating Safaricom M-Pesa (Daraja)</h2>

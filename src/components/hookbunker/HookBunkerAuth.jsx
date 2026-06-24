@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../supabase';
 import { BunkerLayout, theme } from './theme';
 import './HookBunkerAuth.css';
+
 
 export function HookBunkerAuth({ onNavigate }) {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ export function HookBunkerAuth({ onNavigate }) {
   const [authError, setAuthError] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [inactivityNotice, setInactivityNotice] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const reason = sessionStorage.getItem('hb_logout_reason');
@@ -147,14 +149,37 @@ export function HookBunkerAuth({ onNavigate }) {
           </div>
           <div className="hb-form-group">
             <label className="hb-input-label">Password</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              className="hb-form-input"
-            />
+            <div style={{ position: 'relative' }}>
+              <input 
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="hb-form-input"
+                style={{ paddingRight: '2.75rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: theme.textMuted,
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
           </div>
           
           {authMode === 'signup' && (
