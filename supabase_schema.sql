@@ -292,3 +292,87 @@ create policy "Students can insert their own academy feedback"
 create index if not exists idx_academy_deliverables_student_id on public.academy_deliverables(student_id);
 create index if not exists idx_academy_deliverables_module_id on public.academy_deliverables(module_id);
 create index if not exists idx_academy_feedback_student_id on public.academy_feedback(student_id);
+
+-- =============================================================================
+-- MIGRATION: Add hookbunker_access & academy_access columns
+-- =============================================================================
+alter table public.profiles add column if not exists hookbunker_access boolean default false;
+alter table public.profiles add column if not exists academy_access boolean default false;
+
+-- =============================================================================
+-- MIGRATION: Update handle_new_user trigger with access isolation logic
+-- =============================================================================
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  is_admin boolean;
+  meta_product text;
+  hb_acc boolean;
+  acad_acc boolean;
+begin
+  meta_product := coalesce(new.raw_user_meta_data->>'product', '');
+  is_admin := (new.email = 'duncanmakoyo@gmail.com' or new.email = 'makoyoduncan@gmail.com');
+  
+  if is_admin then
+    hb_acc := true;
+    acad_acc := true;
+  else
+    hb_acc := (meta_product = 'hookbunker');
+    acad_acc := (meta_product = 'academy');
+  end if;
+
+  insert into public.profiles (
+    id, 
+    email, 
+    role,
+    academy_status,
+    hookbunker_access, 
+    academy_access
+  )
+  values (
+    new.id, 
+    new.email,
+    case when is_admin then 'mentor' else 'student' end,
+    case when is_admin then 'active' else 'inactive' end,
+    hb_acc,
+    acad_acc
+  )
+  on conflict (id) do update
+  set 
+    email = excluded.email,
+    role = case when is_admin then 'mentor' else profiles.role end,
+    academy_status = case when is_admin then 'active' else profiles.academy_status end,
+    hookbunker_access = profiles.hookbunker_access or hb_acc,
+    academy_access = profiles.academy_access or acad_acc;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- =============================================================================
+-- MIGRATION: Backfill existing data
+-- =============================================================================
+-- 1. Upgrade admins
+update public.profiles
+set 
+  role = 'mentor',
+  academy_status = 'active',
+  hookbunker_access = true,
+  academy_access = true
+where email in ('duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com');
+
+-- 2. HookBunker users backfill (if they have project rows)
+update public.profiles
+set hookbunker_access = true
+where id in (select user_id from public.projects);
+
+-- 3. Academy users backfill (if they have deliverables or active status)
+update public.profiles
+set academy_access = true
+where academy_status = 'active' or id in (select student_id from public.academy_deliverables);
+
+-- 4. Default fallback: Any profiles that have neither flag set yet get HookBunker access
+update public.profiles
+set hookbunker_access = true
+where hookbunker_access is not true and academy_access is not true;
+

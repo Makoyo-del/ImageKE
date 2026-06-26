@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { supabase } from '../../supabase';
 import './AcademyAuth.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
+
 export default function AcademyAuth({ onAuthSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,15 +37,19 @@ export default function AcademyAuth({ onAuthSuccess }) {
         if (error) throw error;
         if (onAuthSuccess) onAuthSuccess();
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin + '/#/academy/dashboard',
-          },
+        // Registration is handled entirely on the backend.
+        // This bypasses Supabase's own email template (which is branded for HookBunker)
+        // and sends a proper Academy-branded welcome email via Resend instead.
+        const res = await fetch(`${API_URL}/api/academy/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
         });
-        if (error) throw error;
-        setMessage('Registration successful! Please check your email inbox to verify your account.');
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Registration failed. Please try again.');
+        }
+        setMessage('Account created! You can now sign in below.');
         setAuthMode('login');
       }
     } catch (err) {
@@ -52,8 +58,8 @@ export default function AcademyAuth({ onAuthSuccess }) {
         msg = 'Incorrect email or password. Please verify your credentials.';
       } else if (msg.includes('Email not confirmed')) {
         msg = 'Please verify your email address. Check your inbox for the confirmation link.';
-      } else if (msg.includes('User already registered')) {
-        msg = 'An account with this email already exists. Try logging in.';
+      } else if (msg.includes('already exists') || msg.includes('already registered')) {
+        msg = 'An account with this email already exists. Try signing in.';
       }
       setAuthError(msg);
     } finally {

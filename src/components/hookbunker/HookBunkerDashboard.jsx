@@ -80,6 +80,8 @@ export function HookBunkerDashboard({ onNavigate }) {
   // Profile & subscription states
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [activatingAccess, setActivatingAccess] = useState(false);
   const [billingCurrency, setBillingCurrency] = useState('KES');
   
   // Password Change states
@@ -255,7 +257,22 @@ export function HookBunkerDashboard({ onNavigate }) {
       let { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if (error) throw error;
 
-      if (!data) {
+      const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+      const isAdmin = adminEmails.includes(user.email?.toLowerCase());
+
+      if (data) {
+        if (!data.hookbunker_access && !isAdmin) {
+          setAccessDenied(true);
+        } else {
+          setAccessDenied(false);
+        }
+      } else {
+        if (!isAdmin) {
+          setAccessDenied(true);
+        } else {
+          setAccessDenied(false);
+        }
+        
         data = {
           id: user.id,
           email: user.email,
@@ -276,6 +293,33 @@ export function HookBunkerDashboard({ onNavigate }) {
       });
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const handleActivateHookBunker = async () => {
+    setActivatingAccess(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      
+      const res = await axios.post(`${API_URL}/api/hookbunker/activate`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.data?.success) {
+        showToast('HookBunker workspace activated successfully!', 'success');
+        setAccessDenied(false);
+        await fetchProfile();
+        if (token) {
+          fetchProjects(token);
+        }
+      } else {
+        showToast(res.data?.error || 'Failed to activate workspace.', 'error');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Connection error. Please try again.', 'error');
+    } finally {
+      setActivatingAccess(false);
     }
   };
 
@@ -626,6 +670,80 @@ export function HookBunkerDashboard({ onNavigate }) {
   // Render Login Form if Unauthenticated
   if (!user) {
     return <HookBunkerAuth onNavigate={onNavigate} />;
+  }
+
+  if (accessDenied) {
+    return (
+      <BunkerLayout onNavigate={onNavigate}>
+        <div style={{
+          maxWidth: '500px',
+          margin: '4rem auto',
+          background: 'rgba(30, 41, 59, 0.4)',
+          border: `1px solid ${theme.border}`,
+          borderRadius: '16px',
+          padding: '2.5rem',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            background: 'rgba(56, 189, 248, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem'
+          }}>
+            <Lock size={28} color={theme.primary} />
+          </div>
+          
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem', color: theme.text }}>
+            Activate HookBunker Workspace
+          </h2>
+          
+          <p style={{ color: theme.textMuted, fontSize: '0.925rem', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+            Your account is currently registered under the Career Academy. To start forwarding and securing webhook payloads, activate your HookBunker developer workspace (Free Tier).
+          </p>
+
+          <button
+            onClick={handleActivateHookBunker}
+            disabled={activatingAccess}
+            style={{
+              width: '100%',
+              background: `linear-gradient(135deg, ${theme.primary}, #0369a1)`,
+              color: '#ffffff',
+              border: 'none',
+              padding: '0.85rem 1.5rem',
+              borderRadius: '10px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 12px rgba(56, 189, 248, 0.2)'
+            }}
+          >
+            {activatingAccess ? 'Activating Workspace...' : 'Activate Free Workspace'}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: theme.textMuted,
+              marginTop: '1.5rem',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              textDecoration: 'underline'
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+      </BunkerLayout>
+    );
   }
 
   return (

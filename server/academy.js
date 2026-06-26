@@ -40,7 +40,7 @@ const authenticateUser = async (req, res, next) => {
 async function sendEmail({ to, subject, html }) {
   // Option 1: Resend API
   if (process.env.RESEND_API_KEY) {
-    const fromAddress = process.env.EMAIL_FROM || 'alerts@duncanmakoyo.com';
+    const fromAddress = process.env.ACADEMY_EMAIL_FROM || 'academy@duncanmakoyo.com';
     try {
       await axios.post(
         'https://api.resend.com/emails',
@@ -94,25 +94,110 @@ async function sendEmail({ to, subject, html }) {
   console.log(`[EMAIL FALLBACK] TO: ${to} | SUBJECT: ${subject}`);
 }
 
+// ─── Route: Register Academy Account (Backend-controlled, no Supabase email) ──
+// Using admin API so Supabase does NOT send its own branded email.
+// We send our own Academy-branded welcome email via Resend instead.
+router.post('/register', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid email address is required.' });
+  }
+  if (!password || typeof password !== 'string' || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  }
+
+  try {
+    // Create user via Admin API — email_confirm: true skips Supabase's own email
+    const { data: userData, error: createErr } = await supabase.auth.admin.createUser({
+      email: email.trim().toLowerCase(),
+      password,
+      email_confirm: true, // Mark as confirmed — we handle our own email
+      user_metadata: { product: 'academy' },
+    });
+
+    if (createErr) {
+      // Supabase returns "User already registered" for duplicate emails
+      if (createErr.message?.toLowerCase().includes('already registered') ||
+          createErr.message?.toLowerCase().includes('already exists')) {
+        return res.status(409).json({ error: 'An account with this email already exists. Please sign in.' });
+      }
+      console.error('[Academy Register Error]', createErr.message);
+      return res.status(500).json({ error: 'Failed to create account. Please try again.' });
+    }
+
+    // Send Academy-branded welcome email via Resend
+    const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
+    await sendEmail({
+      to: email.trim().toLowerCase(),
+      subject: 'Your Career Academy Account is Ready',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
+            <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
+            <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Account Created Successfully</p>
+          </div>
+          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
+            <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Welcome aboard,</p>
+            <p style="color: #475569; margin-bottom: 24px;">Your <strong>Duncan Makoyo Career Academy</strong> account has been created for <strong>${email}</strong>. Your account is active — you can sign in immediately.</p>
+
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${academyDashboardUrl}" target="_blank"
+                style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
+                Sign In to Your Dashboard
+              </a>
+            </div>
+
+            <p style="color: #64748B; font-size: 0.875rem;">Once signed in, you will see the enrollment options for the <strong>6-Week AI &amp; Data Career Accelerator</strong>. Choose your package and activate your access in seconds.</p>
+
+            <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
+              <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
+              <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant &amp; Career Mentor</p>
+            </div>
+          </div>
+        </div>
+      `,
+    });
+
+    console.log(`[Academy Register] Account created for ${email}`);
+    res.json({ success: true, message: 'Account created. You can now sign in.' });
+  } catch (err) {
+    console.error('[Academy Register Unexpected Error]', err.message);
+    res.status(500).json({ error: 'Internal server error. Please try again.' });
+  }
+});
+
 // ─── Route: Get Dashboard Data ────────────────────────────────────────────────
 router.get('/dashboard', authenticateUser, async (req, res) => {
   const email = req.user.email;
   const userId = req.user.id;
 
+  const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+  const isAdmin = adminEmails.includes(email.toLowerCase());
+
   try {
     // 1. Get or create student/mentor profile
     let { data: profile, error: profileErr } = await supabase
       .from('profiles')
-      .select('role, academy_status')
+      .select('role, academy_status, academy_access')
       .eq('id', userId)
       .single();
 
     if (profileErr || !profile) {
-      // Auto-insert profile row if missing
+      // Auto-insert profile row if missing (set default active role for admins)
+      const defaultRole = isAdmin ? 'mentor' : 'student';
+      const defaultStatus = isAdmin ? 'active' : 'inactive';
       const { data: newProfile, error: insertErr } = await supabase
         .from('profiles')
-        .insert({ id: userId, email, role: 'student', academy_status: 'inactive' })
-        .select('role, academy_status')
+        .insert({ 
+          id: userId, 
+          email, 
+          role: defaultRole, 
+          academy_status: defaultStatus,
+          academy_access: isAdmin,
+          hookbunker_access: isAdmin
+        })
+        .select('role, academy_status, academy_access')
         .single();
 
       if (insertErr) {
@@ -120,6 +205,22 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
         return res.status(500).json({ error: 'Failed to retrieve profile.' });
       }
       profile = newProfile;
+    } else if (isAdmin && (profile.role !== 'mentor' || profile.academy_status !== 'active' || !profile.academy_access)) {
+      // Auto-upgrade existing admin if they don't have mentor/active/academy status yet
+      const { data: updatedProfile, error: updErr } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'mentor', 
+          academy_status: 'active',
+          academy_access: true,
+          hookbunker_access: true
+        })
+        .eq('id', userId)
+        .select('role, academy_status, academy_access')
+        .single();
+      if (!updErr && updatedProfile) {
+        profile = updatedProfile;
+      }
     }
 
     const { role, academy_status } = profile;
@@ -239,11 +340,11 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Payment not confirmed by Paystack.', status: txData?.status });
     }
 
-    // 3. Verify timestamp (within 30 minutes)
+    // 3. Verify timestamp (within 24 hours)
     if (txData?.paid_at) {
       const paidAt = new Date(txData.paid_at).getTime();
-      if (Math.abs(Date.now() - paidAt) > 30 * 60 * 1000) {
-        return res.status(403).json({ error: 'Payment reference expired.' });
+      if (Math.abs(Date.now() - paidAt) > 24 * 60 * 60 * 1000) {
+        return res.status(403).json({ error: 'Payment reference expired. Verification must happen within 24 hours.' });
       }
     }
 
@@ -266,6 +367,7 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
       .from('profiles')
       .update({
         academy_status: 'active',
+        academy_access: true,
         last_payment_reference: reference,
       })
       .eq('id', userId);
@@ -277,6 +379,8 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
 
     // 6. Send automated onboarding email with secure WhatsApp Community link
     const whatsappCommunityLink = process.env.ACADEMY_WHATSAPP_LINK || 'https://chat.whatsapp.com/mock-academy-link';
+    const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
+    
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
         <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
@@ -294,7 +398,7 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
           </div>
 
           <p style="margin-bottom: 12px; font-weight: 700; color: #0F172A;">Step 2: Access Your Dashboard</p>
-          <p style="margin-bottom: 24px; color: #475569;">Log in to your account at <a href="https://duncanmakoyo.com/#/academy/dashboard" style="color: #14B8A6; font-weight: 600; text-decoration: none;">duncanmakoyo.com</a> to view your active Sprints, download templates, and submit your weekly deliverables for review.</p>
+          <p style="margin-bottom: 24px; color: #475569;">Log in to your account at <a href="${academyDashboardUrl}" style="color: #14B8A6; font-weight: 600; text-decoration: none;">your dashboard</a> to view your active Sprints, download templates, and submit your weekly deliverables for review.</p>
 
           <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0;">
             <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
@@ -312,8 +416,9 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
 
     res.json({ success: true, status: 'active' });
   } catch (err) {
-    console.error('[Verify Academy Payment Error]', err.message);
-    res.status(502).json({ error: 'Failed to verify payment reference.' });
+    const detail = err.response?.data?.message || err.message;
+    console.error('[Verify Academy Payment Error]', detail, err.response?.data);
+    res.status(502).json({ error: `Failed to verify payment reference: ${detail}` });
   }
 });
 
@@ -465,6 +570,7 @@ router.post('/mentor/review', authenticateUser, async (req, res) => {
       .single();
 
     if (student) {
+      const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
       await sendEmail({
         to: student.email,
         subject: `[Academy Feedback] Your submission for ${deliverable.module_id} has been reviewed!`,
@@ -476,7 +582,7 @@ router.post('/mentor/review', authenticateUser, async (req, res) => {
                 <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0">
                   ${feedback.replace(/\n/g, '<br/>')}
                 </div>
-                <p>Log in to your dashboard at <a href="https://duncanmakoyo.com/#/academy/dashboard" style="color:#14B8A6;font-weight:bold;text-decoration:none">duncanmakoyo.com</a> to view this and submit the next module.</p>
+                <p>Log in to your dashboard at <a href="${academyDashboardUrl}" style="color:#14B8A6;font-weight:bold;text-decoration:none">your dashboard</a> to view this and submit the next module.</p>
                </div>`
       });
     }
@@ -530,6 +636,7 @@ router.post('/mentor/broadcast', authenticateUser, async (req, res) => {
       .from('profiles')
       .select('email')
       .eq('role', 'student')
+      .eq('academy_access', true)
       .eq('academy_status', 'active');
 
     if (stdErr) {
@@ -539,6 +646,7 @@ router.post('/mentor/broadcast', authenticateUser, async (req, res) => {
 
     // 4. Send emails to all active students in parallel using Resend
     if (activeStudents && activeStudents.length > 0) {
+      const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
       const emailPromises = activeStudents.map(student => {
         return sendEmail({
           to: student.email,
@@ -550,7 +658,7 @@ router.post('/mentor/broadcast', authenticateUser, async (req, res) => {
                   <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0;white-space:pre-line">
                     ${content}
                   </div>
-                  <p>Visit your Academy dashboard at <a href="https://duncanmakoyo.com/#/academy/dashboard" style="color:#14B8A6;font-weight:bold;text-decoration:none">duncanmakoyo.com</a> to view or respond.</p>
+                  <p>Visit your Academy dashboard at <a href="${academyDashboardUrl}" style="color:#14B8A6;font-weight:bold;text-decoration:none">your dashboard</a> to view or respond.</p>
                   <hr style="border:none;border-top:1px solid #E2E8F0;margin:2rem 0"/>
                   <p style="font-size:0.8rem;color:#64748B">Duncan Makoyo Career Academy & Mentorship</p>
                  </div>`

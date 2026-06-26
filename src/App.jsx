@@ -341,11 +341,23 @@ function App() {
     }
 
     if (isAuthRedirect) {
+      // Determine which product this redirect was for.
+      // Academy sets emailRedirectTo to /#/academy/dashboard.
+      // If that path is present in the full URL, it's an Academy redirect.
+      const fullUrl = window.location.href;
+      const isAcademyRedirect = fullUrl.includes('/academy/dashboard') ||
+        fullUrl.includes('%2Facademy%2Fdashboard') ||
+        sessionStorage.getItem('academy_signup_pending') === 'true';
+
       if (errorMsg) {
         const decodedError = decodeURIComponent(errorMsg).replace(/\+/g, ' ');
         sessionStorage.setItem('hb_auth_error', `Authentication failed: ${decodedError}`);
       } else if (hasAccessToken) {
-        if (authType === 'signup') {
+        if (isAcademyRedirect) {
+          sessionStorage.setItem('hb_toast_message', 'Email verified. Welcome to the Career Academy!');
+          sessionStorage.setItem('hb_toast_type', 'success');
+          sessionStorage.removeItem('academy_signup_pending');
+        } else if (authType === 'signup') {
           sessionStorage.setItem('hb_toast_message', 'Email verified successfully. Welcome to your HookBunker dashboard!');
           sessionStorage.setItem('hb_toast_type', 'success');
         } else if (authType === 'recovery') {
@@ -360,16 +372,26 @@ function App() {
         }
       }
 
-      // Clear search query parameters or hash redirects from URL to keep it clean
-      if (window.location.search) {
-        const cleanUrl = window.location.origin + window.location.pathname + '#/hookbunker/dashboard';
-        window.history.replaceState(null, '', cleanUrl);
+      // Route to the correct dashboard based on product
+      if (isAcademyRedirect) {
+        if (window.location.search) {
+          const cleanUrl = window.location.origin + window.location.pathname + '#/academy/dashboard';
+          window.history.replaceState(null, '', cleanUrl);
+        } else {
+          window.location.hash = '#/academy/dashboard';
+        }
+        setCurrentPath('academy-dashboard');
       } else {
-        window.location.hash = '#/hookbunker/dashboard';
+        // Clear search query parameters or hash redirects from URL to keep it clean
+        if (window.location.search) {
+          const cleanUrl = window.location.origin + window.location.pathname + '#/hookbunker/dashboard';
+          window.history.replaceState(null, '', cleanUrl);
+        } else {
+          window.location.hash = '#/hookbunker/dashboard';
+        }
+        // Manually trigger local path state update
+        setCurrentPath('hookbunker-dashboard');
       }
-
-      // Manually trigger local path state update
-      setCurrentPath('hookbunker-dashboard');
     }
   }, []);
 

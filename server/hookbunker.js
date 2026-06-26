@@ -45,6 +45,21 @@ const authenticateUser = async (req, res, next) => {
     if (error || !user) {
       return res.status(401).json({ error: 'Unauthorized.' });
     }
+
+    // Check HookBunker access in profiles
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('hookbunker_access, email')
+      .eq('id', user.id)
+      .single();
+
+    const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+    const isAdmin = adminEmails.includes(user.email?.toLowerCase());
+
+    if (profileErr || !profile || (!profile.hookbunker_access && !isAdmin)) {
+      return res.status(403).json({ error: 'Access Denied: You do not have a HookBunker account.' });
+    }
+
     req.user = user;
     next();
   } catch (err) {
@@ -1186,6 +1201,36 @@ router.post('/billing/paystack-webhook', async (req, res) => {
   } catch (err) {
     console.error('[Billing Webhook Error]', err.message);
     res.status(500).json({ error: 'Internal server error processing webhook.' });
+  }
+});
+
+// Route: Activate HookBunker workspace for a user with another product access (like Academy)
+router.post('/activate', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid token.' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ hookbunker_access: true })
+      .eq('id', user.id);
+
+    if (updateErr) {
+      console.error('[HookBunker Activate Error]', updateErr.message);
+      return res.status(500).json({ error: 'Failed to activate HookBunker access.' });
+    }
+
+    res.json({ success: true, message: 'HookBunker access activated.' });
+  } catch (err) {
+    console.error('[HookBunker Activate Unexpected Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
