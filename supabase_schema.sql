@@ -211,3 +211,84 @@ alter table public.projects add column if not exists max_retries integer default
 -- twice to get a second tier upgrade from a single payment.
 -- =============================================================================
 alter table public.profiles add column if not exists last_payment_reference text;
+
+-- =============================================================================
+-- ACADEMY & MENTORSHIP SYSTEM TABLES & COLUMNS
+-- =============================================================================
+
+-- Add role and academy columns to Profiles table
+alter table public.profiles add column if not exists role text default 'student' check (role in ('student', 'mentor'));
+alter table public.profiles add column if not exists academy_status text default 'inactive' check (academy_status in ('inactive', 'active'));
+
+-- Create Academy Deliverables Table
+create table if not exists public.academy_deliverables (
+  id uuid default gen_random_uuid() primary key,
+  student_id uuid references auth.users on delete cascade not null,
+  module_id text not null,
+  link text not null,
+  notes text,
+  status text default 'pending' check (status in ('pending', 'reviewed')),
+  feedback text,
+  reviewed_at timestamp with time zone,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS on Deliverables
+alter table public.academy_deliverables enable row level security;
+
+-- Deliverables RLS Policies
+drop policy if exists "Students can view their own deliverables" on public.academy_deliverables;
+create policy "Students can view their own deliverables"
+  on public.academy_deliverables for select
+  using (auth.uid() = student_id);
+
+drop policy if exists "Students can insert their own deliverables" on public.academy_deliverables;
+create policy "Students can insert their own deliverables"
+  on public.academy_deliverables for insert
+  with check (auth.uid() = student_id);
+
+-- Create Academy Broadcasts Table (Announcements)
+create table if not exists public.academy_broadcasts (
+  id uuid default gen_random_uuid() primary key,
+  mentor_id uuid references auth.users on delete cascade not null,
+  subject text not null,
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS on Broadcasts
+alter table public.academy_broadcasts enable row level security;
+
+-- Broadcasts RLS Policies
+drop policy if exists "Anyone authenticated can view broadcasts" on public.academy_broadcasts;
+create policy "Anyone authenticated can view broadcasts"
+  on public.academy_broadcasts for select
+  using (auth.uid() is not null);
+
+-- Create Academy Feedback Table (Feature Requests / Feedback)
+create table if not exists public.academy_feedback (
+  id uuid default gen_random_uuid() primary key,
+  student_id uuid references auth.users on delete cascade not null,
+  type text not null check (type in ('feedback', 'feature_request')),
+  message text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS on Academy Feedback
+alter table public.academy_feedback enable row level security;
+
+-- Academy Feedback RLS Policies
+drop policy if exists "Students can view their own academy feedback" on public.academy_feedback;
+create policy "Students can view their own academy feedback"
+  on public.academy_feedback for select
+  using (auth.uid() = student_id);
+
+drop policy if exists "Students can insert their own academy feedback" on public.academy_feedback;
+create policy "Students can insert their own academy feedback"
+  on public.academy_feedback for insert
+  with check (auth.uid() = student_id);
+
+-- Add indexes for high performance querying
+create index if not exists idx_academy_deliverables_student_id on public.academy_deliverables(student_id);
+create index if not exists idx_academy_deliverables_module_id on public.academy_deliverables(module_id);
+create index if not exists idx_academy_feedback_student_id on public.academy_feedback(student_id);

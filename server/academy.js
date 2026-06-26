@@ -1,0 +1,569 @@
+import express from 'express';
+import { supabase } from './supabase.js';
+import axios from 'axios';
+import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
+
+const router = express.Router();
+
+// ─── Rate Limiter for Academy API ─────────────────────────────────────────────
+const academyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+
+router.use(academyLimiter);
+
+// ─── Middleware: Authenticate User via Supabase JWT ───────────────────────────
+const authenticateUser = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid token.' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized.' });
+  }
+};
+
+// ─── Resend/SMTP Email Helper ──────────────────────────────────────────────────
+async function sendEmail({ to, subject, html }) {
+  // Option 1: Resend API
+  if (process.env.RESEND_API_KEY) {
+    const fromAddress = process.env.EMAIL_FROM || 'alerts@duncanmakoyo.com';
+    try {
+      await axios.post(
+        'https://api.resend.com/emails',
+        {
+          from: `Duncan Makoyo Academy <${fromAddress}>`,
+          to,
+          subject,
+          html,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log(`[Academy Email] Sent via Resend to ${to}`);
+      return;
+    } catch (err) {
+      console.error('[Academy Email Resend Error]', err.response?.data || err.message);
+    }
+  }
+
+  // Option 2: SMTP / nodemailer (if configured)
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    try {
+      const { default: nodemailer } = await import('nodemailer');
+      const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port,
+        secure: port === 465,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        tls: { rejectUnauthorized: false },
+      });
+      await transporter.sendMail({
+        from: `"Duncan Makoyo Academy" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log(`[Academy Email] Sent via SMTP to ${to}`);
+      return;
+    } catch (err) {
+      console.error('[Academy Email SMTP Error]', err.message);
+    }
+  }
+
+  // Fallback: Console Log
+  console.warn('[Academy Email Warning] No email service configured. Logged to console.');
+  console.log(`[EMAIL FALLBACK] TO: ${to} | SUBJECT: ${subject}`);
+}
+
+// ─── Route: Get Dashboard Data ────────────────────────────────────────────────
+router.get('/dashboard', authenticateUser, async (req, res) => {
+  const email = req.user.email;
+  const userId = req.user.id;
+
+  try {
+    // 1. Get or create student/mentor profile
+    let { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('role, academy_status')
+      .eq('id', userId)
+      .single();
+
+    if (profileErr || !profile) {
+      // Auto-insert profile row if missing
+      const { data: newProfile, error: insertErr } = await supabase
+        .from('profiles')
+        .insert({ id: userId, email, role: 'student', academy_status: 'inactive' })
+        .select('role, academy_status')
+        .single();
+
+      if (insertErr) {
+        console.error('[Dashboard Error] Failed to create user profile:', insertErr);
+        return res.status(500).json({ error: 'Failed to retrieve profile.' });
+      }
+      profile = newProfile;
+    }
+
+    const { role, academy_status } = profile;
+
+    // 2. Return data depending on role
+    if (role === 'mentor') {
+      // Mentor view: all students, submissions, and broadcasts
+      const { data: students, error: stdErr } = await supabase
+        .from('profiles')
+        .select('id, email, academy_status, created_at')
+        .eq('role', 'student')
+        .order('created_at', { ascending: false });
+
+      const { data: deliverables, error: delErr } = await supabase
+        .from('academy_deliverables')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data: broadcasts, error: brdErr } = await supabase
+        .from('academy_broadcasts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (stdErr || delErr || brdErr) {
+        return res.status(500).json({ error: 'Failed to retrieve mentor dashboard data.' });
+      }
+
+      return res.json({
+        role: 'mentor',
+        data: {
+          students: students || [],
+          deliverables: deliverables || [],
+          broadcasts: broadcasts || [],
+        },
+      });
+    } else {
+      // Student view
+      if (academy_status !== 'active') {
+        return res.json({
+          role: 'student',
+          status: 'inactive',
+          data: { email },
+        });
+      }
+
+      // Fetch active student specific data
+      const { data: deliverables, error: delErr } = await supabase
+        .from('academy_deliverables')
+        .select('*')
+        .eq('student_id', userId)
+        .order('created_at', { ascending: false });
+
+      const { data: broadcasts, error: brdErr } = await supabase
+        .from('academy_broadcasts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (delErr || brdErr) {
+        return res.status(500).json({ error: 'Failed to retrieve student dashboard data.' });
+      }
+
+      return res.json({
+        role: 'student',
+        status: 'active',
+        data: {
+          deliverables: deliverables || [],
+          broadcasts: broadcasts || [],
+        },
+      });
+    }
+  } catch (err) {
+    console.error('[Academy Dashboard GET Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ─── Route: Submit Deliverable (Student) ──────────────────────────────────────
+// ─── Route: Verify Academy Payment & Activate Status ──────────────────────────
+router.post('/verify-payment', authenticateUser, async (req, res) => {
+  const { reference } = req.body;
+  const userId = req.user.id;
+
+  if (!reference || !/^[a-zA-Z0-9_-]+$/.test(reference)) {
+    return res.status(400).json({ error: 'Invalid payment reference.' });
+  }
+
+  try {
+    // 1. Check for duplicate reference usage to prevent replay attacks
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('last_payment_reference, email')
+      .eq('id', userId)
+      .single();
+
+    if (profile?.last_payment_reference === reference) {
+      return res.status(409).json({ error: 'This payment reference has already been used.' });
+    }
+
+    // 2. Call Paystack API to verify the transaction
+    const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+    if (!paystackSecret) {
+      return res.status(500).json({ error: 'Paystack is not configured on the server.' });
+    }
+
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${paystackSecret}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const txData = response.data?.data;
+    if (txData?.status !== 'success') {
+      return res.status(400).json({ error: 'Payment not confirmed by Paystack.', status: txData?.status });
+    }
+
+    // 3. Verify timestamp (within 30 minutes)
+    if (txData?.paid_at) {
+      const paidAt = new Date(txData.paid_at).getTime();
+      if (Math.abs(Date.now() - paidAt) > 30 * 60 * 1000) {
+        return res.status(403).json({ error: 'Payment reference expired.' });
+      }
+    }
+
+    // 4. Verify transaction amount matches pricing
+    const amountPaid = txData?.amount / 100; // kobo -> KES
+    const type = txData?.metadata?.type;
+    const pkg = txData?.metadata?.package;
+
+    if (type !== 'academy_subscription') {
+      return res.status(400).json({ error: 'Transaction is not for an Academy subscription.' });
+    }
+
+    const expectedAmount = pkg === 'membership' ? 1500 : 10000;
+    if (amountPaid < expectedAmount) {
+      return res.status(400).json({ error: 'Paid amount is less than package pricing.' });
+    }
+
+    // 5. Update profile status in database
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({
+        academy_status: 'active',
+        last_payment_reference: reference,
+      })
+      .eq('id', userId);
+
+    if (updateErr) {
+      console.error('[Verify Payment Database Error]', updateErr.message);
+      return res.status(500).json({ error: 'Failed to update student profile.' });
+    }
+
+    // 6. Send automated onboarding email with secure WhatsApp Community link
+    const whatsappCommunityLink = process.env.ACADEMY_WHATSAPP_LINK || 'https://chat.whatsapp.com/mock-academy-link';
+    const emailHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+        <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
+          <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Welcome to the Accelerator!</h2>
+          <p style="color: #A5F3FC; margin: 6px 0 0; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">Academy Access Activated</p>
+        </div>
+        <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
+          <p style="margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem;">Hi there,</p>
+          <p style="margin-bottom: 20px; color: #475569;">Congratulations! Your payment for the <strong>AI & Data Career Accelerator</strong> has been confirmed, and your academy dashboard is now unlocked.</p>
+          
+          <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+            <p style="margin: 0 0 12px; font-weight: 700; color: #166534; font-size: 1rem;">Step 1: Join the Paid WhatsApp Community</p>
+            <p style="margin: 0 0 16px; font-size: 0.875rem; color: #166534;">Click the button below to join the members-only WhatsApp group for direct chat, support, and announcements.</p>
+            <a href="${whatsappCommunityLink}" target="_blank" style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 10px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.9rem;">Join WhatsApp Community →</a>
+          </div>
+
+          <p style="margin-bottom: 12px; font-weight: 700; color: #0F172A;">Step 2: Access Your Dashboard</p>
+          <p style="margin-bottom: 24px; color: #475569;">Log in to your account at <a href="https://duncanmakoyo.com/#/academy/dashboard" style="color: #14B8A6; font-weight: 600; text-decoration: none;">duncanmakoyo.com</a> to view your active Sprints, download templates, and submit your weekly deliverables for review.</p>
+
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0;">
+            <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
+            <p style="margin: 4px 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Mentor</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to: profile?.email || req.user.email,
+      subject: 'Welcome to the AI & Data Career Accelerator!',
+      html: emailHtml,
+    });
+
+    res.json({ success: true, status: 'active' });
+  } catch (err) {
+    console.error('[Verify Academy Payment Error]', err.message);
+    res.status(502).json({ error: 'Failed to verify payment reference.' });
+  }
+});
+
+router.post('/submit-deliverable', authenticateUser, async (req, res) => {
+  const { module_id, link, notes } = req.body;
+  const userId = req.user.id;
+
+  if (!module_id || !link || typeof link !== 'string' || !/^https?:\/\//i.test(link)) {
+    return res.status(400).json({ error: 'A valid URL link is required.' });
+  }
+
+  try {
+    // Verify user is an active student
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('academy_status')
+      .eq('id', userId)
+      .single();
+
+    if (profileErr || !profile || profile.academy_status !== 'active') {
+      return res.status(403).json({ error: 'Access denied: Must be an active student.' });
+    }
+
+    const { data, error } = await supabase
+      .from('academy_deliverables')
+      .insert({
+        student_id: userId,
+        module_id,
+        link,
+        notes: notes || '',
+        status: 'pending',
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[Submit Deliverable Error]', error.message);
+      return res.status(500).json({ error: 'Failed to submit deliverable.' });
+    }
+
+    // Email alert to mentor
+    await sendEmail({
+      to: 'duncan@duncanmakoyo.com',
+      subject: `[Academy Submission] ${req.user.email} submitted ${module_id}`,
+      html: `<p>A student has submitted a new deliverable for review:</p>
+             <p><strong>Student:</strong> ${req.user.email}</p>
+             <p><strong>Module:</strong> ${module_id}</p>
+             <p><strong>Link:</strong> <a href="${link}">${link}</a></p>
+             <p><strong>Notes:</strong> ${notes || 'None'}</p>`
+    });
+
+    res.json(data);
+  } catch (err) {
+    console.error('[Submit Deliverable Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ─── Route: Submit Feedback / Feature Request (Student) ───────────────────────
+router.post('/feedback', authenticateUser, async (req, res) => {
+  const { type, message } = req.body;
+  const userId = req.user.id;
+
+  if (!type || !['feedback', 'feature_request'].includes(type) || !message || message.trim().length < 5) {
+    return res.status(400).json({ error: 'Valid type and message are required.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('academy_feedback')
+      .insert({
+        student_id: userId,
+        type,
+        message,
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[Submit Feedback Error]', error.message);
+      return res.status(500).json({ error: 'Failed to save feedback.' });
+    }
+
+    // Email to mentor
+    const subjectLabel = type === 'feature_request' ? 'Feature Request' : 'Feedback';
+    await sendEmail({
+      to: 'duncan@duncanmakoyo.com',
+      subject: `[Academy] New ${subjectLabel} from ${req.user.email}`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              <h2>New ${subjectLabel} Received</h2>
+              <p><strong>User:</strong> ${req.user.email}</p>
+              <p><strong>Submission details:</strong></p>
+              <blockquote style="border-left:4px solid #14B8A6;padding-left:1rem;font-style:italic">
+                ${message.replace(/\n/g, '<br/>')}
+              </blockquote>
+             </div>`
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Feedback Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ─── Route: Mentor Grade/Review Student Submission ────────────────────────────
+router.post('/mentor/review', authenticateUser, async (req, res) => {
+  const { deliverable_id, feedback, status } = req.body;
+  const userId = req.user.id;
+
+  if (!deliverable_id || !status || !['pending', 'reviewed'].includes(status) || !feedback) {
+    return res.status(400).json({ error: 'Deliverable ID, feedback, and status are required.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Update deliverable
+    const { data: deliverable, error: delErr } = await supabase
+      .from('academy_deliverables')
+      .update({
+        status,
+        feedback,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', deliverable_id)
+      .select('*')
+      .single();
+
+    if (delErr || !deliverable) {
+      console.error('[Mentor Review Update Error]', delErr?.message);
+      return res.status(500).json({ error: 'Failed to update deliverable.' });
+    }
+
+    // 3. Find student email to send notification
+    const { data: student } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('id', deliverable.student_id)
+      .single();
+
+    if (student) {
+      await sendEmail({
+        to: student.email,
+        subject: `[Academy Feedback] Your submission for ${deliverable.module_id} has been reviewed!`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;line-height:1.6">
+                <h2>Your submission is reviewed</h2>
+                <p>Hi there,</p>
+                <p>Duncan has reviewed your deliverable for <strong>${deliverable.module_id}</strong>.</p>
+                <p><strong>Feedback:</strong></p>
+                <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0">
+                  ${feedback.replace(/\n/g, '<br/>')}
+                </div>
+                <p>Log in to your dashboard at <a href="https://duncanmakoyo.com/#/academy/dashboard" style="color:#14B8A6;font-weight:bold;text-decoration:none">duncanmakoyo.com</a> to view this and submit the next module.</p>
+               </div>`
+      });
+    }
+
+    res.json(deliverable);
+  } catch (err) {
+    console.error('[Mentor Review Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ─── Route: Mentor Broadcast Announcement (Save & Email Students) ────────────
+router.post('/mentor/broadcast', authenticateUser, async (req, res) => {
+  const { subject, content } = req.body;
+  const userId = req.user.id;
+
+  if (!subject || !content || subject.trim().length < 3 || content.trim().length < 5) {
+    return res.status(400).json({ error: 'Subject and content are required.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Insert into broadcasts table
+    const { data: broadcast, error: brdErr } = await supabase
+      .from('academy_broadcasts')
+      .insert({
+        mentor_id: userId,
+        subject,
+        content,
+      })
+      .select('*')
+      .single();
+
+    if (brdErr) {
+      console.error('[Mentor Broadcast insert error]', brdErr.message);
+      return res.status(500).json({ error: 'Failed to save announcement.' });
+    }
+
+    // 3. Fetch all active students
+    const { data: activeStudents, error: stdErr } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('role', 'student')
+      .eq('academy_status', 'active');
+
+    if (stdErr) {
+      console.error('[Mentor Broadcast students retrieval error]', stdErr.message);
+      return res.status(500).json({ error: 'Failed to retrieve active student list.' });
+    }
+
+    // 4. Send emails to all active students in parallel using Resend
+    if (activeStudents && activeStudents.length > 0) {
+      const emailPromises = activeStudents.map(student => {
+        return sendEmail({
+          to: student.email,
+          subject: `[Academy Announcement] ${subject}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;line-height:1.6;color:#333">
+                  <h2 style="color:#0F172A;border-bottom:2px solid #14B8A6;padding-bottom:0.5rem">${subject}</h2>
+                  <p>Dear Student,</p>
+                  <p>Duncan Makoyo has posted a new announcement to the Mentorship portal:</p>
+                  <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0;white-space:pre-line">
+                    ${content}
+                  </div>
+                  <p>Visit your Academy dashboard at <a href="https://duncanmakoyo.com/#/academy/dashboard" style="color:#14B8A6;font-weight:bold;text-decoration:none">duncanmakoyo.com</a> to view or respond.</p>
+                  <hr style="border:none;border-top:1px solid #E2E8F0;margin:2rem 0"/>
+                  <p style="font-size:0.8rem;color:#64748B">Duncan Makoyo Career Academy & Mentorship</p>
+                 </div>`
+        });
+      });
+      await Promise.all(emailPromises);
+    }
+
+    res.json(broadcast);
+  } catch (err) {
+    console.error('[Mentor Broadcast Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+export default router;

@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import hookBunkerRouter from './hookbunker.js';
+import academyRouter from './academy.js';
 
 dotenv.config();
 
@@ -80,6 +81,9 @@ app.use(
 
 // ─── HookBunker Mount ─────────────────────────────────────────────────────────
 app.use('/api/hookbunker', hookBunkerRouter);
+
+// ─── Academy Mount ────────────────────────────────────────────────────────────
+app.use('/api/academy', academyRouter);
 
 // ─── Health Check (for UptimeRobot / monitoring) ──────────────────────────────
 // Ping this endpoint every 5 minutes from UptimeRobot to:
@@ -268,6 +272,13 @@ function getExpectedAmount(metadata) {
         return null;
       }
     }
+  } else if (type === 'academy_subscription') {
+    const pkgId = metadata?.package;
+    const academyPricing = {
+      cohort: 10000,
+      membership: 1500
+    };
+    amount = (pkgId && academyPricing[pkgId]) ? academyPricing[pkgId] : 10000;
   } else if (type === 'ats_report') {
     amount = 99;
   } else {

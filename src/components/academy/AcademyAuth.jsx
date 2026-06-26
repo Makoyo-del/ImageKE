@@ -1,0 +1,140 @@
+import React, { useState } from 'react';
+import { supabase } from '../../supabase';
+import './AcademyAuth.css';
+
+export default function AcademyAuth({ onAuthSuccess }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
+  const [authError, setAuthError] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    setMessage('');
+    setLoading(true);
+
+    if (!email || !password) {
+      setAuthError('Please fill in all fields.');
+      setLoading(false);
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setAuthError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (authMode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (onAuthSuccess) onAuthSuccess();
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin + '/#/academy/dashboard',
+          },
+        });
+        if (error) throw error;
+        setMessage('Registration successful! Please check your email inbox to verify your account.');
+        setAuthMode('login');
+      }
+    } catch (err) {
+      let msg = err.message || 'An error occurred during authentication.';
+      if (msg.includes('Invalid login credentials')) {
+        msg = 'Incorrect email or password. Please verify your credentials.';
+      } else if (msg.includes('Email not confirmed')) {
+        msg = 'Please verify your email address. Check your inbox for the confirmation link.';
+      } else if (msg.includes('User already registered')) {
+        msg = 'An account with this email already exists. Try logging in.';
+      }
+      setAuthError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="ac-auth-wrapper">
+      <div className="ac-auth-card">
+        <div className="ac-auth-header">
+          <h2 className="ac-auth-title">
+            {authMode === 'login' ? 'Academy Sign In' : 'Academy Register'}
+          </h2>
+          <p className="ac-auth-subtitle">
+            {authMode === 'login' 
+              ? 'Access your outcomes-focused learning dashboard' 
+              : 'Create an account to begin your career accelerator'
+            }
+          </p>
+        </div>
+
+        {authError && <div className="ac-auth-alert error">{authError}</div>}
+        {message && <div className="ac-auth-alert success">{message}</div>}
+
+        <form onSubmit={handleAuth} className="ac-auth-form">
+          <div className="ac-form-group">
+            <label htmlFor="email">Email Address</label>
+            <input
+              type="email"
+              id="email"
+              placeholder="name@domain.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="ac-form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {authMode === 'signup' && (
+            <div className="ac-terms-wrapper">
+              <p className="ac-terms-text">
+                By registering, you agree to the Terms of Use and Privacy Policy. We prepare candidates for success but do not guarantee employment or placement outcomes.
+              </p>
+            </div>
+          )}
+
+          <button type="submit" className="ac-auth-btn" disabled={loading}>
+            {loading ? 'Please wait...' : authMode === 'login' ? 'Sign In' : 'Register'}
+          </button>
+        </form>
+
+        <div className="ac-auth-footer">
+          {authMode === 'login' ? (
+            <p>
+              New to the academy?{' '}
+              <button onClick={() => setAuthMode('signup')} className="ac-toggle-btn">
+                Create an account
+              </button>
+            </p>
+          ) : (
+            <p>
+              Already have an account?{' '}
+              <button onClick={() => setAuthMode('login')} className="ac-toggle-btn">
+                Sign in
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

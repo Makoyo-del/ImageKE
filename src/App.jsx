@@ -3,6 +3,8 @@ import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, Refresh
 import ServicesPage from './ServicesPage';
 import ATSSimulator from './ATSSimulator';
 import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBunker';
+import AcademyAuth from './components/academy/AcademyAuth';
+import AcademyDashboard from './components/academy/AcademyDashboard';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -181,6 +183,10 @@ const getPathFromHash = () => {
   if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
   if (hash === '#/home' || hash === '#/tools') return 'home';
   
+  // Academy paths
+  if (hash === '#/academy') return 'academy-auth';
+  if (hash === '#/academy/dashboard') return 'academy-dashboard';
+
   // HookBunker paths
   if (hash === '#/hookbunker') return 'hookbunker-landing';
   if (hash === '#/hookbunker/docs') return 'hookbunker-docs';
@@ -1647,6 +1653,7 @@ function App() {
           <li><b>ATS Simulator (V2):</b> A secure resume parsing utility utilizing artificial intelligence to analyze formatting safety, structural ordering, privacy markers (e.g. photos, DOB, National ID risks), STAR methodology metrics, and keyword coverage.</li>
           <li><b>HookBunker Webhook Proxy & Gateway:</b> A resilient developer-first webhook forwarding proxy designed to ingest callback events from payment gateways (Safaricom M-Pesa, Paystack, Payhero) and reliably dispatch them to configured application targets, complete with status logging, payload inspection, and auto-retry dispatching.</li>
           <li><b>Professional Career & Web Services:</b> Elite CV/resume copywriting, cover letter design, LinkedIn profile optimization, corporate web development, search engine optimization (SEO), and digital presence setup.</li>
+          <li><b>Career Academy & Mentorship Program:</b> A structured learning platform offering outcomes-focused training on personal branding, LinkedIn positioning, resume writing, job search sprints, interview preparation, digital tools (e.g. Google Business Profile setup), and guest expert webinars.</li>
         </ul>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. Payments, Billing, and Refunds</h3>
@@ -1655,6 +1662,7 @@ function App() {
           <li><b>Pay-Per-Download Tools:</b> Single media fixes or batch document compression downloads require a fixed payment (e.g. KSh 49 or KSh 4) processed via Paystack. Because watermarked previews are displayed prior to purchase, all sales are final and non-refundable.</li>
           <li><b>Creator Subscription Plan:</b> A monthly subscription (KSh 499/month) granting unlimited downloads for video and photo tools. Subscriptions are billed automatically until canceled by the user via the local dashboard. Canceled subscriptions remain active until the end of the billing period and are non-refundable.</li>
           <li><b>HookBunker Developer Subscription Plans:</b> Optional upgrade tiers (Team plan at KSh 3,400/month or $26/month; Business plan at KSh 11,500/month or $89/month) processed and auto-renewed securely via Paystack. Subscription renewals that fail or fail to clear will result in immediate down-grading to the Free Tier. When downgraded, active workspace slots are capped at 1; any excess projects are automatically suspended or deactivated in the developer dashboard. Suspended projects do not process callbacks, and we hold no responsibility or liability for missed gateway callbacks.</li>
+          <li><b>Academy Cohort and Membership Fees:</b> Accelerator cohort registrations (one-time fee of KSh 10,000) and monthly membership subscriptions (KSh 1,500/month) are processed securely via Paystack. Membership access is billed automatically until canceled. Active memberships that fail to renew successfully will result in immediate suspension of portal access and revocation of membership privileges. Once paid, cohort fees and subscription charges are non-refundable.</li>
           <li><b>Professional Consulting packages:</b> Custom branding, web development, and resume copywriting packages are subject to project-specific proposal pricing. Payments are due prior to commencement or at agreed milestones. Once project discovery or draft composition has started, fees are non-refundable.</li>
         </ul>
 
@@ -1664,7 +1672,7 @@ function App() {
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Disclaimer of Warranties and Guarantees</h3>
         <p>THE SERVICES ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS. DUNCAN MAKOYO AND THE SITE OPERATORS MAKE NO WARRANTIES, EXPRESS OR IMPLIED, AND EXPRESSLY DISCLAIM ALL WARRANTIES INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT GUARANTEE, WARRANT, OR PROMISE ANY SPECIFIC CAREER, BUSINESS, OR TECHNICAL OUTCOME, INCLUDING BUT NOT LIMITED TO:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li>Securing job interviews, callbacks, employment offers, salary raises, or recruitment opportunities from using the ATS Simulator or professional CV services.</li>
+          <li>Securing job interviews, callbacks, employment offers, salary raises, career placements, or business growth from using the ATS Simulator, professional CV services, or joining the Career Academy. We prepare candidates but do not guarantee success or employment.</li>
           <li>Increases in web traffic, business leads, sales conversions, search engine rankings, or digital revenue from custom web development and SEO packages.</li>
           <li>Acceptance of processed photos, videos, or documents by any third-party government portal (eCitizen, KRA), visa office, school portal, or corporate Applicant Tracking System.</li>
           <li>Continuous callback deliveries, 100% gateway uptime, or immediate forwarding of payment hooks through HookBunker; system maintenance, API timeouts, or third-party outages may disrupt log captures.</li>
@@ -1672,7 +1680,7 @@ function App() {
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Limitation of Liability and Full Indemnification</h3>
         <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL DUNCAN MAKOYO, THE SITE OPERATORS, ITS AGENTS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, EMPLOYMENT OPPORTUNITIES, BUSINESS DOWNTIME, TRANSACTION FAILURES, REVENUE LOSSES, OR SYSTEM FAILURES.</p>
-        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site, HookBunker proxy gateways, or delivered assets; (ii) any career, financial, or business outcomes resulting from our consulting; (iii) any third-party claims regarding intellectual property infringement in materials you submitted; or (iv) any service interruptions, webhook delivery failures, callback queues delays, database data pruning, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
+        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site, HookBunker proxy gateways, Career Academy portals, or delivered assets; (ii) any career, financial, or business outcomes resulting from our consulting, training, or mentorship; (iii) any third-party claims regarding intellectual property infringement in materials you submitted; or (iv) any service interruptions, webhook delivery failures, callback queues delays, database data pruning, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>7. Governing Law and Disputes</h3>
         <p>These Terms of Use shall be governed by, construed, and enforced in accordance with the laws of the Republic of Kenya. Any legal actions or disputes arising from these Terms or the Services shall be submitted to the exclusive jurisdiction of the courts of Nairobi, Kenya.</p>
@@ -2801,6 +2809,10 @@ function App() {
     else if (path === 'terms') window.location.hash = '#/terms';
     else if (path === 'privacy') window.location.hash = '#/privacy';
     
+    // Academy paths navigation
+    else if (path === 'academy') window.location.hash = '#/academy';
+    else if (path === 'academy-dashboard') window.location.hash = '#/academy/dashboard';
+
     // HookBunker paths navigation
     else if (path === 'hookbunker') window.location.hash = '#/hookbunker';
     else if (path === 'hookbunker-docs') window.location.hash = '#/hookbunker/docs';
@@ -2846,6 +2858,16 @@ function App() {
         <HookBunkerDashboard onNavigate={navigateToPath} />
       )}
 
+      {/* ── Academy Auth View ── */}
+      {currentPath === 'academy-auth' && (
+        <AcademyAuth onAuthSuccess={() => navigateToPath('academy-dashboard')} />
+      )}
+
+      {/* ── Academy Dashboard View ── */}
+      {currentPath === 'academy-dashboard' && (
+        <AcademyDashboard onNavigate={navigateToPath} />
+      )}
+
 
 
       {/* ── Legal pages (standalone, minimal header) ── */}
@@ -2879,7 +2901,8 @@ function App() {
        currentPath !== 'terms' && 
        currentPath !== 'privacy' && 
        currentPath !== 'ats' && 
-       !currentPath.startsWith('hookbunker') && (
+       !currentPath.startsWith('hookbunker') && 
+       !currentPath.startsWith('academy') && (
         <>
           {/* Sticky Header */}
           <header className="app-header">
