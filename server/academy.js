@@ -40,7 +40,7 @@ const authenticateUser = async (req, res, next) => {
 async function sendEmail({ to, subject, html }) {
   // Option 1: Resend API
   if (process.env.RESEND_API_KEY) {
-    const fromAddress = process.env.ACADEMY_EMAIL_FROM || 'academy@duncanmakoyo.com';
+    const fromAddress = process.env.ACADEMY_EMAIL_FROM || 'duncan@duncanmakoyo.com';
     try {
       await axios.post(
         'https://api.resend.com/emails',
