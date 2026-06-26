@@ -333,7 +333,14 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 onClick={() => onNavigateToPath('hookbunker')}
                 style={{ color: '#10b981', fontWeight: 700 }}
               >
-                🛡 HookBunker
+                HookBunker
+              </button>
+              <button
+                className="dm-nav-link"
+                onClick={() => onNavigateToPath('academy')}
+                style={{ color: '#14B8A6', fontWeight: 700 }}
+              >
+                Academy
               </button>
             </>
           )}
@@ -368,7 +375,10 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 🧠 ATS Simulator
               </button>
               <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ color: '#10b981', fontWeight: 700 }}>
-                🛡 HookBunker Proxy
+                HookBunker Proxy
+              </button>
+              <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ color: '#14B8A6', fontWeight: 700 }}>
+                Career Academy
               </button>
             </>
           )}
@@ -985,6 +995,102 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          ACADEMY SECTION
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="dm-section" id="academy" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F2942 100%)', color: '#ffffff', position: 'relative', overflow: 'hidden' }}>
+        {/* Subtle background accent */}
+        <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div className="dm-container" style={{ position: 'relative', zIndex: 1 }}>
+
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+            <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.15)', border: '1px solid rgba(20,184,166,0.4)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5EEAD4', marginBottom: '1.25rem' }}>
+              Career Accelerator Program
+            </div>
+            <h2 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 'clamp(1.75rem, 4vw, 2.6rem)', fontWeight: 800, color: '#FFFFFF', margin: '0 0 1rem', lineHeight: 1.2 }}>
+              From Job Seeker to<br />
+              <span style={{ color: '#14B8A6' }}>In-Demand Professional</span>
+            </h2>
+            <p style={{ color: '#94A3B8', fontSize: '1rem', maxWidth: '560px', margin: '0 auto', lineHeight: 1.75 }}>
+              A 6-sprint structured mentorship program covering personal branding, ATS resume writing, LinkedIn domination, interview preparation, digital skills, and direct 1-on-1 reviews by Duncan.
+            </p>
+          </div>
+
+          {/* Sprint grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '3.5rem' }}>
+            {[
+              { num: '01', title: 'Positioning & Personal Brand', desc: 'Define your niche, craft your one-sentence pitch, and build a brand that attracts opportunities.' },
+              { num: '02', title: 'ATS-Optimized Resume', desc: 'Write a CV that scores 80%+ on ATS parsers. Reviewed and approved by Duncan personally.' },
+              { num: '03', title: 'LinkedIn Profile Domination', desc: 'Restructure your profile to rank on recruiter searches and drive inbound connection requests.' },
+              { num: '04', title: 'Job Search Strategy', desc: 'Build outreach pipelines, craft cold emails, and track 20+ live applications per week.' },
+              { num: '05', title: 'Interview Prep & Communication', desc: 'Master the STAR method, salary negotiation, and professional follow-up communication.' },
+              { num: '06', title: 'Digital Skills & GMB Setup', desc: 'Create and verify a Google Business Profile to attract freelancing clients and local visibility.' },
+            ].map(sprint => (
+              <div key={sprint.num} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '1.5rem', transition: 'border-color 0.2s, background 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(20,184,166,0.4)'; e.currentTarget.style.background = 'rgba(20,184,166,0.07)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              >
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', color: '#14B8A6', textTransform: 'uppercase', marginBottom: '0.6rem' }}>Sprint {sprint.num}</div>
+                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#F1F5F9', lineHeight: 1.35 }}>{sprint.title}</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.6 }}>{sprint.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Pricing + CTA row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            {/* Cohort card */}
+            <div style={{ background: 'rgba(20,184,166,0.08)', border: '2px solid rgba(20,184,166,0.5)', borderRadius: '16px', padding: '2rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5EEAD4', marginBottom: '0.75rem' }}>Full Accelerator</div>
+              <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#FFFFFF', marginBottom: '0.25rem' }}>KES 10,000</div>
+              <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: '1.5rem' }}>One-time · All 6 sprints · 1-on-1 reviews</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem', textAlign: 'left' }}>
+                {['Complete 6-Sprint curriculum', 'Personal 1-on-1 deliverable reviews', 'CV makeover included', 'WhatsApp community access', 'Final placement matching support'].map(f => (
+                  <li key={f} style={{ fontSize: '0.875rem', color: '#CBD5E1', padding: '0.3rem 0', display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                    <span style={{ color: '#14B8A6', fontWeight: 700, flexShrink: 0 }}>+</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => onNavigateToPath && onNavigateToPath('academy')}
+                style={{ width: '100%', background: 'linear-gradient(135deg, #14B8A6, #0D9488)', color: '#fff', border: 'none', borderRadius: '10px', padding: '0.85rem 1.5rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', letterSpacing: '0.01em' }}
+              >
+                Enroll — KES 10,000
+              </button>
+            </div>
+
+            {/* Monthly card */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '2rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#A5B4FC', marginBottom: '0.75rem' }}>Monthly Access Pass</div>
+              <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#FFFFFF', marginBottom: '0.25rem' }}>KES 1,500<span style={{ fontSize: '1rem', fontWeight: 500, color: '#94A3B8' }}>/mo</span></div>
+              <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: '1.5rem' }}>Self-paced · Cancel anytime</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem', textAlign: 'left' }}>
+                {['Full self-paced curriculum', 'Weekly templates & resources', 'WhatsApp networking group', 'Access revoked if billing fails'].map(f => (
+                  <li key={f} style={{ fontSize: '0.875rem', color: '#CBD5E1', padding: '0.3rem 0', display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                    <span style={{ color: '#818CF8', fontWeight: 700, flexShrink: 0 }}>+</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => onNavigateToPath && onNavigateToPath('academy')}
+                style={{ width: '100%', background: 'transparent', color: '#A5B4FC', border: '1px solid rgba(165,180,252,0.5)', borderRadius: '10px', padding: '0.85rem 1.5rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}
+              >
+                Subscribe — KES 1,500/mo
+              </button>
+            </div>
+          </div>
+
+          {/* Footer note */}
+          <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#64748B', maxWidth: '500px', margin: '0 auto' }}>
+            We prepare candidates with real skills and tools. We do not guarantee employment outcomes. Results depend on individual effort and market conditions.
+          </p>
+
         </div>
       </section>
 
