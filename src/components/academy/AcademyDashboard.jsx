@@ -163,6 +163,33 @@ export default function AcademyDashboard({ onNavigate }) {
     e.preventDefault();
     setMeetingError('');
     setMeetingSuccess('');
+
+    const trimmedLink = meetLink ? meetLink.trim() : '';
+    const trimmedTime = meetTime ? meetTime.trim() : '';
+
+    if (!trimmedLink) {
+      setMeetingError('Google Meet call link is required.');
+      return;
+    }
+    if (!trimmedTime) {
+      setMeetingError('Session time / schedule is required.');
+      return;
+    }
+
+    // URL validation
+    let isValidUrl = false;
+    try {
+      const urlObj = new URL(trimmedLink);
+      isValidUrl = urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch (err) {
+      isValidUrl = false;
+    }
+
+    if (!isValidUrl) {
+      setMeetingError('Please enter a valid URL (e.g., https://meet.google.com/abc-defg-hij).');
+      return;
+    }
+
     setUpdatingMeeting(true);
     try {
       const res = await fetch(`${API_URL}/api/academy/mentor/meeting`, {
@@ -171,7 +198,7 @@ export default function AcademyDashboard({ onNavigate }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ link: meetLink, time: meetTime })
+        body: JSON.stringify({ link: trimmedLink, time: trimmedTime })
       });
       const data = await res.json();
       if (res.ok) {
@@ -181,7 +208,7 @@ export default function AcademyDashboard({ onNavigate }) {
             ...state,
             data: {
               ...state.data,
-              meeting: { link: meetLink, time: meetTime }
+              meeting: { link: trimmedLink, time: trimmedTime }
             }
           });
         }

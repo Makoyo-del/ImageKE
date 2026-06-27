@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from './supabase.js';
+import { supabase, supabaseAnon } from './supabase.js';
 import axios from 'axios';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
@@ -13,6 +13,15 @@ const academyLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' },
+});
+
+// Strict Rate Limiter for Auth endpoints (Login & Register)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // max 20 login/register requests per IP in 15 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login or registration attempts. Please try again in 15 minutes.' },
 });
 
 router.use(academyLimiter);
@@ -97,21 +106,24 @@ async function sendEmail({ to, subject, html }) {
 // ─── Route: Register Academy Account (Backend-controlled, no Supabase email) ──
 // Using admin API so Supabase does NOT send its own branded email.
 // We send our own Academy-branded welcome email via Resend instead.
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'A valid email address is required.' });
+  const trimmedEmail = typeof email === 'string' ? email.trim() : '';
+  const trimmedPassword = typeof password === 'string' ? password : '';
+
+  if (!trimmedEmail || trimmedEmail.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return res.status(400).json({ error: 'A valid email address is required (max 255 characters).' });
   }
-  if (!password || typeof password !== 'string' || password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  if (!trimmedPassword || trimmedPassword.length < 8 || trimmedPassword.length > 72) {
+    return res.status(400).json({ error: 'Password must be between 8 and 72 characters.' });
   }
 
   try {
     // Create user via Admin API — email_confirm: true skips Supabase's own email
     const { data: userData, error: createErr } = await supabase.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
-      password,
+      email: trimmedEmail.toLowerCase(),
+      password: trimmedPassword,
       email_confirm: true, // Mark as confirmed — we handle our own email
       user_metadata: { product: 'academy' },
     });
@@ -184,6 +196,55 @@ router.post('/register', async (req, res) => {
     res.json({ success: true, message: 'Account created. Please check your inbox to verify your email.' });
   } catch (err) {
     console.error('[Academy Register Unexpected Error]', err.message);
+    res.status(500).json({ error: 'Internal server error. Please try again.' });
+  }
+});
+
+// ─── Route: Login Academy Account (Backend-evaluated) ───────────────────────
+router.post('/login', authLimiter, async (req, res) => {
+  const { email, password } = req.body;
+
+  const trimmedEmail = typeof email === 'string' ? email.trim() : '';
+  const trimmedPassword = typeof password === 'string' ? password : '';
+
+  if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return res.status(400).json({ error: 'A valid email address is required.' });
+  }
+  if (!trimmedPassword) {
+    return res.status(400).json({ error: 'Password is required.' });
+  }
+
+  try {
+    // Authenticate user credentials via supabaseAnon
+    const { data, error } = await supabaseAnon.auth.signInWithPassword({
+      email: trimmedEmail.toLowerCase(),
+      password: trimmedPassword,
+    });
+
+    if (error) {
+      console.warn('[Academy Login Fail]', trimmedEmail, error.message);
+      let msg = error.message;
+      if (msg.toLowerCase().includes('invalid login credentials')) {
+        msg = 'Incorrect email or password. Please verify your credentials.';
+      }
+      return res.status(401).json({ error: msg });
+    }
+
+    // Verify user has academy_access set to true in profiles
+    const { data: profile, error: profileErr } = await supabase
+      .from('profiles')
+      .select('academy_access')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileErr || !profile || !profile.academy_access) {
+      console.warn('[Academy Login Forbidden - No Access]', trimmedEmail);
+      return res.status(403).json({ error: 'Access denied. This account does not have Academy access.' });
+    }
+
+    res.json({ success: true, session: data.session });
+  } catch (err) {
+    console.error('[Academy Login Unexpected Error]', err.message);
     res.status(500).json({ error: 'Internal server error. Please try again.' });
   }
 });
@@ -301,6 +362,29 @@ router.post('/mentor/meeting', authenticateUser, async (req, res) => {
   const { link, time } = req.body;
   const userId = req.user.id;
 
+  const trimmedLink = typeof link === 'string' ? link.trim() : '';
+  const trimmedTime = typeof time === 'string' ? time.trim() : '';
+
+  if (!trimmedLink) {
+    return res.status(400).json({ error: 'Google Meet link is required.' });
+  }
+  if (!trimmedTime) {
+    return res.status(400).json({ error: 'Session time / schedule is required.' });
+  }
+
+  // Validate URL format
+  let isValidUrl = false;
+  try {
+    const urlObj = new URL(trimmedLink);
+    isValidUrl = urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch (e) {
+    isValidUrl = false;
+  }
+
+  if (!isValidUrl) {
+    return res.status(400).json({ error: 'Please enter a valid URL (e.g., https://meet.google.com/abc-defg-hij).' });
+  }
+
   try {
     const { data: profile } = await supabase
       .from('profiles')
@@ -315,8 +399,8 @@ router.post('/mentor/meeting', authenticateUser, async (req, res) => {
     const { error } = await supabase
       .from('profiles')
       .update({
-        meeting_link: link || '',
-        meeting_time: time || '',
+        meeting_link: trimmedLink,
+        meeting_time: trimmedTime,
       })
       .eq('id', userId);
 
@@ -325,7 +409,7 @@ router.post('/mentor/meeting', authenticateUser, async (req, res) => {
       return res.status(500).json({ error: 'Failed to update meeting details.' });
     }
 
-    res.json({ success: true, link, time });
+    res.json({ success: true, link: trimmedLink, time: trimmedTime });
   } catch (err) {
     console.error('[Mentor Meeting Router Error]', err.message);
     res.status(500).json({ error: 'Internal server error.' });

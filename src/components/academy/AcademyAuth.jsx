@@ -33,7 +33,20 @@ export default function AcademyAuth({ onAuthSuccess }) {
 
     try {
       if (authMode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const res = await fetch(`${API_URL}/api/academy/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Login failed. Please verify your credentials.');
+        }
+
+        const { error } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
         if (error) throw error;
         if (onAuthSuccess) onAuthSuccess();
       } else {
