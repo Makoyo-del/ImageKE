@@ -161,6 +161,7 @@ function ErrorBanner({ message, onDismiss }) {
 const getPathFromHash = () => {
   const hash = window.location.hash;
   const searchParams = new URLSearchParams(window.location.search);
+  const fullUrl = window.location.href;
   
   // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
   if (
@@ -170,7 +171,10 @@ const getPathFromHash = () => {
     searchParams.has('error') ||
     searchParams.has('error_description')
   ) {
-    return 'hookbunker-dashboard';
+    const isAcademyRedirect = fullUrl.includes('/academy/dashboard') ||
+      fullUrl.includes('%2Facademy%2Fdashboard') ||
+      sessionStorage.getItem('academy_signup_pending') === 'true';
+    return isAcademyRedirect ? 'academy-dashboard' : 'hookbunker-dashboard';
   }
 
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
@@ -318,6 +322,32 @@ function App() {
   useEffect(() => {
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
+    
+    // Check for custom Academy verify_token
+    const verifyToken = searchParams.get('verify_token');
+    if (verifyToken) {
+      (async () => {
+        try {
+          setIsProcessing(true);
+          setProcessingMsg('Verifying your email address...');
+          const res = await axios.post(`${API_URL}/api/academy/verify-email`, { token: verifyToken });
+          if (res.data?.success) {
+            sessionStorage.setItem('hb_toast_message', 'Email verified successfully! You can now sign in.');
+            sessionStorage.setItem('hb_toast_type', 'success');
+          } else {
+            sessionStorage.setItem('hb_auth_error', 'Email verification failed: Invalid or expired link.');
+          }
+        } catch (err) {
+          sessionStorage.setItem('hb_auth_error', err.response?.data?.error || 'Email verification failed. Connection issue.');
+        } finally {
+          setIsProcessing(false);
+          // Clear query params and reload the page cleanly on Academy dashboard page
+          const cleanUrl = window.location.origin + window.location.pathname + '#/academy/dashboard';
+          window.location.href = cleanUrl;
+        }
+      })();
+      return;
+    }
     
     let isAuthRedirect = false;
     let errorMsg = null;

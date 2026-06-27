@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock } from 'lucide-react';
+import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail } from 'lucide-react';
 import './AcademyDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -56,6 +56,18 @@ export default function AcademyDashboard({ onNavigate }) {
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState('');
 
+  // Custom Verification states
+  const [verifyError, setVerifyError] = useState('');
+  const [verifySuccess, setVerifySuccess] = useState('');
+  const [resendingEmail, setResendingEmail] = useState(false);
+
+  // Google Meet states
+  const [meetLink, setMeetLink] = useState('');
+  const [meetTime, setMeetTime] = useState('');
+  const [meetingSuccess, setMeetingSuccess] = useState('');
+  const [meetingError, setMeetingError] = useState('');
+  const [updatingMeeting, setUpdatingMeeting] = useState(false);
+
   // Fetch Dashboard State from Backend
   const fetchDashboardData = useCallback(async (token) => {
     try {
@@ -68,6 +80,10 @@ export default function AcademyDashboard({ onNavigate }) {
         setState(data);
         if (data.role === 'student' && data.status === 'inactive') {
           setPayEmail(data.data.email || '');
+        }
+        if (data.role === 'mentor' && data.data?.meeting) {
+          setMeetLink(data.data.meeting.link || '');
+          setMeetTime(data.data.meeting.time || '');
         }
       } else {
         setError(data.error || 'Failed to fetch dashboard data.');
@@ -116,6 +132,67 @@ export default function AcademyDashboard({ onNavigate }) {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     if (onNavigate) onNavigate('services');
+  };
+
+  const handleResendVerification = async () => {
+    setVerifyError('');
+    setVerifySuccess('');
+    setResendingEmail(true);
+    try {
+      const res = await fetch(`${API_URL}/api/academy/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVerifySuccess('Verification email resent successfully! Please check your inbox.');
+      } else {
+        setVerifyError(data.error || 'Failed to resend verification.');
+      }
+    } catch (err) {
+      setVerifyError('Connection error. Please try again.');
+    } finally {
+      setResendingEmail(false);
+    }
+  };
+
+  const handleUpdateMeeting = async (e) => {
+    e.preventDefault();
+    setMeetingError('');
+    setMeetingSuccess('');
+    setUpdatingMeeting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/academy/mentor/meeting`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ link: meetLink, time: meetTime })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMeetingSuccess('Meeting details updated successfully!');
+        if (state) {
+          setState({
+            ...state,
+            data: {
+              ...state.data,
+              meeting: { link: meetLink, time: meetTime }
+            }
+          });
+        }
+      } else {
+        setMeetingError(data.error || 'Failed to update meeting.');
+      }
+    } catch (err) {
+      setMeetingError('Connection error. Please try again.');
+    } finally {
+      setUpdatingMeeting(false);
+    }
   };
 
   // Student: Submit deliverable
@@ -377,7 +454,41 @@ export default function AcademyDashboard({ onNavigate }) {
     );
   }
 
-  // 1. Inactive View (Payment Checkout)
+  // 1. Unverified View
+  if (state?.role === 'student' && state?.status === 'unverified') {
+    return (
+      <div className="ac-inactive-wrapper">
+        <div className="ac-inactive-card" style={{ maxWidth: '480px' }}>
+          <div className="ac-inactive-header">
+            <Mail size={36} className="ac-lock-icon" style={{ color: '#14b8a6', background: 'rgba(20, 184, 166, 0.1)' }} />
+            <h2 className="ac-inactive-title">Verify Your Email Address</h2>
+            <p className="ac-inactive-desc">
+              We have sent a verification link to <strong>{state.data?.email}</strong>. Please check your inbox and click the link to confirm your account and proceed.
+            </p>
+          </div>
+
+          {verifyError && <div className="ac-pay-alert error" style={{ margin: '1rem 0 0' }}>{verifyError}</div>}
+          {verifySuccess && <div className="ac-pay-alert success" style={{ margin: '1rem 0 0' }}>{verifySuccess}</div>}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', marginTop: '1.5rem' }}>
+            <button 
+              onClick={handleResendVerification}
+              className="ac-pay-btn"
+              disabled={resendingEmail}
+            >
+              {resendingEmail ? 'Resending Verification...' : 'Resend Verification Email'}
+            </button>
+
+            <button onClick={handleLogout} className="ac-logout-sub-btn" style={{ marginTop: '0.5rem' }}>
+              ← Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Inactive View (Payment Checkout)
   if (state?.role === 'student' && state?.status === 'inactive') {
     return (
       <div className="ac-inactive-wrapper">
@@ -573,6 +684,27 @@ export default function AcademyDashboard({ onNavigate }) {
                   </div>
                 )}
               </div>
+
+              {state?.data?.meeting?.link && (
+                <div className="ac-card ac-meeting-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.75rem', borderLeft: '4px solid #14b8a6', background: 'rgba(20, 184, 166, 0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#14b8a6' }} />
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Live Mentor Session Call</h3>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>
+                    Next Q&A Session Details: <strong>{state.data.meeting.time}</strong>
+                  </p>
+                  <a 
+                    href={state.data.meeting.link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ac-pay-btn"
+                    style={{ display: 'inline-block', width: 'fit-content', textDecoration: 'none', padding: '10px 24px', borderRadius: '8px', fontSize: '0.9rem', marginTop: '0.25rem' }}
+                  >
+                    Join Google Meet →
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -734,6 +866,43 @@ export default function AcademyDashboard({ onNavigate }) {
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div className="ac-card mentor-meeting-form-card" style={{ gridColumn: 'span 2' }}>
+                <h3>Active Live Session Details</h3>
+                <p className="ac-card-intro" style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>
+                  Set the Google Meet URL and Q&A session schedule. Active students will see this call details card on their dashboard overview.
+                </p>
+                {meetingSuccess && <div className="ac-page-alert success">{meetingSuccess}</div>}
+                {meetingError && <div className="ac-page-alert error">{meetingError}</div>}
+                
+                <form onSubmit={handleUpdateMeeting} className="ac-broadcast-form" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="ac-form-group">
+                    <label htmlFor="meet-link">Google Meet Call Link</label>
+                    <input 
+                      type="url" 
+                      id="meet-link" 
+                      value={meetLink} 
+                      onChange={e => setMeetLink(e.target.value)} 
+                      placeholder="https://meet.google.com/abc-defg-hij" 
+                    />
+                  </div>
+                  <div className="ac-form-group">
+                    <label htmlFor="meet-time">Session Time / Schedule</label>
+                    <input 
+                      type="text" 
+                      id="meet-time" 
+                      value={meetTime} 
+                      onChange={e => setMeetTime(e.target.value)} 
+                      placeholder="e.g. Wednesday 7:00 PM EAT" 
+                    />
+                  </div>
+                  <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                    <button type="submit" className="ac-btn-primary" disabled={updatingMeeting} style={{ padding: '8px 24px', fontSize: '0.9rem' }}>
+                      {updatingMeeting ? 'Updating...' : 'Update Session Details'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

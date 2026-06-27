@@ -376,3 +376,19 @@ update public.profiles
 set hookbunker_access = true
 where hookbunker_access is not true and academy_access is not true;
 
+-- =============================================================================
+-- MIGRATION: Add custom email verification, plan tracking, and meeting columns
+-- =============================================================================
+alter table public.profiles add column if not exists academy_email_verified boolean default false;
+alter table public.profiles add column if not exists academy_verification_token text;
+alter table public.profiles add column if not exists academy_verification_expires timestamp with time zone;
+alter table public.profiles add column if not exists academy_expires_at timestamp with time zone;
+alter table public.profiles add column if not exists meeting_link text;
+alter table public.profiles add column if not exists meeting_time text;
+
+-- Backfill existing active students/mentors as email-verified
+update public.profiles
+set academy_email_verified = true
+where role = 'mentor' or academy_status = 'active';
+
+

@@ -126,29 +126,50 @@ router.post('/register', async (req, res) => {
       return res.status(500).json({ error: 'Failed to create account. Please try again.' });
     }
 
-    // Send Academy-branded welcome email via Resend
+    // 1. Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    // 2. Update profiles table with verification data and academy access
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({
+        academy_email_verified: false,
+        academy_verification_token: verificationToken,
+        academy_verification_expires: expiresAt,
+        academy_access: true
+      })
+      .eq('id', userData.user.id);
+
+    if (profileErr) {
+      console.error('[Academy Register Profile Update Error]', profileErr.message);
+      // Non-critical, let registration pass, they can verify by resending on login
+    }
+
     const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
+    const verifyLink = `${academyDashboardUrl.split('#')[0]}?verify_token=${verificationToken}#/academy`;
+
     await sendEmail({
       to: email.trim().toLowerCase(),
-      subject: 'Your Career Academy Account is Ready',
+      subject: 'Verify Your Career Academy Email',
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
           <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
             <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
-            <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Account Created Successfully</p>
+            <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Confirm Registration</p>
           </div>
           <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
             <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Welcome aboard,</p>
-            <p style="color: #475569; margin-bottom: 24px;">Your <strong>Duncan Makoyo Career Academy</strong> account has been created for <strong>${email}</strong>. Your account is active — you can sign in immediately.</p>
+            <p style="color: #475569; margin-bottom: 24px;">Your <strong>Duncan Makoyo Career Academy</strong> account has been created for <strong>${email}</strong>. To complete registration, please verify your email address by clicking the button below.</p>
 
             <div style="text-align: center; margin: 28px 0;">
-              <a href="${academyDashboardUrl}" target="_blank"
+              <a href="${verifyLink}" target="_blank"
                 style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
-                Sign In to Your Dashboard
+                Verify Email Address
               </a>
             </div>
 
-            <p style="color: #64748B; font-size: 0.875rem;">Once signed in, you will see the enrollment options for the <strong>6-Week AI &amp; Data Career Accelerator</strong>. Choose your package and activate your access in seconds.</p>
+            <p style="color: #64748B; font-size: 0.875rem;">Once verified, you will see the enrollment options for the <strong>6-Week AI &amp; Data Career Accelerator</strong>. This link is valid for 24 hours.</p>
 
             <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
               <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
@@ -160,10 +181,154 @@ router.post('/register', async (req, res) => {
     });
 
     console.log(`[Academy Register] Account created for ${email}`);
-    res.json({ success: true, message: 'Account created. You can now sign in.' });
+    res.json({ success: true, message: 'Account created. Please check your inbox to verify your email.' });
   } catch (err) {
     console.error('[Academy Register Unexpected Error]', err.message);
     res.status(500).json({ error: 'Internal server error. Please try again.' });
+  }
+});
+
+// ─── Route: Verify Custom Email Token ─────────────────────────────────────────
+router.post('/verify-email', async (req, res) => {
+  const { token } = req.body;
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ error: 'Verification token is required.' });
+  }
+
+  try {
+    // Find profile by token and check expiration
+    const { data: profile, error: findErr } = await supabase
+      .from('profiles')
+      .select('id, email, academy_verification_expires')
+      .eq('academy_verification_token', token)
+      .maybeSingle();
+
+    if (findErr || !profile) {
+      return res.status(400).json({ error: 'Invalid or expired verification token.' });
+    }
+
+    const expiresAt = new Date(profile.academy_verification_expires).getTime();
+    if (Date.now() > expiresAt) {
+      return res.status(400).json({ error: 'Verification token has expired. Please log in to request a new link.' });
+    }
+
+    // Update profile to verified
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({
+        academy_email_verified: true,
+        academy_verification_token: null,
+        academy_verification_expires: null
+      })
+      .eq('id', profile.id);
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Failed to verify email address.' });
+    }
+
+    res.json({ success: true, email: profile.email });
+  } catch (err) {
+    console.error('[Verify Email Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ─── Route: Resend Verification Email ────────────────────────────────────────
+router.post('/resend-verification', authenticateUser, async (req, res) => {
+  const email = req.user.email;
+  const userId = req.user.id;
+
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('academy_email_verified')
+      .eq('id', userId)
+      .single();
+
+    if (profile?.academy_email_verified) {
+      return res.status(400).json({ error: 'Email address is already verified.' });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    await supabase
+      .from('profiles')
+      .update({
+        academy_verification_token: verificationToken,
+        academy_verification_expires: expiresAt
+      })
+      .eq('id', userId);
+
+    const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
+    const verifyLink = `${academyDashboardUrl.split('#')[0]}?verify_token=${verificationToken}#/academy`;
+
+    await sendEmail({
+      to: email,
+      subject: 'Verify Your Academy Email Address',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
+            <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
+            <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Verify Your Email</p>
+          </div>
+          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
+            <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Hi there,</p>
+            <p style="color: #475569; margin-bottom: 24px;">Please confirm your email address to complete registration and unlock your Duncan Makoyo Career Academy portal.</p>
+
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${verifyLink}" target="_blank"
+                style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
+                Verify Email Address
+              </a>
+            </div>
+            
+            <p style="color: #64748B; font-size: 0.875rem;">This link is valid for 24 hours. If you did not request this, you can safely ignore this email.</p>
+          </div>
+        </div>
+      `
+    });
+
+    res.json({ success: true, message: 'Verification email sent.' });
+  } catch (err) {
+    console.error('[Resend Verification Error]', err.message);
+    res.status(500).json({ error: 'Failed to resend verification email.' });
+  }
+});
+
+// ─── Route: Update Live Call Details (Mentor Only) ───────────────────────────
+router.post('/mentor/meeting', authenticateUser, async (req, res) => {
+  const { link, time } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        meeting_link: link || '',
+        meeting_time: time || '',
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('[Mentor Update Meeting Error]', error.message);
+      return res.status(500).json({ error: 'Failed to update meeting details.' });
+    }
+
+    res.json({ success: true, link, time });
+  } catch (err) {
+    console.error('[Mentor Meeting Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
@@ -179,7 +344,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     // 1. Get or create student/mentor profile
     let { data: profile, error: profileErr } = await supabase
       .from('profiles')
-      .select('role, academy_status, academy_access')
+      .select('role, academy_status, academy_access, academy_email_verified, academy_expires_at, meeting_link, meeting_time')
       .eq('id', userId)
       .single();
 
@@ -195,9 +360,10 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
           role: defaultRole, 
           academy_status: defaultStatus,
           academy_access: isAdmin,
-          hookbunker_access: isAdmin
+          hookbunker_access: isAdmin,
+          academy_email_verified: isAdmin
         })
-        .select('role, academy_status, academy_access')
+        .select('role, academy_status, academy_access, academy_email_verified, academy_expires_at, meeting_link, meeting_time')
         .single();
 
       if (insertErr) {
@@ -213,17 +379,29 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
           role: 'mentor', 
           academy_status: 'active',
           academy_access: true,
-          hookbunker_access: true
+          hookbunker_access: true,
+          academy_email_verified: true
         })
         .eq('id', userId)
-        .select('role, academy_status, academy_access')
+        .select('role, academy_status, academy_access, academy_email_verified, academy_expires_at, meeting_link, meeting_time')
         .single();
       if (!updErr && updatedProfile) {
         profile = updatedProfile;
       }
     }
 
-    const { role, academy_status } = profile;
+    // Check plan expiration for students
+    if (profile.role === 'student' && profile.academy_expires_at && new Date() > new Date(profile.academy_expires_at)) {
+      const { error: expErr } = await supabase
+        .from('profiles')
+        .update({ academy_status: 'inactive' })
+        .eq('id', userId);
+      if (!expErr) {
+        profile.academy_status = 'inactive';
+      }
+    }
+
+    const { role, academy_status, academy_email_verified } = profile;
 
     // 2. Return data depending on role
     if (role === 'mentor') {
@@ -254,10 +432,25 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
           students: students || [],
           deliverables: deliverables || [],
           broadcasts: broadcasts || [],
+          meeting: {
+            link: profile.meeting_link || '',
+            time: profile.meeting_time || '',
+          }
         },
       });
     } else {
       // Student view
+
+      // Gating 1: Email verification (admins bypass)
+      if (!academy_email_verified) {
+        return res.json({
+          role: 'student',
+          status: 'unverified',
+          data: { email }
+        });
+      }
+
+      // Gating 2: Payment status
       if (academy_status !== 'active') {
         return res.json({
           role: 'student',
@@ -282,12 +475,23 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
         return res.status(500).json({ error: 'Failed to retrieve student dashboard data.' });
       }
 
+      // Retrieve the meeting details from the mentor profile
+      const { data: mentorProfile } = await supabase
+        .from('profiles')
+        .select('meeting_link, meeting_time')
+        .eq('role', 'mentor')
+        .maybeSingle();
+
       return res.json({
         role: 'student',
         status: 'active',
         data: {
           deliverables: deliverables || [],
           broadcasts: broadcasts || [],
+          meeting: {
+            link: mentorProfile?.meeting_link || '',
+            time: mentorProfile?.meeting_time || '',
+          }
         },
       });
     }
@@ -362,12 +566,18 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Paid amount is less than package pricing.' });
     }
 
-    // 5. Update profile status in database
+    // 5. Update profile status and expiration in database
+    const expiresAt = pkg === 'membership'
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+      : null; // Lifetime for cohort
+
     const { error: updateErr } = await supabase
       .from('profiles')
       .update({
         academy_status: 'active',
         academy_access: true,
+        academy_email_verified: true,
+        academy_expires_at: expiresAt,
         last_payment_reference: reference,
       })
       .eq('id', userId);
