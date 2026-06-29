@@ -968,4 +968,61 @@ router.post('/mentor/broadcast', authenticateUser, async (req, res) => {
   }
 });
 
+// ─── Route: Mentor Message Single Student (Send Email) ─────────────────────────
+router.post('/mentor/message-student', authenticateUser, async (req, res) => {
+  const { student_email, subject, content } = req.body;
+  const userId = req.user.id;
+
+  if (!student_email || !subject || !content || subject.trim().length < 3 || content.trim().length < 5) {
+    return res.status(400).json({ error: 'Student email, subject, and content are required.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Verify recipient is a student
+    const { data: student } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', student_email)
+      .single();
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    // 3. Send email to the student
+    const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
+    await sendEmail({
+      to: student.email,
+      subject: `[Academy Message] ${subject}`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;line-height:1.6;color:#333">
+              <h2 style="color:#0F172A;border-bottom:2px solid #14B8A6;padding-bottom:0.5rem">${subject}</h2>
+              <p>Hello,</p>
+              <p>Duncan Makoyo has sent you a direct message regarding your progress in the Academy:</p>
+              <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0;white-space:pre-line">
+                ${content}
+              </div>
+              <p>Go to your <a href="${academyDashboardUrl}" style="color:#14B8A6;font-weight:bold;text-decoration:none">Academy Dashboard</a> to continue your sprints.</p>
+              <hr style="border:none;border-top:1px solid #E2E8F0;margin:2rem 0"/>
+              <p style="font-size:0.8rem;color:#64748B">Duncan Makoyo Career Academy & Mentorship</p>
+             </div>`
+    });
+
+    res.json({ success: true, message: 'Message sent to student successfully.' });
+  } catch (err) {
+    console.error('[Mentor Message Student Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 export default router;

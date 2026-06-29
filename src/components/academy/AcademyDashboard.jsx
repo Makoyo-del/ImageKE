@@ -68,6 +68,14 @@ export default function AcademyDashboard({ onNavigate }) {
   const [meetingError, setMeetingError] = useState('');
   const [updatingMeeting, setUpdatingMeeting] = useState(false);
 
+  // Mentor Messaging single student state
+  const [messagingStudent, setMessagingStudent] = useState(null);
+  const [messageSubject, setMessageSubject] = useState('');
+  const [messageContent, setMessageContent] = useState('');
+  const [messageError, setMessageError] = useState('');
+  const [messageSuccess, setMessageSuccess] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+
   // Fetch Dashboard State from Backend
   const fetchDashboardData = useCallback(async (token) => {
     try {
@@ -102,6 +110,7 @@ export default function AcademyDashboard({ onNavigate }) {
         fetchDashboardData(session.access_token);
       } else {
         setLoading(false);
+        if (onNavigate) onNavigate('academy');
       }
     });
 
@@ -112,11 +121,14 @@ export default function AcademyDashboard({ onNavigate }) {
       } else {
         setState(null);
         setLoading(false);
+        if (window.location.hash === '#/academy/dashboard') {
+          if (onNavigate) onNavigate('academy');
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, onNavigate]);
 
   // Load Paystack script
   useEffect(() => {
@@ -130,8 +142,8 @@ export default function AcademyDashboard({ onNavigate }) {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
     if (onNavigate) onNavigate('services');
+    await supabase.auth.signOut();
   };
 
   const handleResendVerification = async () => {
@@ -386,6 +398,47 @@ export default function AcademyDashboard({ onNavigate }) {
       setBrError('Connection error.');
     } finally {
       setIsBroadcasting(false);
+    }
+  };
+
+  // Mentor: Send direct message to a student
+  const handleMessageStudent = async (e) => {
+    e.preventDefault();
+    setMessageError('');
+    setMessageSuccess('');
+    setSendingMessage(true);
+
+    if (!messageSubject.trim() || !messageContent.trim()) {
+      setMessageError('Please enter both subject and content.');
+      setSendingMessage(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/academy/mentor/message-student`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          student_email: messagingStudent.email,
+          subject: messageSubject.trim(),
+          content: messageContent.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessageSuccess(`Direct email successfully sent to ${messagingStudent.email}!`);
+        setMessageContent('');
+      } else {
+        setMessageError(data.error || 'Failed to send message.');
+      }
+    } catch (err) {
+      setMessageError('Connection error.');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -941,37 +994,103 @@ export default function AcademyDashboard({ onNavigate }) {
           {/* ========================================== */}
           {state?.role === 'mentor' && activeTab === 'students' && (
             <div className="ac-students-list-view">
-              <div className="ac-card">
-                <h3>Active Academy Learners</h3>
-                {students.length === 0 ? (
-                  <p className="ac-empty-text">No students registered yet.</p>
-                ) : (
-                  <div className="ac-table-wrapper">
-                    <table className="ac-data-table">
-                      <thead>
-                        <tr>
-                          <th>Student Email</th>
-                          <th>Academy Status</th>
-                          <th>Joined Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {students.map(student => (
-                          <tr key={student.id}>
-                            <td className="ac-student-email-cell">{student.email}</td>
-                            <td>
-                              <span className={`ac-status-badge ${student.academy_status}`}>
-                                {student.academy_status === 'active' ? 'Active' : 'Unpaid'}
-                              </span>
-                            </td>
-                            <td>{new Date(student.created_at).toLocaleDateString()}</td>
+              {messagingStudent ? (
+                <div className="ac-card review-form-card">
+                  <h3>Direct Message to: {messagingStudent.email}</h3>
+                  <p className="ac-card-intro">Send a secure direct message and progress review to this student via email.</p>
+                  
+                  {messageSuccess && <div className="ac-page-alert success">{messageSuccess}</div>}
+                  {messageError && <div className="ac-page-alert error">{messageError}</div>}
+
+                  <form onSubmit={handleMessageStudent} className="ac-review-form">
+                    <div className="ac-form-group">
+                      <label htmlFor="msg-subject">Message Subject</label>
+                      <input
+                        type="text"
+                        id="msg-subject"
+                        required
+                        value={messageSubject}
+                        onChange={(e) => setMessageSubject(e.target.value)}
+                        placeholder="Subject..."
+                        style={{
+                          color: '#f8fafc',
+                          backgroundColor: '#0f172a',
+                          border: '1px solid #475569',
+                          borderRadius: '6px',
+                          outline: 'none',
+                          padding: '0.75rem 1rem',
+                          fontSize: '0.95rem',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                    <div className="ac-form-group">
+                      <label htmlFor="msg-content">Message Content</label>
+                      <textarea
+                        id="msg-content"
+                        rows={6}
+                        required
+                        value={messageContent}
+                        onChange={(e) => setMessageContent(e.target.value)}
+                        placeholder="Write your progress review, feedback, or response to this student here..."
+                      />
+                    </div>
+                    <div className="ac-form-actions">
+                      <button type="button" onClick={() => { setMessagingStudent(null); setMessageSubject(''); setMessageContent(''); setMessageError(''); setMessageSuccess(''); }} className="ac-btn-secondary">Cancel</button>
+                      <button type="submit" className="ac-btn-primary" disabled={sendingMessage}>
+                        {sendingMessage ? 'Sending...' : 'Send Message'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="ac-card">
+                  <h3>Active Academy Learners</h3>
+                  {students.length === 0 ? (
+                    <p className="ac-empty-text">No students registered yet.</p>
+                  ) : (
+                    <div className="ac-table-wrapper">
+                      <table className="ac-data-table">
+                        <thead>
+                          <tr>
+                            <th>Student Email</th>
+                            <th>Academy Status</th>
+                            <th>Joined Date</th>
+                            <th>Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+                        </thead>
+                        <tbody>
+                          {students.map(student => (
+                            <tr key={student.id}>
+                              <td className="ac-student-email-cell">{student.email}</td>
+                              <td>
+                                <span className={`ac-status-badge ${student.academy_status}`}>
+                                  {student.academy_status === 'active' ? 'Active' : 'Unpaid'}
+                                </span>
+                              </td>
+                              <td>{new Date(student.created_at).toLocaleDateString()}</td>
+                              <td>
+                                <button
+                                  onClick={() => {
+                                    setMessagingStudent(student);
+                                    setMessageSubject(`Direct Mentorship Message — Career Academy`);
+                                    setMessageContent('');
+                                    setMessageError('');
+                                    setMessageSuccess('');
+                                  }}
+                                  className="ac-btn-review-action"
+                                >
+                                  Message
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
