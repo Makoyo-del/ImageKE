@@ -156,6 +156,47 @@
   text-decoration: underline;
 }
 
+.ac-password-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ac-password-container input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.ac-password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.ac-password-toggle-btn:hover {
+  color: #cbd5e1;
+}
+
+.ac-terms-wrapper a {
+  color: #14b8a6;
+  text-decoration: underline;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.ac-terms-wrapper a:hover {
+  color: #0d9488;
+}
+
 @media (max-width: 480px) {
   .ac-auth-card {
     padding: 1.5rem;

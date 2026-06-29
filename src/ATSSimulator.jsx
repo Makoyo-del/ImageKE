@@ -1378,34 +1378,36 @@ export default function ATSSimulator({ onBack }) {
         amount: 99 * 100, // 99 KES in kobo
         currency: 'KES',
         ref: reference,
-        callback: async function (paystackResponse) {
-          setExportStatus('verifying');
-          try {
-            const res = await axios.post(`${API_URL}/api/generate-ats-report`, {
-              email: emailClean,
-              reference: paystackResponse.reference,
-              candidateName: contact.name,
-              score: overallScore,
-              metrics: {
-                issues: recommendations.map(r => r.text),
-                missingSections: Object.keys(sections).filter(s => !sections[s])
-              }
-            });
+        callback: function (paystackResponse) {
+          (async () => {
+            setExportStatus('verifying');
+            try {
+              const res = await axios.post(`${API_URL}/api/generate-ats-report`, {
+                email: emailClean,
+                reference: paystackResponse.reference,
+                candidateName: contact.name,
+                score: overallScore,
+                metrics: {
+                  issues: recommendations.map(r => r.text),
+                  missingSections: Object.keys(sections).filter(s => !sections[s])
+                }
+              });
 
-            if (res.data?.success && res.data?.pitch) {
-              setExportStatus('loading_pdf');
-              await loadJsPdf();
-              generateReportPDF(parseResult, res.data.pitch);
-              setShowExportModal(false);
-            } else {
-              setExportError('Payment verified but strategic pitch could not be retrieved.');
+              if (res.data?.success && res.data?.pitch) {
+                setExportStatus('loading_pdf');
+                await loadJsPdf();
+                generateReportPDF(parseResult, res.data.pitch);
+                setShowExportModal(false);
+              } else {
+                setExportError('Payment verified but strategic pitch could not be retrieved.');
+              }
+            } catch (err) {
+              setExportError('Verification completed but report generation failed. Please contact support.');
+            } finally {
+              setExportLoading(false);
+              setExportStatus('');
             }
-          } catch (err) {
-            setExportError('Verification completed but report generation failed. Please contact support.');
-          } finally {
-            setExportLoading(false);
-            setExportStatus('');
-          }
+          })();
         },
         onClose: () => {
           setExportLoading(false);

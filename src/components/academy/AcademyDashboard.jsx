@@ -437,29 +437,31 @@ export default function AcademyDashboard({ onNavigate }) {
         amount: amountKES * 100, // KES to kobo
         currency: 'KES',
         ref: reference,
-        callback: async function (response) {
-          // 3. Verify payment on backend
-          try {
-            const verifyRes = await fetch(`${API_URL}/api/academy/verify-payment`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ reference: response.reference }),
-            });
+        callback: function (response) {
+          (async () => {
+            // 3. Verify payment on backend
+            try {
+              const verifyRes = await fetch(`${API_URL}/api/academy/verify-payment`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ reference: response.reference }),
+              });
 
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok && verifyData.status === 'active') {
-              fetchDashboardData(session.access_token);
-            } else {
-              setPayError(verifyData.error || 'Verification failed. Please contact support.');
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok && verifyData.status === 'active') {
+                fetchDashboardData(session.access_token);
+              } else {
+                setPayError(verifyData.error || 'Verification failed. Please contact support.');
+              }
+            } catch (verifyErr) {
+              setPayError('Payment was successful, but server verification timed out. Please contact info@duncanmakoyo.com.');
+            } finally {
+              setIsPaying(false);
             }
-          } catch (verifyErr) {
-            setPayError('Payment was successful, but server verification timed out. Please contact info@duncanmakoyo.com.');
-          } finally {
-            setIsPaying(false);
-          }
+          })();
         },
         onClose: function () {
           setIsPaying(false);

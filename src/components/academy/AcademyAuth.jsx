@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../supabase';
+import { Eye, EyeOff } from 'lucide-react';
 import './AcademyAuth.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -7,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.co
 export default function AcademyAuth({ onAuthSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   const [authError, setAuthError] = useState('');
   const [message, setMessage] = useState('');
@@ -113,20 +115,43 @@ export default function AcademyAuth({ onAuthSuccess }) {
 
           <div className="ac-form-group">
             <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="ac-password-container">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="ac-password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           {authMode === 'signup' && (
             <div className="ac-terms-wrapper">
               <p className="ac-terms-text">
-                By registering, you agree to the Terms of Use and Privacy Policy. We prepare candidates for success but do not guarantee employment or placement outcomes.
+                By registering, you agree to the{' '}
+                <a 
+                  href="#/terms" 
+                  onClick={(e) => { e.preventDefault(); window.open('#/terms', '_blank'); }}
+                >
+                  Terms of Use
+                </a>{' '}
+                and{' '}
+                <a 
+                  href="#/privacy" 
+                  onClick={(e) => { e.preventDefault(); window.open('#/privacy', '_blank'); }}
+                >
+                  Privacy Policy
+                </a>. We prepare candidates for success but do not guarantee employment or placement outcomes.
               </p>
             </div>
           )}
