@@ -208,8 +208,9 @@ router.post('/initialize', registrationLimiter, async (req, res) => {
         email: trimmedEmail,
         amount: Math.round(priceKES * 100), // convert to kobo
         currency: 'KES',
-        ref: reference,
+        reference: reference,
         metadata: {
+
           type: 'workshop_registration',
           ticket_type: requestedTicket,
           full_name: trimmedName,

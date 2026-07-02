@@ -342,6 +342,13 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               >
                 Academy
               </button>
+              <button
+                className="dm-nav-link"
+                onClick={() => onNavigateToPath('workshop')}
+                style={{ color: '#22C55E', fontWeight: 700 }}
+              >
+                🎓 AI Workshop
+              </button>
             </>
           )}
           {onNavigateToTools && (
@@ -379,6 +386,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               </button>
               <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ color: '#14B8A6', fontWeight: 700 }}>
                 Career Academy
+              </button>
+              <button className="dm-mobile-link" onClick={() => { onNavigateToPath('workshop'); setMobileMenuOpen(false); }} style={{ color: '#22C55E', fontWeight: 700 }}>
+                🎓 AI Workshop
               </button>
             </>
           )}
