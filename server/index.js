@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import hookBunkerRouter from './hookbunker.js';
 import academyRouter from './academy.js';
+import workshopRouter, { sendConfirmationEmail } from './workshop.js';
 
 dotenv.config();
 
@@ -84,6 +85,9 @@ app.use('/api/hookbunker', hookBunkerRouter);
 
 // ─── Academy Mount ────────────────────────────────────────────────────────────
 app.use('/api/academy', academyRouter);
+
+// ─── Workshop Mount ───────────────────────────────────────────────────────────
+app.use('/api/workshop', workshopRouter);
 
 // ─── Health Check (for UptimeRobot / monitoring) ──────────────────────────────
 // Ping this endpoint every 5 minutes from UptimeRobot to:
@@ -279,6 +283,9 @@ function getExpectedAmount(metadata) {
       membership: 1500
     };
     amount = (pkgId && academyPricing[pkgId]) ? academyPricing[pkgId] : 10000;
+  } else if (type === 'workshop_registration') {
+    const pkg = metadata?.ticket_type;
+    amount = pkg === 'early_bird' ? 1000 : 1500;
   } else if (type === 'ats_report') {
     amount = 99;
   } else {
@@ -556,8 +563,40 @@ app.post('/api/paystack/webhook', (req, res) => {
   if (event.event === 'charge.success') {
     const { reference, amount, customer, metadata } = event.data;
     console.log(
-      `[Webhook] charge.success — ref: ${reference}, KES: ${amount / 100}, email: ${customer?.email}, preset: ${metadata?.preset}`
+      `[Webhook] charge.success — ref: ${reference}, KES: ${amount / 100}, email: ${customer?.email}, type: ${metadata?.type}`
     );
+
+    if (metadata?.type === 'workshop_registration') {
+      (async () => {
+        try {
+          const { supabase } = await import('./supabase.js');
+          const { data: registration, error: dbErr } = await supabase
+            .from('workshop_registrations')
+            .select('*')
+            .eq('payment_reference', reference)
+            .maybeSingle();
+
+          if (dbErr || !registration) {
+            console.error(`[Webhook Error] Registration record not found for ref ${reference}`);
+          } else if (registration.payment_status !== 'paid') {
+            const { error: updateErr } = await supabase
+              .from('workshop_registrations')
+              .update({ payment_status: 'paid' })
+              .eq('payment_reference', reference);
+
+            if (updateErr) {
+              console.error(`[Webhook Error] Failed to update registration for ref ${reference}`, updateErr.message);
+            } else {
+              const updatedReg = { ...registration, payment_status: 'paid' };
+              await sendConfirmationEmail(updatedReg);
+              console.log(`[Webhook Success] Confirmed workshop seat for ${registration.email}`);
+            }
+          }
+        } catch (err) {
+          console.error('[Webhook Workshop Processing Error]', err.message);
+        }
+      })();
+    }
   }
 });
 

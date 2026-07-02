@@ -76,6 +76,12 @@ export default function AcademyDashboard({ onNavigate }) {
   const [messageSuccess, setMessageSuccess] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Workshop management states
+  const [workshopRegistrations, setWorkshopRegistrations] = useState([]);
+  const [loadingWorkshop, setLoadingWorkshop] = useState(false);
+  const [workshopError, setWorkshopError] = useState('');
+  const [sendingCertId, setSendingCertId] = useState(null);
+
   // Fetch Dashboard State from Backend
   const fetchDashboardData = useCallback(async (token) => {
     try {
@@ -103,6 +109,76 @@ export default function AcademyDashboard({ onNavigate }) {
     }
   }, []);
 
+  const fetchWorkshopRegistrations = useCallback(async (token) => {
+    try {
+      setLoadingWorkshop(true);
+      setWorkshopError('');
+      const res = await fetch(`${API_URL}/api/workshop/mentor/registrations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setWorkshopRegistrations(data.registrations || []);
+      } else {
+        setWorkshopError(data.error || 'Failed to fetch workshop registrations.');
+      }
+    } catch (err) {
+      setWorkshopError('Connection to server failed.');
+    } finally {
+      setLoadingWorkshop(false);
+    }
+  }, []);
+
+  const handleUpdateAttendance = async (registrationId, currentStatus) => {
+    const newStatus = currentStatus === 'attended' ? 'absent' : 'attended';
+    try {
+      const res = await fetch(`${API_URL}/api/workshop/mentor/update-attendance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ id: registrationId, attendance_status: newStatus }),
+      });
+      if (res.ok) {
+        setWorkshopRegistrations(prev =>
+          prev.map(r => r.id === registrationId ? { ...r, attendance_status: newStatus } : r)
+        );
+      } else {
+        alert('Failed to update attendance status.');
+      }
+    } catch (err) {
+      alert('Connection error.');
+    }
+  };
+
+  const handleSendCertificate = async (registrationId) => {
+    setSendingCertId(registrationId);
+    try {
+      const res = await fetch(`${API_URL}/api/workshop/mentor/send-certificate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ id: registrationId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Certificate sent successfully!');
+        setWorkshopRegistrations(prev =>
+          prev.map(r => r.id === registrationId ? { ...r, certificate_sent: true } : r)
+        );
+      } else {
+        alert(data.error || 'Failed to send certificate.');
+      }
+    } catch (err) {
+      alert('Connection error.');
+    } finally {
+      setSendingCertId(null);
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -129,6 +205,12 @@ export default function AcademyDashboard({ onNavigate }) {
 
     return () => subscription.unsubscribe();
   }, [fetchDashboardData, onNavigate]);
+
+  useEffect(() => {
+    if (session && activeTab === 'workshops' && state?.role === 'mentor') {
+      fetchWorkshopRegistrations(session.access_token);
+    }
+  }, [activeTab, session, state?.role, fetchWorkshopRegistrations]);
 
   // Load Paystack script
   useEffect(() => {
@@ -717,6 +799,12 @@ export default function AcademyDashboard({ onNavigate }) {
               >
                 Announcements
               </button>
+              <button 
+                className={`ac-tab-btn ${activeTab === 'workshops' ? 'active' : ''}`}
+                onClick={() => setActiveTab('workshops')}
+              >
+                Workshops
+              </button>
             </>
           )}
         </div>
@@ -1207,6 +1295,141 @@ export default function AcademyDashboard({ onNavigate }) {
                     {isBroadcasting ? 'Dispatching Broadcast Emails...' : 'Send Broadcast'}
                   </button>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {state?.role === 'mentor' && activeTab === 'workshops' && (
+            <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <div className="ac-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0 }}>AI Job Seeker Workshop Registrants</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                      Review registrations, manage attendance, and email verifiable participation certificates.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>PAID SEATS</div>
+                      <strong style={{ fontSize: '1.25rem', color: '#0f172a' }}>
+                        {workshopRegistrations.filter(r => r.payment_status === 'paid').length}
+                      </strong>
+                    </div>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '8px 16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>REVENUE (KES)</div>
+                      <strong style={{ fontSize: '1.25rem', color: '#166534' }}>
+                        {workshopRegistrations.filter(r => r.payment_status === 'paid').reduce((sum, r) => sum + Number(r.amount_paid), 0).toLocaleString()}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {workshopError && <div className="ac-page-alert error">{workshopError}</div>}
+
+                {loadingWorkshop ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                    <div className="ac-spinner" />
+                  </div>
+                ) : workshopRegistrations.length === 0 ? (
+                  <p className="ac-empty-text">No registrations found.</p>
+                ) : (
+                  <div className="ac-table-wrapper" style={{ overflowX: 'auto' }}>
+                    <table className="ac-data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Name</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Contact Details</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Ticket Info</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Payment Reference</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Status</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Attendance</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {workshopRegistrations.map(reg => (
+                          <tr key={reg.id} style={{ borderBottom: '1px solid #374151' }}>
+                            <td style={{ padding: '12px' }}>
+                              <strong style={{ display: 'block', color: '#f8fafc' }}>{reg.full_name}</strong>
+                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Joined {new Date(reg.created_at).toLocaleDateString()}</span>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>{reg.email}</div>
+                              <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>{reg.phone}</div>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: reg.ticket_type === 'early_bird' ? 'rgba(20, 184, 166, 0.1)' : 'rgba(99, 102, 241, 0.1)', color: reg.ticket_type === 'early_bird' ? '#14b8a6' : '#818cf8', textTransform: 'uppercase' }}>
+                                {reg.ticket_type === 'early_bird' ? 'Early Bird' : 'Regular'}
+                              </span>
+                              <span style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>KES {Number(reg.amount_paid).toLocaleString()}</span>
+                            </td>
+                            <td style={{ padding: '12px', fontSize: '0.8rem', fontFamily: 'monospace', color: '#94a3b8' }}>
+                              {reg.payment_reference}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <span className={`ac-status-badge ${reg.payment_status === 'paid' ? 'active' : 'inactive'}`}>
+                                {reg.payment_status === 'paid' ? 'Paid' : 'Pending'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              {reg.payment_status === 'paid' ? (
+                                <button
+                                  onClick={() => handleUpdateAttendance(reg.id, reg.attendance_status)}
+                                  style={{
+                                    border: '1px solid',
+                                    borderColor: reg.attendance_status === 'attended' ? '#22c55e' : '#475569',
+                                    background: reg.attendance_status === 'attended' ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                                    color: reg.attendance_status === 'attended' ? '#22c55e' : '#94a3b8',
+                                    padding: '4px 8px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  {reg.attendance_status === 'attended' ? 'Attended' : 'Mark Attended'}
+                                </button>
+                              ) : (
+                                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              {reg.payment_status === 'paid' ? (
+                                <button
+                                  onClick={() => handleSendCertificate(reg.id)}
+                                  disabled={sendingCertId === reg.id}
+                                  className="ac-btn-review-action"
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    padding: '4px 8px',
+                                    backgroundColor: reg.certificate_sent ? 'rgba(148, 163, 184, 0.1)' : '',
+                                    borderColor: reg.certificate_sent ? '#475569' : '',
+                                    color: reg.certificate_sent ? '#94a3b8' : '',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {sendingCertId === reg.id ? (
+                                    'Sending...'
+                                  ) : reg.certificate_sent ? (
+                                    'Resend Cert'
+                                  ) : (
+                                    'Email Cert'
+                                  )}
+                                </button>
+                              ) : (
+                                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

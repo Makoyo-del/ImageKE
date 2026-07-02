@@ -391,4 +391,51 @@ update public.profiles
 set academy_email_verified = true
 where role = 'mentor' or academy_status = 'active';
 
+-- =============================================================================
+-- WORKSHOP REGISTRATIONS SCHEMA MIGRATION
+-- =============================================================================
+create table if not exists public.workshop_registrations (
+  id uuid default gen_random_uuid() primary key,
+  full_name text not null,
+  email text not null,
+  phone text not null,
+  ticket_type text not null check (ticket_type in ('early_bird', 'regular')),
+  amount_paid numeric not null,
+  payment_reference text unique not null,
+  payment_status text not null check (payment_status in ('pending', 'paid', 'failed')) default 'pending',
+  attendance_status text not null check (attendance_status in ('absent', 'attended')) default 'absent',
+  certificate_sent boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Enable RLS
+alter table public.workshop_registrations enable row level security;
+
+-- Policies
+drop policy if exists "Anyone can register for workshop" on public.workshop_registrations;
+create policy "Anyone can register for workshop" 
+  on public.workshop_registrations for insert 
+  with check (true);
+
+drop policy if exists "Anyone can view registration counts" on public.workshop_registrations;
+create policy "Anyone can view registration counts" 
+  on public.workshop_registrations for select 
+  using (payment_status = 'paid');
+
+drop policy if exists "Mentors have full access to workshop registrations" on public.workshop_registrations;
+create policy "Mentors have full access to workshop registrations" 
+  on public.workshop_registrations for all 
+  using (
+    exists (
+      select 1 from public.profiles 
+      where profiles.id = auth.uid() 
+      and profiles.role = 'mentor'
+    )
+  );
+
+-- Indexes for performance
+create index if not exists idx_workshop_registrations_email on public.workshop_registrations(email);
+create index if not exists idx_workshop_registrations_status on public.workshop_registrations(payment_status);
+
+
 

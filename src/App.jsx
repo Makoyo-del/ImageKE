@@ -5,6 +5,7 @@ import ATSSimulator from './ATSSimulator';
 import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBunker';
 import AcademyAuth from './components/academy/AcademyAuth';
 import AcademyDashboard from './components/academy/AcademyDashboard';
+import WorkshopLanding from './components/workshop/WorkshopLanding';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -190,6 +191,9 @@ const getPathFromHash = () => {
   // Academy paths
   if (hash === '#/academy') return 'academy-auth';
   if (hash === '#/academy/dashboard') return 'academy-dashboard';
+
+  // Workshop paths
+  if (hash === '#/workshop' || hash === '#/ai-jobseeker-workshop') return 'workshop';
 
   // HookBunker paths
   if (hash === '#/hookbunker') return 'hookbunker-landing';
@@ -2865,6 +2869,9 @@ function App() {
     else if (path === 'academy') window.location.hash = '#/academy';
     else if (path === 'academy-dashboard') window.location.hash = '#/academy/dashboard';
 
+    // Workshop path navigation
+    else if (path === 'workshop') window.location.hash = '#/workshop';
+
     // HookBunker paths navigation
     else if (path === 'hookbunker') window.location.hash = '#/hookbunker';
     else if (path === 'hookbunker-docs') window.location.hash = '#/hookbunker/docs';
@@ -2920,6 +2927,11 @@ function App() {
         <AcademyDashboard onNavigate={navigateToPath} />
       )}
 
+      {/* ── Workshop Landing View ── */}
+      {currentPath === 'workshop' && (
+        <WorkshopLanding onNavigate={navigateToPath} />
+      )}
+
 
 
       {/* ── Legal pages (standalone, minimal header) ── */}
@@ -2953,6 +2965,7 @@ function App() {
        currentPath !== 'terms' && 
        currentPath !== 'privacy' && 
        currentPath !== 'ats' && 
+       currentPath !== 'workshop' && 
        !currentPath.startsWith('hookbunker') && 
        !currentPath.startsWith('academy') && (
         <>
