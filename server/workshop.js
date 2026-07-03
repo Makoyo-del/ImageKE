@@ -299,6 +299,39 @@ router.post('/verify', async (req, res) => {
   }
 });
 
+// ─── Route: Verify Workshop Join Link (Gateway) ──────────────────────────────
+router.post('/join-link', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Please provide a valid email address.' });
+  }
+
+  try {
+    const { data: registration, error: dbErr } = await supabase
+      .from('workshop_registrations')
+      .select('payment_status')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle();
+
+    if (dbErr || !registration) {
+      return res.status(404).json({ error: 'We could not find a ticket for this email address. Please register first.' });
+    }
+
+    if (registration.payment_status !== 'paid') {
+      return res.status(403).json({ error: 'This email is registered, but the ticket is not paid. Please complete your payment.' });
+    }
+
+    // Give them the actual link
+    const meetLink = process.env.WORKSHOP_MEETING_LINK || 'https://meet.google.com/gof-rfcr-hno';
+    return res.json({ success: true, link: meetLink });
+
+  } catch (err) {
+    console.error('[Workshop Join Link Error]', err.message);
+    return res.status(500).json({ error: 'An unexpected error occurred while verifying your access.' });
+  }
+});
+
 // ─── Route: Mentor List Registrations ──────────────────────────────────────────
 router.get('/mentor/registrations', authenticateMentor, async (req, res) => {
   try {
@@ -378,7 +411,7 @@ router.post('/mentor/send-certificate', authenticateMentor, async (req, res) => 
 
 // ─── Helper: Send Confirmation Email ─────────────────────────────────────────
 export async function sendConfirmationEmail(registration) {
-  const googleMeetLink = process.env.WORKSHOP_MEETING_LINK || 'https://meet.google.com/gof-rfcr-hno';
+  const gatewayLink = `https://duncanmakoyo.com/#/workshop/join?email=${encodeURIComponent(registration.email)}`;
   const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
   const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
   const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
@@ -401,9 +434,9 @@ export async function sendConfirmationEmail(registration) {
             <strong>Platform:</strong> Google Meet<br/>
             <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
           </p>
-          <a href="${googleMeetLink}" target="_blank"
+          <a href="${gatewayLink}" target="_blank"
             style="display: inline-block; background: #0F172A; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
-            Save Google Meet Link →
+            Verify Seat & Join Workshop →
           </a>
         </div>
 
@@ -464,7 +497,7 @@ export async function sendConfirmationEmail(registration) {
 
 // ─── Helper: Generate Reminder Email Body ─────────────────────────────────────
 function getReminderEmailHtml(registration, type) {
-  const googleMeetLink = process.env.WORKSHOP_MEETING_LINK || 'https://meet.google.com/gof-rfcr-hno';
+  const gatewayLink = `https://duncanmakoyo.com/#/workshop/join?email=${encodeURIComponent(registration.email)}`;
   const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
   const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
   const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
@@ -491,9 +524,9 @@ function getReminderEmailHtml(registration, type) {
             <strong>Platform:</strong> Google Meet<br/>
             <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
           </p>
-          <a href="${googleMeetLink}" target="_blank"
+          <a href="${gatewayLink}" target="_blank"
             style="display: inline-block; background: #14B8A6; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
-            Join Google Meet Call →
+            Verify Seat & Join Call →
           </a>
         </div>
 

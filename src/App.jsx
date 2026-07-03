@@ -6,6 +6,7 @@ import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBu
 import AcademyAuth from './components/academy/AcademyAuth';
 import AcademyDashboard from './components/academy/AcademyDashboard';
 import WorkshopLanding from './components/workshop/WorkshopLanding';
+import WorkshopJoin from './components/workshop/WorkshopJoin';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -193,6 +194,7 @@ const getPathFromHash = () => {
   if (hash === '#/academy/dashboard') return 'academy-dashboard';
 
   // Workshop paths
+  if (hash.startsWith('#/workshop/join')) return 'workshop-join';
   if (hash === '#/workshop' || hash === '#/ai-jobseeker-workshop') return 'workshop';
 
   // HookBunker paths
@@ -2871,6 +2873,7 @@ function App() {
 
     // Workshop path navigation
     else if (path === 'workshop') window.location.hash = '#/workshop';
+    else if (path === 'workshop-join') window.location.hash = '#/workshop/join';
 
     // HookBunker paths navigation
     else if (path === 'hookbunker') window.location.hash = '#/hookbunker';
@@ -2932,7 +2935,10 @@ function App() {
         <WorkshopLanding onNavigate={navigateToPath} />
       )}
 
-
+      {/* ── Workshop Join Gateway ── */}
+      {currentPath === 'workshop-join' && (
+        <WorkshopJoin />
+      )}
 
       {/* ── Legal pages (standalone, minimal header) ── */}
       {(currentPath === 'terms' || currentPath === 'privacy') && (
@@ -2966,6 +2972,7 @@ function App() {
        currentPath !== 'privacy' && 
        currentPath !== 'ats' && 
        currentPath !== 'workshop' && 
+       currentPath !== 'workshop-join' && 
        !currentPath.startsWith('hookbunker') && 
        !currentPath.startsWith('academy') && (
         <>
