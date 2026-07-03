@@ -418,13 +418,8 @@ export async function sendConfirmationEmail(registration) {
         </div>
 
         <!-- Resources Box -->
-        <h4 style="margin: 28px 0 10px; color: #0F172A; font-size: 0.95rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">🎁 Your Downloadable Workshop Kit</h4>
-        <p style="color: #475569; font-size: 0.875rem; margin-bottom: 16px;">Get started immediately by downloading your resources ahead of the live session:</p>
-        <ul style="padding-left: 20px; margin: 0 0 28px; color: #475569; font-size: 0.875rem; line-height: 2;">
-          <li><strong>ATS Master CV Template:</strong> <a href="https://api.duncanmakoyo.com/resources/ats-template.docx" style="color: #14B8A6; font-weight: 600; text-decoration: none;">Download Template</a></li>
-          <li><strong>AI Prompt Pack:</strong> <a href="https://api.duncanmakoyo.com/resources/prompt-pack.pdf" style="color: #14B8A6; font-weight: 600; text-decoration: none;">Download Prompt Pack</a></li>
-          <li><strong>LinkedIn Profile Guide:</strong> <a href="https://api.duncanmakoyo.com/resources/linkedin-guide.pdf" style="color: #14B8A6; font-weight: 600; text-decoration: none;">Download Guide</a></li>
-        </ul>
+        <h4 style="margin: 28px 0 10px; color: #0F172A; font-size: 0.95rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">🎁 Your Takeaway Resources</h4>
+        <p style="color: #475569; font-size: 0.875rem; margin-bottom: 16px;">Your complete workshop toolkit (including the ATS Master CV Template, AI Prompt Library, and Job Description Matching framework) will be shared directly inside the cohort WhatsApp group as we approach the live session. Make sure you join the group so you don't miss them!</p>
 
         <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
           <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
@@ -514,28 +509,48 @@ function getReminderEmailHtml(registration, type) {
   `;
 }
 
-// ─── Helper: Send Certificate Email ─────────────────────────────────────────
+// ─── Helper: Send Access Email (Resend links if lost) ─────────────────────────
 async function sendCertificateEmail(registration) {
+  const googleMeetLink = process.env.WORKSHOP_MEETING_LINK || 'https://meet.google.com/gof-rfcr-hno';
+  const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
+  const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
+  const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
+
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
       <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Congratulations! 🎓</h2>
-        <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">Workshop Participation Certificate</p>
+        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Workshop Access Details 🚀</h2>
+        <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">AI Job Seeker Live Workshop</p>
       </div>
       <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
         <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Dear ${registration.full_name},</p>
-        <p style="color: #475569; margin-bottom: 24px;">Thank you for attending the <strong>AI Job Seeker Workshop</strong>. You did the work, stayed focused, and gained practical micro-skills to dominate the hiring pool.</p>
+        <p style="color: #475569; margin-bottom: 24px;">Here are your access details, calendar invitation, and WhatsApp cohort links for the upcoming AI Job Seeker Workshop.</p>
 
-        <p style="color: #475569; margin-bottom: 24px;">Your digital certificate of participation is now ready. Click the link below to view and download it for your records and share it on your LinkedIn profile:</p>
-
-        <div style="text-align: center; margin: 28px 0;">
-          <a href="https://api.duncanmakoyo.com/certificates/download/${registration.id}" target="_blank"
-            style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
-            Download Certificate
+        <!-- Google Meet Details -->
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem;">📅 Event Schedule & Join Link</h4>
+          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
+            <strong>Duration:</strong> 2 Hours Live Training<br/>
+            <strong>Platform:</strong> Google Meet<br/>
+            <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
+          </p>
+          <a href="${googleMeetLink}" target="_blank"
+            style="display: inline-block; background: #0F172A; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            Join Google Meet Call →
           </a>
         </div>
 
-        <p style="color: #64748B; font-size: 0.875rem;">If you have any feedback or want to request a comprehensive resume review, respond directly to this email or message on WhatsApp at +254 794 877 125.</p>
+        <!-- WhatsApp Group Onboarding -->
+        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+          <p style="margin: 0 0 8px; font-weight: 700; color: #166534; font-size: 0.95rem;">📱 Step 2: Join the WhatsApp Group</p>
+          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #166534;">Join the cohort group for slides, prompts sheets, and workshop notifications.</p>
+          <a href="${whatsappGroupLink}" target="_blank"
+            style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 8px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            Join WhatsApp Group →
+          </a>
+        </div>
+
+        <p style="color: #64748B; font-size: 0.875rem;">Your downloadable workshop toolkit (including the ATS Master CV Template, AI Prompt Library, and Job Description Matching framework) will be shared directly inside the cohort WhatsApp group as we approach the live session.</p>
 
         <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
           <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
@@ -547,9 +562,10 @@ async function sendCertificateEmail(registration) {
 
   await sendEmail({
     to: registration.email,
-    subject: 'Your Certificate: AI Job Seeker Live Workshop!',
+    subject: 'Access Details: AI Job Seeker Live Workshop!',
     html: emailHtml,
   });
 }
+
 
 export default router;

@@ -1344,9 +1344,10 @@ export default function AcademyDashboard({ onNavigate }) {
                           <th style={{ textAlign: 'left', padding: '12px' }}>Payment Reference</th>
                           <th style={{ textAlign: 'left', padding: '12px' }}>Status</th>
                           <th style={{ textAlign: 'left', padding: '12px' }}>Attendance</th>
-                          <th style={{ textAlign: 'left', padding: '12px' }}>Actions</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>Send Access Email</th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {workshopRegistrations.map(reg => (
                           <tr key={reg.id} style={{ borderBottom: '1px solid #374151' }}>
@@ -1415,9 +1416,9 @@ export default function AcademyDashboard({ onNavigate }) {
                                   {sendingCertId === reg.id ? (
                                     'Sending...'
                                   ) : reg.certificate_sent ? (
-                                    'Resend Cert'
+                                    'Resend Access'
                                   ) : (
-                                    'Email Cert'
+                                    'Email Access'
                                   )}
                                 </button>
                               ) : (
