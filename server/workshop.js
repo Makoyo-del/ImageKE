@@ -10,13 +10,13 @@ const router = express.Router();
 const workshopLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  message: { error: 'Too many requests. Please try again later.' },
+  message: { error: 'Oops! We are getting too many requests. Please try again in a few minutes.' },
 });
 
 const registrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10, // Max 10 registrations per IP per 15 minutes
-  message: { error: 'Too many registration attempts. Please try again later.' },
+  message: { error: 'You have made too many registration attempts. Please try again later.' },
 });
 
 router.use(workshopLimiter);
@@ -126,7 +126,7 @@ router.get('/early-bird-count', async (req, res) => {
 
     if (error) {
       console.error('[Early Bird Count Error]', error.message);
-      return res.status(500).json({ error: 'Failed to fetch seat counts.' });
+      return res.status(500).json({ error: 'We could not check seat availability right now.' });
     }
 
     const maxEarlyBird = 20;
@@ -134,7 +134,7 @@ router.get('/early-bird-count', async (req, res) => {
 
     res.json({ success: true, count: count || 0, remaining });
   } catch (err) {
-    res.status(500).json({ error: 'Internal server error.' });
+    res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
   }
 });
 
@@ -148,13 +148,13 @@ router.post('/initialize', registrationLimiter, async (req, res) => {
   let requestedTicket = ticket_type === 'early_bird' ? 'early_bird' : 'regular';
 
   if (!trimmedName) {
-    return res.status(400).json({ error: 'Full name is required.' });
+    return res.status(400).json({ error: 'Please enter your full name.' });
   }
   if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    return res.status(400).json({ error: 'A valid email is required.' });
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
   if (!trimmedPhone || trimmedPhone.length < 8) {
-    return res.status(400).json({ error: 'A valid phone number is required.' });
+    return res.status(400).json({ error: 'Please enter a valid phone number.' });
   }
 
   try {
@@ -166,7 +166,7 @@ router.post('/initialize', registrationLimiter, async (req, res) => {
       .eq('payment_status', 'paid');
 
     if (countErr) {
-      return res.status(500).json({ error: 'Failed to check seat availability.' });
+      return res.status(500).json({ error: 'We could not verify seat availability at this moment.' });
     }
 
     const earlyBirdCount = count || 0;
@@ -193,13 +193,13 @@ router.post('/initialize', registrationLimiter, async (req, res) => {
 
     if (insertErr) {
       console.error('[Workshop Insert Pending Error]', insertErr.message);
-      return res.status(500).json({ error: 'Failed to record registration details.' });
+      return res.status(500).json({ error: 'We could not record your registration. Please try again.' });
     }
 
     // 3. Initialize Paystack checkout
     const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
     if (!paystackSecret) {
-      return res.status(500).json({ error: 'Paystack is not configured on this server.' });
+      return res.status(500).json({ error: 'Our payment system is currently unavailable.' });
     }
 
     const paystackResponse = await axios.post(
@@ -228,7 +228,7 @@ router.post('/initialize', registrationLimiter, async (req, res) => {
     res.json(paystackResponse.data);
   } catch (err) {
     console.error('[Workshop Initialize Payment Error]', err.response?.data || err.message);
-    res.status(502).json({ error: 'Failed to initialize payment. Please try again.' });
+    res.status(502).json({ error: 'We could not start the payment process. Please try again.' });
   }
 });
 
@@ -237,7 +237,7 @@ router.post('/verify', async (req, res) => {
   const { reference } = req.body;
 
   if (!reference || !/^WS-[0-9a-zA-Z_-]+$/.test(reference)) {
-    return res.status(400).json({ error: 'Invalid reference code format.' });
+    return res.status(400).json({ error: 'The payment reference is invalid.' });
   }
 
   try {
@@ -249,7 +249,7 @@ router.post('/verify', async (req, res) => {
       .maybeSingle();
 
     if (dbErr || !registration) {
-      return res.status(404).json({ error: 'Registration records not found.' });
+      return res.status(404).json({ error: 'We could not find your registration records. Please try again.' });
     }
 
     if (registration.payment_status === 'paid') {
@@ -270,12 +270,12 @@ router.post('/verify', async (req, res) => {
 
     const txData = paystackRes.data?.data;
     if (txData?.status !== 'success') {
-      return res.status(400).json({ error: 'Payment has not been confirmed by Paystack.', status: txData?.status });
+      return res.status(400).json({ error: 'Your payment has not been confirmed yet. Please wait a moment or contact support.', status: txData?.status });
     }
 
     const amountPaid = txData.amount / 100;
     if (amountPaid < registration.amount_paid) {
-      return res.status(400).json({ error: 'Payment amount mismatch verification check.' });
+      return res.status(400).json({ error: 'The payment amount does not match the ticket price.' });
     }
 
     // 3. Confirm in database
@@ -286,7 +286,7 @@ router.post('/verify', async (req, res) => {
 
     if (updateErr) {
       console.error('[Workshop DB Confirm Error]', updateErr.message);
-      return res.status(500).json({ error: 'Failed to update registration status.' });
+      return res.status(500).json({ error: 'Payment was successful, but we could not update your seat. Please contact support.' });
     }
 
     // 4. Send Confirmation Email with templates/resources
@@ -295,7 +295,7 @@ router.post('/verify', async (req, res) => {
     res.json({ success: true, status: 'paid' });
   } catch (err) {
     console.error('[Workshop Verify Error]', err.response?.data || err.message);
-    res.status(502).json({ error: 'Failed to verify payment reference.' });
+    res.status(502).json({ error: 'We could not verify your payment. Please contact support.' });
   }
 });
 

@@ -88,11 +88,11 @@ export default function WorkshopLanding({ onNavigate }) {
     setSuccessMsg('');
     setIsSubmitting(true);
 
-    if (!fullName.trim()) { setErrorMsg('Full name is required.'); setIsSubmitting(false); return; }
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrorMsg('A valid email is required.'); setIsSubmitting(false); return; }
-    if (!phone.trim() || phone.trim().length < 8) { setErrorMsg('A valid phone number is required.'); setIsSubmitting(false); return; }
-    if (!PAYSTACK_PUBLIC_KEY) { setErrorMsg('Payment gateway not configured. Contact support.'); setIsSubmitting(false); return; }
-    if (!window.PaystackPop) { setErrorMsg('Gateway loading. Please try again in a few seconds.'); setIsSubmitting(false); return; }
+    if (!fullName.trim()) { setErrorMsg('Please enter your full name.'); setIsSubmitting(false); return; }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrorMsg('Please enter a valid email address.'); setIsSubmitting(false); return; }
+    if (!phone.trim() || phone.trim().length < 8) { setErrorMsg('Please enter a valid phone number.'); setIsSubmitting(false); return; }
+    if (!PAYSTACK_PUBLIC_KEY) { setErrorMsg('Our payment gateway is temporarily unavailable. Please contact support.'); setIsSubmitting(false); return; }
+    if (!window.PaystackPop) { setErrorMsg('Payment gateway is loading. Please wait a moment and try again.'); setIsSubmitting(false); return; }
 
     try {
       const ticketType = isEarlyBird ? 'early_bird' : 'regular';
@@ -102,7 +102,7 @@ export default function WorkshopLanding({ onNavigate }) {
         body: JSON.stringify({ full_name: fullName.trim(), email: email.trim().toLowerCase(), phone: phone.trim(), ticket_type: ticketType }),
       });
       const data = await res.json();
-      if (!res.ok || !data?.data?.reference) throw new Error(data.error || 'Failed to initialize checkout.');
+      if (!res.ok || !data?.data?.reference) throw new Error(data.error || 'We could not start the checkout process. Please try again.');
 
       const { reference } = data.data;
       const amountKES = ticketType === 'early_bird' ? 1000 : 1500;
@@ -128,9 +128,9 @@ export default function WorkshopLanding({ onNavigate }) {
                 setShowModal(false);
                 setFullName(''); setEmail(''); setPhone('');
               } else {
-                setErrorMsg(vData.error || 'Payment verification failed. Contact info@duncanmakoyo.com.');
+                setErrorMsg(vData.error || 'We could not verify your payment. Please contact info@duncanmakoyo.com.');
               }
-            } catch { setErrorMsg('Payment verified but server update failed. Email info@duncanmakoyo.com.'); }
+            } catch { setErrorMsg('Payment was successful, but we had an issue confirming your seat. Please email info@duncanmakoyo.com.'); }
             finally { setIsSubmitting(false); }
           })();
         },
@@ -138,7 +138,7 @@ export default function WorkshopLanding({ onNavigate }) {
       });
       handler.openIframe();
     } catch (err) {
-      setErrorMsg(err.message || 'Payment failed to initiate.');
+      setErrorMsg(err.message || 'We could not start the payment process. Please try again.');
       setIsSubmitting(false);
     }
   };
