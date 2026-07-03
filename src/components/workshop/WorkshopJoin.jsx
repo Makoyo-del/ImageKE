@@ -95,7 +95,7 @@ const WorkshopJoin = () => {
           Workshop Access Verification
         </h1>
         <p style={{ color: '#94A3B8', fontSize: '0.95rem', margin: '0 0 32px 0', lineHeight: '1.5' }}>
-          Please enter the email address you used to register for the AI Job Seeker Live Workshop.
+          Please enter the <strong style={{ color: '#F8FAFC' }}>exact email address</strong> you used to secure your seat to join the meeting.
         </p>
 
         {errorMsg && (
