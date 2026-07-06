@@ -437,5 +437,66 @@ create policy "Mentors have full access to workshop registrations"
 create index if not exists idx_workshop_registrations_email on public.workshop_registrations(email);
 create index if not exists idx_workshop_registrations_status on public.workshop_registrations(payment_status);
 
+-- =============================================================================
+-- MIGRATION: Free Masterclass Pivot — remove Paystack dependency, add lead fields
+-- =============================================================================
+
+-- 1. Relax ticket_type to support 'free' registrations
+ALTER TABLE public.workshop_registrations
+  DROP CONSTRAINT IF EXISTS workshop_registrations_ticket_type_check;
+ALTER TABLE public.workshop_registrations
+  ADD CONSTRAINT workshop_registrations_ticket_type_check
+  CHECK (ticket_type IN ('early_bird', 'regular', 'free'));
+
+-- 2. Make amount_paid nullable — free registrations have no payment amount
+ALTER TABLE public.workshop_registrations
+  ALTER COLUMN amount_paid DROP NOT NULL;
+
+-- 3. High-leverage lead-capture qualification columns
+ALTER TABLE public.workshop_registrations
+  ADD COLUMN IF NOT EXISTS current_profession text,
+  ADD COLUMN IF NOT EXISTS biggest_challenge text;
+
+-- 4. registration_status cleanly tracks confirmed vs waitlisted
+ALTER TABLE public.workshop_registrations
+  ADD COLUMN IF NOT EXISTS registration_status text
+  DEFAULT 'confirmed'
+  CHECK (registration_status IN ('confirmed', 'waitlist', 'cancelled'));
+
+-- 5. Waitlist overflow table for registrants beyond the 100-seat cap
+--    Used to invite them to the NEXT cohort (recurring flywheel).
+CREATE TABLE IF NOT EXISTS public.workshop_waitlist (
+  id          uuid    DEFAULT gen_random_uuid() PRIMARY KEY,
+  full_name   text    NOT NULL,
+  email       text    NOT NULL,
+  phone       text,
+  source      text    DEFAULT 'masterclass_overflow',
+  created_at  timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.workshop_waitlist ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can join waitlist" ON public.workshop_waitlist;
+CREATE POLICY "Anyone can join waitlist"
+  ON public.workshop_waitlist FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Mentors can view waitlist" ON public.workshop_waitlist;
+CREATE POLICY "Mentors can view waitlist"
+  ON public.workshop_waitlist FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'mentor'
+    )
+  );
+
+-- 6. Performance indexes
+CREATE INDEX IF NOT EXISTS idx_workshop_reg_status
+  ON public.workshop_registrations(registration_status);
+CREATE INDEX IF NOT EXISTS idx_workshop_waitlist_email
+  ON public.workshop_waitlist(email);
+
+
 
 

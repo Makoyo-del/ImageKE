@@ -461,6 +461,108 @@ p { color: var(--text-muted); }
   background: rgba(255,255,255,0.08);
 }
 
+/* ─── DM Navbar Dropdown (UI/UX Pro Max) ─── */
+.dm-nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dm-nav-dropdown-trigger {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dm-nav-dropdown-trigger:hover,
+.dm-nav-dropdown:hover .dm-nav-dropdown-trigger {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+
+.dm-nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 0.5rem;
+  min-width: 210px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 250;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Safe zone gap bridging so mouse hover stays connected */
+.dm-nav-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+
+.dm-nav-dropdown:hover .dm-nav-dropdown-menu,
+.dm-nav-dropdown:focus-within .dm-nav-dropdown-menu {
+  display: flex;
+  animation: dmDropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dmDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(4px);
+  }
+}
+
+.dm-nav-dropdown-item {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.dm-nav-dropdown-item:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  padding-left: 0.95rem; /* UI/UX micro-slide movement */
+}
+
+
 .dm-nav-cta {
   background: var(--dm-teal);
   color: #fff !important;
@@ -2073,5 +2175,18 @@ html, body {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(20, 168, 0, 0.45);
 }
+
+/* Mobile menu sub-category section labels (UI/UX Pro Max) */
+.dm-mobile-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dm-teal);
+  margin-top: 1.25rem;
+  margin-bottom: 0.25rem;
+  padding: 0 1rem;
+}
+
 
 

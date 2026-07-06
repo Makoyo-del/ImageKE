@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronDown, ExternalLink } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 
-// ─── Career Package Prices (KES & USD) ──────────────────────────────────────────
+// ... (keep career packages config)
 const CAREER_PACKAGES = [
   {
     id: 'essential',
@@ -51,6 +51,9 @@ const CAREER_PACKAGES = [
     ],
   },
 ];
+
+// ... (skip down to navbar code)
+
 
 // ─── Service Options (for form dropdown) ──────────────────────────────────────
 const SERVICE_OPTIONS = [
@@ -315,45 +318,56 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <button className="dm-nav-link" onClick={() => scrollTo('services')}>Services</button>
           <button className="dm-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
           <button className="dm-nav-link" onClick={() => scrollTo('process')}>Process</button>
+          
+          {/* Dropdown: Products & Tools */}
+          {(onNavigateToPath || onNavigateToTools) && (
+            <div className="dm-nav-dropdown">
+              <button className="dm-nav-dropdown-trigger">
+                Products &amp; Tools <ChevronDown size={12} style={{ marginTop: '1px' }} />
+              </button>
+              <div className="dm-nav-dropdown-menu">
+                {onNavigateToPath && (
+                  <>
+                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('ats')}>
+                      🧠 ATS Simulator
+                    </button>
+                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('hookbunker')}>
+                      🛡️ HookBunker Proxy
+                    </button>
+                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('academy')}>
+                      🎓 Career Academy
+                    </button>
+                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('workshop')}>
+                      🚀 AI Masterclass
+                    </button>
+                  </>
+                )}
+                {onNavigateToTools && (
+                  <button className="dm-nav-dropdown-item" onClick={onNavigateToTools}>
+                    🛠️ Photo &amp; Video Tools
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Dropdown: Freelance */}
+          <div className="dm-nav-dropdown">
+            <button className="dm-nav-dropdown-trigger">
+              Freelance <ChevronDown size={12} style={{ marginTop: '1px' }} />
+            </button>
+            <div className="dm-nav-dropdown-menu">
+              <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-nav-dropdown-item" style={{ color: '#1dbf73' }}>
+                Fiverr <ExternalLink size={11} style={{ marginLeft: 'auto' }} />
+              </a>
+              <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-nav-dropdown-item" style={{ color: '#14a800' }}>
+                Upwork <ExternalLink size={11} style={{ marginLeft: 'auto' }} />
+              </a>
+            </div>
+          </div>
+
           <button className="dm-nav-link" onClick={() => scrollTo('about')}>About</button>
           <button className="dm-nav-link" onClick={() => scrollTo('contact')}>Contact</button>
-          <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-nav-link" style={{ color: '#1dbf73', fontWeight: 600 }}>Fiverr</a>
-          <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-nav-link" style={{ color: '#14a800', fontWeight: 600 }}>Upwork</a>
-          {onNavigateToPath && (
-            <>
-              <button
-                className="dm-nav-link"
-                onClick={() => onNavigateToPath('ats')}
-                style={{ color: 'var(--dm-teal)', fontWeight: 700 }}
-              >
-                🧠 ATS Simulator
-              </button>
-              <button
-                className="dm-nav-link"
-                onClick={() => onNavigateToPath('hookbunker')}
-                style={{ color: '#10b981', fontWeight: 700 }}
-              >
-                HookBunker
-              </button>
-              <button
-                className="dm-nav-link"
-                onClick={() => onNavigateToPath('academy')}
-                style={{ color: '#14B8A6', fontWeight: 700 }}
-              >
-                Academy
-              </button>
-              <button
-                className="dm-nav-link"
-                onClick={() => onNavigateToPath('workshop')}
-                style={{ color: '#22C55E', fontWeight: 700 }}
-              >
-                🎓 AI Workshop
-              </button>
-            </>
-          )}
-          {onNavigateToTools && (
-            <button className="dm-nav-link" onClick={onNavigateToTools} title="Photo & Video Tools">🛠 Tools</button>
-          )}
         </div>
         <button className="dm-nav-cta" onClick={() => scrollTo('contact')}>
           Request Service
@@ -369,35 +383,49 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
       {mobileMenuOpen && (
         <div className="dm-mobile-menu">
+          <div className="dm-mobile-section-title">Core Navigation</div>
           <button className="dm-mobile-link" onClick={() => { scrollTo('services'); setMobileMenuOpen(false); }}>Services</button>
           <button className="dm-mobile-link" onClick={() => { scrollTo('pricing'); setMobileMenuOpen(false); }}>Pricing</button>
           <button className="dm-mobile-link" onClick={() => { scrollTo('process'); setMobileMenuOpen(false); }}>Process</button>
           <button className="dm-mobile-link" onClick={() => { scrollTo('about'); setMobileMenuOpen(false); }}>About</button>
           <button className="dm-mobile-link" onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }}>Contact</button>
-          <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#1dbf73', fontWeight: 600 }} onClick={() => setMobileMenuOpen(false)}>Fiverr</a>
-          <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#14a800', fontWeight: 600 }} onClick={() => setMobileMenuOpen(false)}>Upwork</a>
-          {onNavigateToPath && (
+
+          {(onNavigateToPath || onNavigateToTools) && (
             <>
-              <button className="dm-mobile-link ats-highlight" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
-                🧠 ATS Simulator
-              </button>
-              <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ color: '#10b981', fontWeight: 700 }}>
-                HookBunker Proxy
-              </button>
-              <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ color: '#14B8A6', fontWeight: 700 }}>
-                Career Academy
-              </button>
-              <button className="dm-mobile-link" onClick={() => { onNavigateToPath('workshop'); setMobileMenuOpen(false); }} style={{ color: '#22C55E', fontWeight: 700 }}>
-                🎓 AI Workshop
-              </button>
+              <div className="dm-mobile-section-title">Products &amp; Tools</div>
+              {onNavigateToPath && (
+                <>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
+                    🧠 ATS Simulator
+                  </button>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ color: '#10b981' }}>
+                    🛡️ HookBunker Proxy
+                  </button>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ color: '#14B8A6' }}>
+                    🎓 Career Academy
+                  </button>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('workshop'); setMobileMenuOpen(false); }} style={{ color: '#22C55E' }}>
+                    🚀 AI Masterclass
+                  </button>
+                </>
+              )}
+              {onNavigateToTools && (
+                <button className="dm-mobile-link" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }}>
+                  🛠️ Photo &amp; Video Tools
+                </button>
+              )}
             </>
           )}
-          {onNavigateToTools && (
-            <button className="dm-mobile-link tools-highlight" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }}>
-              🛠 Photo &amp; Video Tools
-            </button>
-          )}
-          <button className="dm-mobile-cta" onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }}>
+
+          <div className="dm-mobile-section-title">Freelance Platforms</div>
+          <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#1dbf73' }} onClick={() => setMobileMenuOpen(false)}>
+            Fiverr <ExternalLink size={12} style={{ display: 'inline', marginLeft: '6px', verticalAlign: 'middle' }} />
+          </a>
+          <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-mobile-link" style={{ color: '#14a800' }} onClick={() => setMobileMenuOpen(false)}>
+            Upwork <ExternalLink size={12} style={{ display: 'inline', marginLeft: '6px', verticalAlign: 'middle' }} />
+          </a>
+
+          <button className="dm-mobile-cta" style={{ marginTop: '1rem' }} onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }}>
             Request Service
           </button>
         </div>

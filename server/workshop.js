@@ -6,6 +6,9 @@ import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MAX_FREE_REGISTRANTS = 100; // Hard cap — overflow goes to waitlist
+
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
 const workshopLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -55,7 +58,7 @@ const authenticateMentor = async (req, res, next) => {
 // ─── Email Helper ─────────────────────────────────────────────────────────────
 async function sendEmail({ to, subject, html, scheduledAt }) {
   const resendKey = process.env.RESEND_API_KEY;
-  const fromAddress = process.env.EMAIL_FROM || 'duncan@duncanmakoyo.com';
+  const fromAddress = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL || 'duncan@duncanmakoyo.com';
 
   if (resendKey) {
     try {
@@ -115,120 +118,182 @@ async function sendEmail({ to, subject, html, scheduledAt }) {
 }
 
 
-// ─── Route: Get Remaining Early Bird Seats ─────────────────────────────────────
-router.get('/early-bird-count', async (req, res) => {
+// ─── Route: Get Workshop Configuration ────────────────────────────────────────
+router.get('/config', (req, res) => {
+  res.json({
+    success: true,
+    maxSeats: MAX_FREE_REGISTRANTS,
+    workshopDate: process.env.WORKSHOP_DATE || '2026-07-18T11:00:00Z',
+    whatsappGroup: process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo',
+    sessionDate: process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026',
+    sessionTime: process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT',
+    sessionDuration: process.env.WORKSHOP_SESSION_DURATION || '2 Hours'
+  });
+});
+
+// ─── Route: Get Registration Count (replaces early-bird-count) ──────────────
+// Powers the live seat counter on the landing page.
+router.get('/registration-count', async (req, res) => {
   try {
     const { count, error } = await supabase
       .from('workshop_registrations')
       .select('*', { count: 'exact', head: true })
-      .eq('ticket_type', 'early_bird')
-      .eq('payment_status', 'paid');
+      .eq('registration_status', 'confirmed');
 
     if (error) {
-      console.error('[Early Bird Count Error]', error.message);
+      console.error('[Registration Count Error]', error.message);
       return res.status(500).json({ error: 'We could not check seat availability right now.' });
     }
 
-    const maxEarlyBird = 20;
-    const remaining = Math.max(0, maxEarlyBird - (count || 0));
+    const confirmed = count || 0;
+    const remaining = Math.max(0, MAX_FREE_REGISTRANTS - confirmed);
+    const isFull = remaining === 0;
 
-    res.json({ success: true, count: count || 0, remaining });
+    res.json({ success: true, confirmed, remaining, isFull, max: MAX_FREE_REGISTRANTS });
   } catch (err) {
     res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
   }
 });
 
-// ─── Route: Initialize Registration & Payment ──────────────────────────────────
-router.post('/initialize', registrationLimiter, async (req, res) => {
-  const { full_name, email, phone, ticket_type } = req.body;
-
-  const trimmedName = typeof full_name === 'string' ? full_name.trim() : '';
-  const trimmedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
-  const trimmedPhone = typeof phone === 'string' ? phone.trim() : '';
-  let requestedTicket = ticket_type === 'early_bird' ? 'early_bird' : 'regular';
-
-  if (!trimmedName) {
-    return res.status(400).json({ error: 'Please enter your full name.' });
-  }
-  if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-    return res.status(400).json({ error: 'Please enter a valid email address.' });
-  }
-  if (!trimmedPhone || trimmedPhone.length < 8) {
-    return res.status(400).json({ error: 'Please enter a valid phone number.' });
-  }
-
+// ─── Route: Legacy early-bird-count (kept for backwards compat) ───────────────
+router.get('/early-bird-count', async (req, res) => {
   try {
-    // 1. Double check early bird seat count
-    const { count, error: countErr } = await supabase
+    const { count } = await supabase
       .from('workshop_registrations')
       .select('*', { count: 'exact', head: true })
-      .eq('ticket_type', 'early_bird')
-      .eq('payment_status', 'paid');
+      .eq('registration_status', 'confirmed');
+    const remaining = Math.max(0, MAX_FREE_REGISTRANTS - (count || 0));
+    res.json({ success: true, count: count || 0, remaining });
+  } catch {
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  }
+});
+
+// ─── Route: Free Masterclass Registration ──────────────────────────────────────
+// Enforces 100-seat cap. Overflow → workshop_waitlist.
+// No payment required — marks status as 'confirmed' immediately.
+router.post('/register', registrationLimiter, async (req, res) => {
+  const { full_name, email, phone, current_profession, biggest_challenge } = req.body;
+
+  const trimmedName        = typeof full_name           === 'string' ? full_name.trim()           : '';
+  const trimmedEmail       = typeof email               === 'string' ? email.trim().toLowerCase() : '';
+  const trimmedPhone       = typeof phone               === 'string' ? phone.trim()               : '';
+  const trimmedProfession  = typeof current_profession  === 'string' ? current_profession.trim()  : '';
+  const trimmedChallenge   = typeof biggest_challenge   === 'string' ? biggest_challenge.trim()   : '';
+
+  // ── Input validation ────────────────────────────────────────────────────────
+  if (!trimmedName)  return res.status(400).json({ error: 'Please enter your full name.' });
+  if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail))
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  if (!trimmedPhone || trimmedPhone.length < 8)
+    return res.status(400).json({ error: 'Please enter a valid phone number.' });
+
+  try {
+    // ── 1. Check if this email is already registered ─────────────────────────
+    const { data: existing } = await supabase
+      .from('workshop_registrations')
+      .select('id, registration_status')
+      .eq('email', trimmedEmail)
+      .maybeSingle();
+
+    if (existing) {
+      return res.json({
+        success: true,
+        alreadyRegistered: true,
+        status: existing.registration_status,
+        message: 'You are already registered for this masterclass. Check your email for your confirmation details.',
+      });
+    }
+
+    // ── 2. Check seat availability against hard cap ──────────────────────────
+    const { count: confirmedCount, error: countErr } = await supabase
+      .from('workshop_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('registration_status', 'confirmed');
 
     if (countErr) {
-      return res.status(500).json({ error: 'We could not verify seat availability at this moment.' });
+      console.error('[Workshop Seat Count Error]', countErr.message);
+      return res.status(500).json({ error: 'We could not verify seat availability. Please try again.' });
     }
 
-    const earlyBirdCount = count || 0;
-    if (requestedTicket === 'early_bird' && earlyBirdCount >= 20) {
-      // Early bird seats are sold out! Force regular ticket.
-      requestedTicket = 'regular';
+    const seatsFull = (confirmedCount || 0) >= MAX_FREE_REGISTRANTS;
+
+    // ── 3a. FULL → add to waitlist ───────────────────────────────────────────
+    if (seatsFull) {
+      const { error: waitlistErr } = await supabase
+        .from('workshop_waitlist')
+        .insert({
+          full_name: trimmedName,
+          email: trimmedEmail,
+          phone: trimmedPhone || null,
+          source: 'masterclass_overflow',
+        });
+
+      if (waitlistErr) {
+        console.error('[Workshop Waitlist Insert Error]', waitlistErr.message);
+        return res.status(500).json({ error: 'Could not add you to the waitlist. Please try again.' });
+      }
+
+      // Send waitlist notification email
+      await sendEmail({
+        to: trimmedEmail,
+        subject: "You're on the Waitlist — AI Job Search Masterclass",
+        html: getWaitlistEmailHtml(trimmedName),
+      });
+
+      return res.json({
+        success: true,
+        full: true,
+        waitlisted: true,
+        message: "All 100 seats are taken. You've been added to the waitlist and we'll notify you when the next cohort opens.",
+      });
     }
 
-    const priceKES = requestedTicket === 'early_bird' ? 1000 : 1500;
-    const reference = `WS-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    // ── 3b. SEATS AVAILABLE → confirm registration immediately ───────────────
+    const reference = `FREE-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
-    // 2. Save pending registration record
     const { error: insertErr } = await supabase
       .from('workshop_registrations')
       .insert({
         full_name: trimmedName,
         email: trimmedEmail,
         phone: trimmedPhone,
-        ticket_type: requestedTicket,
-        amount_paid: priceKES,
+        ticket_type: 'free',
+        amount_paid: null,
         payment_reference: reference,
-        payment_status: 'pending',
+        payment_status: 'paid',          // Confirmed immediately — no payment needed
+        registration_status: 'confirmed',
+        current_profession: trimmedProfession || null,
+        biggest_challenge: trimmedChallenge  || null,
       });
 
     if (insertErr) {
-      console.error('[Workshop Insert Pending Error]', insertErr.message);
-      return res.status(500).json({ error: 'We could not record your registration. Please try again.' });
+      console.error('[Workshop Free Register Error]', insertErr.message);
+      return res.status(500).json({ error: 'We could not save your registration. Please try again.' });
     }
 
-    // 3. Initialize Paystack checkout
-    const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
-    if (!paystackSecret) {
-      return res.status(500).json({ error: 'Our payment system is currently unavailable.' });
-    }
+    // ── 4. Fire confirmation email immediately ───────────────────────────────
+    const registrationData = {
+      full_name: trimmedName,
+      email: trimmedEmail,
+      amount_paid: null,
+      ticket_type: 'free',
+    };
+    await sendConfirmationEmail(registrationData);
 
-    const paystackResponse = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      {
-        email: trimmedEmail,
-        amount: Math.round(priceKES * 100), // convert to kobo
-        currency: 'KES',
-        reference: reference,
-        metadata: {
+    const remaining = Math.max(0, MAX_FREE_REGISTRANTS - ((confirmedCount || 0) + 1));
 
-          type: 'workshop_registration',
-          ticket_type: requestedTicket,
-          full_name: trimmedName,
-          phone: trimmedPhone,
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${paystackSecret}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return res.json({
+      success: true,
+      full: false,
+      confirmed: true,
+      remaining,
+      message: "You're in! Check your email for your masterclass confirmation and WhatsApp group link.",
+    });
 
-    res.json(paystackResponse.data);
   } catch (err) {
-    console.error('[Workshop Initialize Payment Error]', err.response?.data || err.message);
-    res.status(502).json({ error: 'We could not start the payment process. Please try again.' });
+    console.error('[Workshop Register Error]', err.message);
+    res.status(500).json({ error: 'An unexpected error occurred. Please try again.' });
   }
 });
 
@@ -411,88 +476,124 @@ router.post('/mentor/send-certificate', authenticateMentor, async (req, res) => 
 
 // ─── Helper: Send Confirmation Email ─────────────────────────────────────────
 export async function sendConfirmationEmail(registration) {
-  const gatewayLink = `https://duncanmakoyo.com/#/workshop/join?email=${encodeURIComponent(registration.email)}`;
-  const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
-  const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
-  const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
+  const gatewayLink       = `https://duncanmakoyo.com/#/workshop/join?email=${encodeURIComponent(registration.email)}`;
+  const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK  || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
+  const sessionDate       = process.env.WORKSHOP_SESSION_DATE   || 'Saturday, 18th July 2026';
+  const sessionTime       = process.env.WORKSHOP_SESSION_TIME   || '2:00 PM EAT';
+  const sessionDuration   = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';
+  const isFree            = !registration.amount_paid || registration.ticket_type === 'free';
 
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-      <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Seat Confirmed! 🚀</h2>
-        <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">AI Job Seeker Live Workshop</p>
+      <div style="background: linear-gradient(135deg, #0A1628 0%, #0F1F3D 100%); padding: 32px; border-bottom: 3px solid #22C55E;">
+        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">You're In! Your Seat is Confirmed 🎓</h2>
+        <p style="color: #4ADE80; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">Free AI Job Search Masterclass</p>
       </div>
       <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
         <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Hi ${registration.full_name},</p>
-        <p style="color: #475569; margin-bottom: 24px;">Your payment of <strong>KES ${registration.amount_paid}</strong> has been verified. You have successfully locked in your seat for the upcoming cohort of the AI Job Seeker Workshop.</p>
+        <p style="color: #475569; margin-bottom: 24px;">
+          ${isFree
+            ? 'Your seat for the <strong>Free AI Job Search Masterclass</strong> is confirmed. You are all set — no payment required. See you on the live call!'
+            : `Your payment of <strong>KES ${registration.amount_paid}</strong> has been verified and your seat is locked in.`
+          }
+        </p>
 
-        <!-- Google Meet Details -->
+        <!-- Session Details -->
         <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem;">📅 Event Schedule & Join Link</h4>
+          <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem; font-weight: 700;">📅 Masterclass Details</h4>
           <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
-            <strong>Duration:</strong> 2 Hours Live Training<br/>
-            <strong>Platform:</strong> Google Meet<br/>
-            <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
+            <strong>Date:</strong> ${sessionDate}<br/>
+            <strong>Time:</strong> ${sessionTime}<br/>
+            <strong>Duration:</strong> ${sessionDuration} Live Training<br/>
+            <strong>Platform:</strong> Google Meet
           </p>
           <a href="${gatewayLink}" target="_blank"
-            style="display: inline-block; background: #0F172A; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
-            Verify Seat & Join Workshop →
+            style="display: inline-block; background: #0A1628; color: #ffffff; padding: 10px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            Access Your Join Link →
           </a>
         </div>
 
-        <!-- WhatsApp Group Onboarding -->
+        <!-- WhatsApp Group -->
         <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
-          <p style="margin: 0 0 8px; font-weight: 700; color: #166534; font-size: 0.95rem;">📱 Step 2: Join the WhatsApp Group</p>
-          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #166534;">Join the cohort group for slides, prompts sheets, and workshop notifications.</p>
+          <p style="margin: 0 0 6px; font-weight: 700; color: #166534; font-size: 0.95rem;">📱 Step 2: Join the Masterclass WhatsApp Group</p>
+          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #166534;">Get the prompt sheets, ATS CV template, and live session reminders delivered to you before the call.</p>
           <a href="${whatsappGroupLink}" target="_blank"
-            style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 8px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 8px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
             Join WhatsApp Group →
           </a>
         </div>
 
-        <!-- Resources Box -->
-        <h4 style="margin: 28px 0 10px; color: #0F172A; font-size: 0.95rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">🎁 Your Takeaway Resources</h4>
-        <p style="color: #475569; font-size: 0.875rem; margin-bottom: 16px;">Your complete workshop toolkit (including the ATS Master CV Template, AI Prompt Library, and Job Description Matching framework) will be shared directly inside the cohort WhatsApp group as we approach the live session. Make sure you join the group so you don't miss them!</p>
+        <!-- What You'll Walk Away With -->
+        <h4 style="margin: 28px 0 10px; color: #0F172A; font-size: 0.95rem; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">🎁 What You'll Walk Away With</h4>
+        <ul style="color: #475569; font-size: 0.875rem; margin: 0 0 16px; padding-left: 1.25rem; line-height: 2;">
+          <li>A complete AI prompting workflow for CVs and cover letters</li>
+          <li>An ATS Master CV template (copy-paste ready)</li>
+          <li>A live CV teardown — see errors recruiters never tell you about</li>
+          <li>The exact keywords that pass Applicant Tracking Systems</li>
+        </ul>
 
         <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
           <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Career Mentor</p>
+          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #1A56DB; font-weight: 600;">Career Mentor & AI Job Search Strategist</p>
         </div>
       </div>
     </div>
   `;
 
-  // Send primary confirmation email
   await sendEmail({
     to: registration.email,
-    subject: 'Seat Confirmed: AI Job Seeker Live Workshop!',
+    subject: "You're In! Free AI Job Search Masterclass — Seat Confirmed",
     html: emailHtml,
   });
 
-  // Schedule automated reminder emails (Resend-only feature)
+  // Schedule reminder emails (Resend-only feature)
   const now = new Date();
+  const workshopDate = new Date(process.env.WORKSHOP_DATE || '2026-07-18T11:00:00Z');
+  const reminder24hTime = new Date(workshopDate.getTime() - 29 * 60 * 60 * 1000);
+  const reminder1hTime = new Date(workshopDate.getTime() - 1 * 60 * 60 * 1000);
 
-  // 1. Schedule 24h reminder (July 17, 2026 09:00:00 EAT -> UTC is 06:00:00)
-  const reminder24hTime = new Date('2026-07-17T06:00:00Z');
   if (now < reminder24hTime) {
     await sendEmail({
       to: registration.email,
-      subject: 'Reminder: AI Job Seeker Workshop is Tomorrow! 📅',
+      subject: 'Tomorrow: Your Free AI Job Search Masterclass Starts! 📅',
       html: getReminderEmailHtml(registration, 'tomorrow'),
-      scheduledAt: '2026-07-17T06:00:00.000Z'
+      scheduledAt: reminder24hTime.toISOString(),
     });
   }
 
-  // 2. Schedule 1h reminder (July 18, 2026 13:00:00 EAT -> UTC is 10:00:00)
-  const reminder1hTime = new Date('2026-07-18T10:00:00Z');
   if (now < reminder1hTime) {
     await sendEmail({
       to: registration.email,
-      subject: 'Starting in 1 Hour: Join the AI Job Seeker Live Session! ⏰',
+      subject: 'Starting in 1 Hour — Join the Free AI Job Search Masterclass! ⏰',
       html: getReminderEmailHtml(registration, '1hour'),
-      scheduledAt: '2026-07-18T10:00:00.000Z'
+      scheduledAt: reminder1hTime.toISOString(),
     });
   }
+}
+
+// ─── Helper: Waitlist Confirmation Email ──────────────────────────────────────
+function getWaitlistEmailHtml(name) {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #0A1628 0%, #0F1F3D 100%); padding: 32px; border-bottom: 3px solid #F59E0B;">
+        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">You're on the Waitlist!</h2>
+        <p style="color: #FCD34D; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Free AI Job Search Masterclass</p>
+      </div>
+      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
+        <p style="margin-top: 0; font-weight: 600;">Hi ${name},</p>
+        <p style="color: #475569;">All 100 seats for the current cohort are taken — but we've saved your spot on the waitlist. We'll notify you the moment registration opens for the next cohort.</p>
+        <p style="color: #475569; margin-bottom: 24px;">In the meantime, if you'd like a head start, you can book a <strong>1-on-1 CV Strategy Session</strong> directly with Duncan:</p>
+        <a href="https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%27m%20on%20the%20masterclass%20waitlist%20and%20would%20like%20a%20CV%20session." target="_blank"
+          style="display: inline-block; background: #22C55E; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.9rem;">
+          Book a Private Session on WhatsApp →
+        </a>
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
+          <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
+          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #1A56DB; font-weight: 600;">Career Mentor & AI Job Search Strategist</p>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ─── Helper: Generate Reminder Email Body ─────────────────────────────────────
@@ -505,6 +606,7 @@ function getReminderEmailHtml(registration, type) {
   const introText = type === 'tomorrow'
     ? `This is a friendly reminder that the <strong>AI Job Seeker Live Workshop</strong> is happening <strong>tomorrow, ${sessionDate}</strong>.`
     : `We are starting in exactly <strong>1 hour</strong>! Please get ready and click the link below to join the call.`;
+  const sessionDuration = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';
 
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
@@ -520,7 +622,7 @@ function getReminderEmailHtml(registration, type) {
         <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
           <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem;">📅 Event Join Details</h4>
           <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
-            <strong>Duration:</strong> 2 Hours Live Training<br/>
+            <strong>Duration:</strong> ${sessionDuration} Live Training<br/>
             <strong>Platform:</strong> Google Meet<br/>
             <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
           </p>
@@ -548,6 +650,7 @@ async function sendCertificateEmail(registration) {
   const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
   const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
   const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
+  const sessionDuration = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';
 
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
@@ -563,7 +666,7 @@ async function sendCertificateEmail(registration) {
         <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
           <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem;">📅 Event Schedule & Join Link</h4>
           <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
-            <strong>Duration:</strong> 2 Hours Live Training<br/>
+            <strong>Duration:</strong> ${sessionDuration} Live Training<br/>
             <strong>Platform:</strong> Google Meet<br/>
             <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
           </p>
