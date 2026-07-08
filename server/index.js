@@ -689,7 +689,7 @@ app.post('/api/paystack/webhook', (req, res) => {
                 </div>
               `,
             });
-            console.log(\`[Webhook Success] Provisioned Academy access for \${emailToProvision}\`);
+            console.log(`[Webhook Success] Provisioned Academy access for ${emailToProvision}`);
           }
         } catch (err) {
           console.error('[Webhook Academy Provisioning Error]', err.message);
