@@ -507,9 +507,7 @@ router.post('/projects', authenticateUser, async (req, res) => {
     if (tier === 'free' && count >= 1) {
       return res.status(403).json({ error: 'Free tier is limited to 1 active project. Please upgrade to Team or Business plan to create more.' });
     }
-    if (tier === 'team' && count >= 5) {
-      return res.status(403).json({ error: 'Team tier is limited to 5 active projects. Please upgrade to Business plan for unlimited projects.' });
-    }
+    // Team and Business have unlimited projects
 
     const api_key = crypto.randomBytes(24).toString('hex');
 

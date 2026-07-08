@@ -2058,131 +2058,100 @@ export default function ATSSimulator({ onBack }) {
               </div>
             )}
 
-            {/* ── Lead Capture CTA ──────────────────────────────────────────── */}
+            {/* ── High-Ticket Upsell Funnel ──────────────────────────────────────────── */}
             <div style={{
               background: 'linear-gradient(135deg, var(--dm-navy) 0%, var(--dm-navy-800) 50%, var(--dm-navy) 100%)',
               borderRadius: '20px', padding: '2.5rem',
               border: `1px solid ${scoreColor}33`,
               boxShadow: `0 0 40px ${scoreColor}22`,
+              marginTop: '2rem'
             }}>
-              <div style={{ maxWidth: '620px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{overallScore >= 85 ? '🎯' : overallScore >= 60 ? '⚡' : '🚨'}</div>
-                  <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: '1.35rem', marginBottom: '0.75rem' }}>
+              <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>{overallScore >= 85 ? '🎯' : overallScore >= 60 ? '⚡' : '🚨'}</div>
+                  <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: '1.75rem', marginBottom: '1rem' }}>
                     {ctaHeadline}
                   </h2>
-                  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.05rem', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto' }}>
                     {ctaBody}
                   </p>
                 </div>
 
-                {leadStatus === 'success' ? (
-                  <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(99, 209, 26, 0.1)', border: '1px solid rgba(99, 209, 26, 0.3)', borderRadius: '14px' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✅</div>
-                    <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', marginBottom: '0.5rem' }}>Got it! Duncan will be in touch.</h3>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Check your inbox. You'll hear back within 24 hours.</p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleLeadSubmit}>
-                    <div className="ats-lead-grid">
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Full Name *</label>
-                        <input className="ats-lead-input" placeholder="Your name" value={leadForm.name} onChange={e => setLeadForm(p => ({ ...p, name: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Address *</label>
-                        <input className="ats-lead-input" type="email" placeholder="you@example.com" value={leadForm.email} onChange={e => setLeadForm(p => ({ ...p, email: e.target.value }))} />
-                      </div>
-                    </div>
-                    <div style={{ marginBottom: '1.25rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>LinkedIn URL (optional)</label>
-                      <input className="ats-lead-input" placeholder="linkedin.com/in/yourname" value={leadForm.linkedin} onChange={e => setLeadForm(p => ({ ...p, linkedin: e.target.value }))} />
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.5rem', color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                      <input type="checkbox" checked={leadForm.consent} onChange={e => setLeadForm(p => ({ ...p, consent: e.target.checked }))} style={{ accentColor: 'var(--dm-primary)', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }} />
-                      I agree to be contacted by Duncan Makoyo about my CV results. My data will not be shared with third parties.
-                    </label>
-                    {leadError && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '0.6rem 1rem', marginBottom: '1rem', color: '#FCA5A5', fontSize: '0.85rem' }}>{leadError}</div>}
+                <div className="ats-upsell-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                  
+                  {/* ATS Blueprint - Low Tier Upsell */}
+                  <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem', alignSelf: 'flex-start' }}>Do It Yourself</div>
+                    <h3 style={{ color: '#fff', fontSize: '1.3rem', marginBottom: '0.5rem', fontFamily: 'Montserrat, sans-serif' }}>The ATS Blueprint</h3>
+                    <div style={{ color: '#A7F3D0', fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>999 KES</div>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '1.5rem', flexGrow: 1 }}>
+                      Get the exact templates and keyword strategies I use to write executive resumes. Includes your premium PDF audit report.
+                    </p>
+                    <ul style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '2rem', paddingLeft: '1.2rem', lineHeight: 1.6 }}>
+                      <li style={{ marginBottom: '0.5rem' }}>Premium PDF Audit Report</li>
+                      <li style={{ marginBottom: '0.5rem' }}>ATS-Compliant Word Templates</li>
+                      <li style={{ marginBottom: '0.5rem' }}>Action Verb Dictionary</li>
+                    </ul>
                     <button
-                      type="submit"
-                      disabled={leadStatus === 'sending'}
-                      style={{ width: '100%', background: 'var(--dm-primary)', color: '#fff', border: 'none', borderRadius: '12px', padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800, fontFamily: 'Montserrat, sans-serif', cursor: 'pointer', boxShadow: '0 4px 20px rgba(18, 56, 232, 0.35)', letterSpacing: '0.01em', transition: 'transform 0.15s, box-shadow 0.15s, background-color 0.15s' }}
-                      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(43, 91, 255, 0.45)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
-                      onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(18, 56, 232, 0.35)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
+                      onClick={() => {
+                        setExportEmail(contact.email || '');
+                        setShowExportModal({ type: 'ats_blueprint', price: 999, title: 'The ATS Blueprint' });
+                        setExportError('');
+                        setExportStatus('');
+                      }}
+                      style={{ width: '100%', background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '10px', padding: '1rem', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                     >
-                      {leadStatus === 'sending' ? 'Sending…' : 'Get My Personalised Review →'}
+                      Get The Blueprint
                     </button>
-                    <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
-                      <a className="ats-wa-link" href={`https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%20just%20ran%20my%20CV%20through%20your%20ATS%20Simulator%20and%20got%20a%20score%20of%20${overallScore}%25.%20I%27d%20like%20help%20improving%20it.`} target="_blank" rel="noopener noreferrer">
-                        💬 Or message Duncan directly on WhatsApp
-                      </a>
-                    </div>
-                  </form>
-                )}
-              </div>
-            </div>
+                  </div>
 
-            {/* ── Branded PDF Export Section ────────────────────────────────── */}
-            <div style={{
-              marginTop: '1.5rem',
-              background: '#fff',
-              border: '1px solid var(--dm-border)',
-              borderRadius: '20px',
-              padding: '2rem',
-              textAlign: 'center',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
-              <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-                Download Your Branded ATS Audit PDF Report
-              </h3>
-              <p style={{ color: 'var(--dm-text-muted)', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '580px', margin: '0 auto 1.5rem' }}>
-                Get a beautifully formatted, multi-page PDF audit report featuring a comprehensive checklist, full recommendations list, and a personalized strategic advice pitch compiled by our proprietary AI parsing engine.
-              </p>
-              
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--dm-slate)' }}>
-                  Price: <span style={{ color: 'var(--dm-primary)', fontWeight: 800 }}>99 KES</span> (M-Pesa / Card)
-                </span>
-                <span style={{ color: '#CBD5E1' }}>|</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--dm-text-muted)', fontStyle: 'italic' }}>
-                  ⚡ Instant secure download
-                </span>
+                  {/* Executive Rewrite - High Tier Upsell */}
+                  <div style={{ background: 'var(--dm-electric)', border: '1px solid rgba(43, 91, 255, 0.5)', borderRadius: '16px', padding: '2rem', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #60A5FA, #34D399)' }}></div>
+                    <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem', alignSelf: 'flex-start' }}>Done For You</div>
+                    <h3 style={{ color: '#fff', fontSize: '1.3rem', marginBottom: '0.5rem', fontFamily: 'Montserrat, sans-serif' }}>Executive Resume Rewrite</h3>
+                    <div style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>9,500 KES</div>
+                    <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', marginBottom: '1.5rem', flexGrow: 1 }}>
+                      I will personally rewrite your CV from scratch, optimizing it for ATS systems and human recruiters to land high-paying interviews.
+                    </p>
+                    <ul style={{ color: '#fff', fontSize: '0.85rem', marginBottom: '2rem', paddingLeft: '1.2rem', lineHeight: 1.6, fontWeight: 500 }}>
+                      <li style={{ marginBottom: '0.5rem' }}>Full Strategic Rewrite</li>
+                      <li style={{ marginBottom: '0.5rem' }}>LinkedIn Profile Optimization</li>
+                      <li style={{ marginBottom: '0.5rem' }}>Cover Letter Template</li>
+                      <li style={{ marginBottom: '0.5rem' }}>Bonus: Career Academy Access</li>
+                    </ul>
+                    <button
+                      onClick={() => {
+                        setExportEmail(contact.email || '');
+                        setShowExportModal({ type: 'career_service', packageId: 'executive', price: 9500, title: 'Executive Resume Rewrite' });
+                        setExportError('');
+                        setExportStatus('');
+                      }}
+                      style={{ width: '100%', background: '#fff', color: 'var(--dm-electric)', border: 'none', borderRadius: '10px', padding: '1rem', fontSize: '0.95rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', transition: 'transform 0.15s' }}
+                      onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseOut={e => e.currentTarget.style.transform = ''}
+                    >
+                      Hire Duncan To Rewrite It
+                    </button>
+                  </div>
+
+                </div>
+                
+                <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                  <a className="ats-wa-link" href={`https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%20just%20ran%20my%20CV%20through%20your%20ATS%20Simulator%20and%20got%20a%20score%20of%20${overallScore}%25.%20I%27d%20like%20help%20improving%20it.`} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.85rem' }}>
+                    💬 Have questions? Message Duncan directly on WhatsApp
+                  </a>
+                </div>
               </div>
-              
-              <button
-                onClick={() => {
-                  setExportEmail(leadForm.email || '');
-                  setShowExportModal(true);
-                  setExportError('');
-                  setExportStatus('');
-                }}
-                style={{
-                  marginTop: '1.25rem',
-                  background: 'var(--dm-electric)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '0.9rem 2.5rem',
-                  fontSize: '1rem',
-                  fontWeight: 800,
-                  fontFamily: 'Montserrat, sans-serif',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(43, 91, 255, 0.25)',
-                  transition: 'transform 0.15s, box-shadow 0.15s'
-                }}
-                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(43, 91, 255, 0.35)'; }}
-                onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 14px rgba(43, 91, 255, 0.25)'; }}
-              >
-                📥 Get Premium Audit PDF Report
-              </button>
             </div>
 
           </div>
         </div>
       )}
 
-      {/* ── Export Report Modal ── */}
+      {/* ── Payment Modal ── */}
       {showExportModal && (
         <div style={{
           position: 'fixed',
@@ -2210,7 +2179,7 @@ export default function ATSSimulator({ onBack }) {
             color: 'var(--dm-navy)'
           }}>
             <button
-              onClick={() => { if (!exportLoading) setShowExportModal(false); }}
+              onClick={() => { if (!exportLoading) setShowExportModal(null); }}
               style={{
                 position: 'absolute',
                 top: '1rem',
@@ -2227,10 +2196,10 @@ export default function ATSSimulator({ onBack }) {
             </button>
 
             <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              Premium PDF Report
+              {showExportModal.title}
             </h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--dm-text-muted)', lineHeight: 1.5, marginBottom: '1.5rem', textAlign: 'left' }}>
-              Please enter your email to secure your download reference and generate your strategic audit.
+              Enter your email to secure your purchase. We'll send your receipt and next steps immediately.
             </p>
 
             <div style={{ marginBottom: '1.25rem', textAlign: 'left' }}>
@@ -2262,17 +2231,96 @@ export default function ATSSimulator({ onBack }) {
             {exportStatus && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--dm-primary)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1.25rem', textAlign: 'left' }}>
                 <span className="ats-spinner" style={{ borderColor: '#CBD5E1', borderTopColor: 'var(--dm-primary)', marginRight: '6px' }} />
-                {exportStatus === 'loading_pdf' && 'Loading PDF engine...'}
                 {exportStatus === 'loading_paystack' && 'Loading payment gateway...'}
                 {exportStatus === 'paying' && 'Awaiting payment confirmation...'}
                 {exportStatus === 'verifying' && 'Verifying transaction reference...'}
-                {exportStatus === 'generating' && 'Strategic advice compilation...'}
                 {exportStatus === 'done' && 'Done!'}
               </div>
             )}
 
             <button
-              onClick={handleInitiateExport}
+              onClick={async () => {
+                if (!exportEmail.trim() || !exportEmail.includes('@')) {
+                  setExportError('Please enter a valid email address.');
+                  return;
+                }
+                setExportError('');
+                setExportLoading(true);
+                
+                const emailClean = exportEmail.trim().toLowerCase();
+                const isOwner = OWNER_EMAILS.includes(emailClean);
+                
+                if (isOwner) {
+                   setExportStatus('done');
+                   setTimeout(() => {
+                      setExportLoading(false);
+                      setShowExportModal(null);
+                      alert('Owner bypass successful.');
+                   }, 1000);
+                   return;
+                }
+
+                setExportStatus('loading_paystack');
+                try {
+                  await loadPaystack();
+                  
+                  setExportStatus('verifying');
+                  const metadata = { type: showExportModal.type };
+                  if (showExportModal.type === 'career_service') {
+                     metadata.package = showExportModal.packageId;
+                  }
+                  
+                  const initRes = await axios.post(`${API_URL}/api/initialize-payment`, {
+                    email: emailClean,
+                    metadata
+                  });
+
+                  if (!initRes.data?.status || !initRes.data?.data?.reference) {
+                    throw new Error('Failed to initialize Paystack session.');
+                  }
+
+                  const { reference } = initRes.data.data;
+                  setExportStatus('paying');
+
+                  const handler = window.PaystackPop.setup({
+                    key: PAYSTACK_PUBLIC_KEY,
+                    email: emailClean,
+                    amount: showExportModal.price * 100, // KES in kobo
+                    currency: 'KES',
+                    ref: reference,
+                    callback: function (paystackResponse) {
+                      (async () => {
+                        setExportStatus('verifying');
+                        try {
+                          // Simple verify call to ensure it actually went through (webhook handles fulfillment)
+                          const res = await axios.get(`${API_URL}/api/verify-payment/${paystackResponse.reference}`);
+                          if (res.data?.status === 'success') {
+                            setExportStatus('done');
+                            alert('Payment successful! Check your email for next steps.');
+                            setShowExportModal(null);
+                          } else {
+                            throw new Error('Payment not confirmed.');
+                          }
+                        } catch (err) {
+                          setExportError('Verification completed but there was an issue. Please contact support.');
+                        } finally {
+                          setExportLoading(false);
+                          setExportStatus('');
+                        }
+                      })();
+                    },
+                    onClose: () => {
+                      setExportLoading(false);
+                      setExportStatus('');
+                    }
+                  });
+                  handler.openIframe();
+                } catch (err) {
+                  setExportError('Could not initialize checkout. Please try again or contact support.');
+                  setExportLoading(false);
+                  setExportStatus('');
+                }
+              }}
               disabled={exportLoading}
               style={{
                 width: '100%',
@@ -2288,7 +2336,7 @@ export default function ATSSimulator({ onBack }) {
                 boxShadow: '0 4px 12px rgba(18, 56, 232, 0.2)'
               }}
             >
-              {exportLoading ? 'Processing...' : OWNER_EMAILS.includes(exportEmail.toLowerCase()) ? 'Generate Report (Free)' : 'Pay 99 KES & Export'}
+              {exportLoading ? 'Processing...' : `Pay ${showExportModal.price.toLocaleString()} KES via Paystack`}
             </button>
           </div>
         </div>

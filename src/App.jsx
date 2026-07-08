@@ -164,6 +164,7 @@ const getPathFromHash = () => {
   const hash = window.location.hash;
   const searchParams = new URLSearchParams(window.location.search);
   const fullUrl = window.location.href;
+  const hostname = window.location.hostname;
   
   // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
   if (
@@ -179,15 +180,41 @@ const getPathFromHash = () => {
     return isAcademyRedirect ? 'academy-dashboard' : 'hookbunker-dashboard';
   }
 
+  // --- SUBDOMAIN ROUTING ---
+  if (hostname.includes('hookbunker.')) {
+    if (hash === '#/docs') return 'hookbunker-docs';
+    if (hash === '#/dashboard') return 'hookbunker-dashboard';
+    if (hash === '#/terms') return 'terms';
+    if (hash === '#/privacy') return 'privacy';
+    return 'hookbunker-landing';
+  }
+
+  if (hostname.includes('tools.')) {
+    if (hash === '#/batch') return 'batch';
+    if (hash === '#/custom') return 'custom';
+    if (hash === '#/processor') return 'processor';
+    if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
+    return 'home'; // Default to tools home
+  }
+
+  // --- MAIN DOMAIN ROUTING (Career / Workshop) ---
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
+  
+  // Legacy paths to gracefully handle old links
   if (hash === '#/batch') return 'batch';
   if (hash === '#/custom') return 'custom';
   if (hash === '#/processor') return 'processor';
-  if (hash === '#/terms') return 'terms';
-  if (hash === '#/privacy') return 'privacy';
   if (hash === '#/photo-tools' || hash === '#/photo-editor' || hash === '#/photoeditor') return 'home';
   if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
   if (hash === '#/home' || hash === '#/tools') return 'home';
+  if (hash === '#/hookbunker') return 'hookbunker-landing';
+  if (hash === '#/hookbunker/docs') return 'hookbunker-docs';
+  if (hash === '#/hookbunker/dashboard') return 'hookbunker-dashboard';
+  if (hash === '#/hookbunker/terms') return 'terms';
+  if (hash === '#/hookbunker/privacy') return 'privacy';
+
+  if (hash === '#/terms') return 'terms';
+  if (hash === '#/privacy') return 'privacy';
   
   // Academy paths
   if (hash === '#/academy') return 'academy-auth';
@@ -196,13 +223,6 @@ const getPathFromHash = () => {
   // Workshop paths
   if (hash.startsWith('#/workshop/join')) return 'workshop-join';
   if (hash === '#/workshop' || hash === '#/ai-jobseeker-workshop') return 'workshop';
-
-  // HookBunker paths
-  if (hash === '#/hookbunker') return 'hookbunker-landing';
-  if (hash === '#/hookbunker/docs') return 'hookbunker-docs';
-  if (hash === '#/hookbunker/dashboard') return 'hookbunker-dashboard';
-  if (hash === '#/hookbunker/terms') return 'terms';
-  if (hash === '#/hookbunker/privacy') return 'privacy';
   
   return 'services';
 };
@@ -610,16 +630,6 @@ function App() {
   }, [targetSizeKB, maxDimension, processBatchFile]);
 
   const handleDownloadAllBatch = useCallback(async () => {
-    if (!isPaid) {
-      setPaymentTarget({
-        amount: BATCH_PRICE_KES,
-        metadata: { type: 'batch_download' },
-        onSuccess: () => setIsPaid(true),
-      });
-      setShowEmailModal(true);
-      return;
-    }
-
     const successFiles = batchFiles.filter(f => f.status === 'success' && f.compressedBlob);
     if (successFiles.length === 0) return;
 
@@ -634,19 +644,6 @@ function App() {
   }, [batchFiles, isPaid]);
 
   const handleDownloadIndividualBatch = useCallback(async (fileItem) => {
-    if (!isPaid) {
-      setPaymentTarget({
-        amount: BATCH_PRICE_KES,
-        metadata: { type: 'batch_download' },
-        onSuccess: () => {
-          setIsPaid(true);
-          const cleanFilename = fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg";
-          triggerDownload(fileItem.compressedBlob, cleanFilename);
-        },
-      });
-      setShowEmailModal(true);
-      return;
-    }
 
     const cleanFilename = fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg";
     triggerDownload(fileItem.compressedBlob, cleanFilename);
@@ -845,15 +842,6 @@ function App() {
 
   // ── Download ───────────────────────────────────────────────────────────────
   const handleDownload = async () => {
-    if (!isPaid) {
-      setPaymentTarget({
-        amount: PRICE_KES,
-        metadata: { type: 'photo_download', preset: getActivePreset().name },
-        onSuccess: () => setIsPaid(true),
-      });
-      setShowEmailModal(true);
-      return;
-    }
 
     const preset = getActivePreset();
     const file = originalFileRef.current;
@@ -2713,55 +2701,31 @@ function App() {
                             />
                           </div>
                         ))}
-                        {!isCurrentToolPaid && extractedFrames.length > 5 && (
+                        {extractedFrames.length > 5 && (
                           <div style={{ borderRadius: '6px', border: '1px dashed var(--dm-border)', background: 'var(--dm-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', fontSize: '0.7rem', color: 'var(--dm-primary)', fontWeight: 700, textAlign: 'center', padding: '4px' }}>
-                            +{extractedFrames.length - 5} more locked
+                            +{extractedFrames.length - 5} more
                           </div>
                         )}
                       </div>
 
-                      {!isCurrentToolPaid ? (
-                        <div style={{
-                          background: 'var(--dm-bg)', border: '1px solid var(--dm-border)',
-                          borderRadius: '12px', padding: '1rem',
-                        }}>
-                          <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.25rem' }}>🔒 Unlock All Frames</h4>
-                          <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.4, marginBottom: '1rem' }}>
-                            The free preview shows the first 5 frames. Pay <b>KSh {VIDEO_TOOL_PRICING.frames}</b> to download all {extractedFrames.length} frames as a ZIP archive, or subscribe for unlimited access.
-                          </p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <button
-                              onClick={handleDownloadFreePreview}
-                              className="btn"
-                              style={{ background: 'transparent', color: 'var(--dm-primary)', border: '1.5px solid var(--dm-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                            >
-                              Download First 5 Frames (Free)
-                            </button>
-                            <button
-                              onClick={handlePayForVideo}
-                              className="btn"
-                              style={{ background: 'var(--primary)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                            >
-                              <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING.frames} — Download All {extractedFrames.length} Frames as ZIP
-                            </button>
-                            <button
-                              onClick={handleSubscribe}
-                              className="btn"
-                              style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                            >
-                              Join Creator Plan (KSh 499 / Mo — Unlimited)
-                            </button>
-                          </div>
+                      <div style={{
+                        background: 'var(--dm-bg)', border: '1px solid var(--dm-border)',
+                        borderRadius: '12px', padding: '1rem',
+                      }}>
+                        <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.25rem' }}>Download Frames</h4>
+                        <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
+                          Download all {extractedFrames.length} frames as a ZIP archive.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => downloadFramesAsZip(extractedFrames)}
+                            className="btn"
+                            style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
+                          >
+                            <Download size={18} /> Download All {extractedFrames.length} Frames as ZIP
+                          </button>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => downloadFramesAsZip(extractedFrames)}
-                          className="btn"
-                          style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
-                        >
-                          <Download size={18} /> Download All {extractedFrames.length} Frames as ZIP
-                        </button>
-                      )}
+                      </div>
                     </div>
                   ) : (
                     // Standard video/audio output
@@ -2777,60 +2741,16 @@ function App() {
                     </div>
                   )}
 
-                  {/* Paywall for standard tools */}
                   {activeVideoTool !== 'frames' && (
-                    !isCurrentToolPaid ? (
-                      <div style={{ background: 'var(--dm-bg)', border: '1px solid var(--dm-border)', borderRadius: '12px', padding: '1.25rem', marginTop: '0.5rem' }}>
-                        {activeVideoTool === 'audio' ? (
-                          <>
-                            <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.35rem' }}>🔒 Preview Only · Pay to Download MP3</h4>
-                            <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                              Full-length audio preview plays above — nothing is cut. Pay <b>KSh {VIDEO_TOOL_PRICING.audio}</b> once to download the clean MP3 file.
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.35rem' }}>🔒 Watermarked Preview Only</h4>
-                            <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                              The free preview is limited to <b>15 seconds</b> with a corner watermark. Pay <b>KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99}</b> once to download the full-length clean output — or subscribe for unlimited access.
-                            </p>
-                          </>
-                        )}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {activeVideoTool !== 'audio' && (
-                            <button
-                              onClick={handleDownloadFreePreview}
-                              className="btn"
-                              style={{ background: 'transparent', color: 'var(--dm-primary)', border: '1.5px solid var(--dm-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                            >
-                              Download Free Preview (15s, watermarked)
-                            </button>
-                          )}
-                          <button
-                            onClick={handlePayForVideo}
-                            className="btn"
-                            style={{ background: 'var(--primary)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                          >
-                            <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99} — {activeVideoTool === 'audio' ? 'Download Full MP3' : 'Download Full Clean Version'}
-                          </button>
-                          <button
-                            onClick={handleSubscribe}
-                            className="btn"
-                            style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                          >
-                            Join Creator Plan (KSh 499 / Mo — Unlimited)
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
                       <button
                         onClick={activeVideoTool === 'audio' ? () => handleDownloadFreePreview() : triggerCleanVideoProcess}
                         className="btn"
-                        style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
+                        style={{ background: 'var(--success)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                       >
-                        <Download size={18} /> Download Clean Full-Length
+                        <Download size={18} /> {activeVideoTool === 'audio' ? 'Download Full MP3' : 'Download Clean Video'}
                       </button>
-                    )
+                    </div>
                   )}
 
                   <button
