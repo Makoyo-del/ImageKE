@@ -429,17 +429,17 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 borderRadius: '20px', padding: '5px 16px', fontSize: '0.8rem', fontWeight: 700,
                 letterSpacing: '0.06em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '1.5rem',
               }}>
-                Professional Consulting Services
+                Executive Career Consulting
               </div>
 
               <h1 className="dm-hero-headline">
-                Get More Interviews,<br />
-                More Clients, and<br />
-                <em>More Opportunities</em>
+                Land High-Paying Roles,<br />
+                Dominate the ATS, and<br />
+                <em>Accelerate Your Career</em>
               </h1>
 
               <p className="dm-hero-sub">
-                Professional CV Writing, LinkedIn Optimization, Website Development, and Digital Growth Solutions — designed to help professionals and businesses stand out.
+                Premium ATS-Optimized CV Writing, LinkedIn Profile Overhauls, and Strategic Career Positioning. Engineered to get you past the algorithms and into the interview room.
               </p>
 
               <div className="dm-hero-btns">
@@ -582,114 +582,60 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SERVICES
+          SERVICES (Testimonial Aesthetic)
       ══════════════════════════════════════════════════════════════════════ */}
       <section className="dm-section" id="services" style={{ background: 'var(--dm-bg)' }}>
         <div className="dm-container">
           <span className="dm-section-label">What I Offer</span>
-          <h2 className="dm-section-title">Services</h2>
-          <p className="dm-section-sub">Every service is designed around a specific outcome — not just a deliverable.</p>
+          <h2 className="dm-section-title">Executive Career Services</h2>
+          <p className="dm-section-sub">Every service is designed around a specific outcome: Getting you hired.</p>
 
-          {/* Career Services */}
-          <h3 style={{ margin: '3rem 0 1.5rem', fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ background: 'var(--dm-teal-light)', color: 'var(--dm-teal)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Career Services</span>
-          </h3>
-          <div className="dm-services-grid">
+          <div className="dm-testimonials-grid" style={{ marginTop: '2.5rem' }}>
             {[
               {
-                icon: '📄', badge: 'career', name: 'ATS CV Writing & Optimization',
-                desc: 'Most resumes fail before a recruiter ever reads them. I create ATS-friendly resumes that highlight your achievements and increase your interview rate.',
-                outcome: '→ More interview invitations',
-                bestFor: ['Job seekers', 'Career changers', 'Recent graduates', 'Promotion seekers'],
+                icon: '📄', color: '#10B981', name: 'ATS CV Writing (Essential)', price: 'KES 2,500',
+                desc: 'Most resumes fail before a recruiter ever reads them. I create ATS-friendly resumes that highlight your achievements and increase your interview rate. Includes professional formatting, keyword optimization, and PDF/Word delivery within 48–72 hours.',
+                pkg: CAREER_PACKAGES.find(p => p.id === 'essential')
               },
               {
-                icon: '✉️', badge: 'career', name: 'Cover Letter Writing',
-                desc: 'A strong cover letter separates you from hundreds of applicants. I write customized letters tailored to specific industries and positions.',
-                outcome: '→ Stand out from the crowd',
-                bestFor: ['Competitive roles', 'Career transitions', 'Specific industries'],
+                icon: '🚀', color: '#3B82F6', name: 'Executive Career Package', price: 'KES 9,500',
+                desc: 'A complete overhaul of your professional brand. Includes a full ATS CV Rewrite, a Tailored Cover Letter, LinkedIn Profile Optimization, and a 30-minute 1-on-1 Interview Prep Call. Priority 24–48 hour delivery with post-delivery support.',
+                pkg: CAREER_PACKAGES.find(p => p.id === 'executive')
               },
               {
-                icon: '💼', badge: 'career', name: 'LinkedIn Profile Optimization',
-                desc: 'Recruiters search LinkedIn every day. I optimize your profile to improve visibility, build credibility, and attract the right opportunities.',
-                outcome: '→ Get discovered by recruiters',
-                bestFor: ['Professionals', 'Job seekers', 'Executives'],
+                icon: '💼', color: '#8B5CF6', name: 'LinkedIn Optimization', price: 'Custom',
+                desc: 'Recruiters search LinkedIn every day. I optimize your profile to improve visibility, build credibility, and attract the right inbound opportunities without you having to actively apply.',
+                action: () => scrollTo('contact')
               },
             ].map(svc => (
-              <div key={svc.name} className="dm-service-card">
-                {/* Dark header band */}
-                <div className="dm-service-card-head">
-                  <div className="dm-service-card-glow" />
-                  <div className="dm-service-icon">{svc.icon}</div>
-                  <h3 className="dm-service-name">{svc.name}</h3>
+              <div key={svc.name} className="dm-testimonial-card" style={{ gap: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="dm-testimonial-avatar" style={{ background: svc.color }}>{svc.icon}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--dm-navy)', background: 'var(--dm-bg)', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--dm-border)' }}>
+                    {svc.price}
+                  </div>
                 </div>
-                {/* Card body */}
-                <div className="dm-service-card-body">
-                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career Service' : 'Business'}</span>
-                  <p className="dm-service-desc">{svc.desc}</p>
-                  {svc.bestFor && (
-                    <div className="dm-service-tags">
-                      {svc.bestFor.map(b => (
-                        <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="dm-service-outcome">{svc.outcome}</div>
-                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Get Started →</button>
+                
+                <div>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--dm-navy)', fontWeight: 800 }}>{svc.name}</h3>
+                  <p className="dm-testimonial-text" style={{ fontStyle: 'normal' }}>{svc.desc}</p>
+                </div>
+
+                <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--dm-border)' }}>
+                  <button 
+                    className="dm-btn-primary" 
+                    style={{ width: '100%', padding: '0.75rem', fontSize: '0.9rem' }}
+                    onClick={() => {
+                      if (svc.pkg) openPayModal(svc.pkg);
+                      else if (svc.action) svc.action();
+                    }}
+                  >
+                    {svc.pkg ? 'Get Started Now' : 'Request Service'}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Business Services */}
-          <h3 style={{ margin: '3rem 0 1.5rem', fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ background: 'rgba(99,102,241,0.08)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.2)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Business Growth</span>
-          </h3>
-          <div className="dm-services-grid">
-            {[
-              {
-                icon: '🌐', badge: 'business', name: 'Professional Website Development',
-                desc: 'Your website is often the first impression customers have. I build modern, responsive websites that establish credibility and convert visitors into paying leads.',
-                outcome: '→ Turn visitors into paying clients',
-                bestFor: ['Small businesses', 'Consultants', 'Agencies', 'Startups'],
-              },
-              {
-                icon: '⚙️', badge: 'business', name: 'Digital Presence Setup',
-                desc: 'Build a complete professional online identity — business email, domain configuration, contact forms, lead generation systems, and online branding.',
-                outcome: '→ Look credible online, instantly',
-                bestFor: ['New businesses', 'Freelancers', 'Consultants'],
-              },
-              {
-                icon: '📈', badge: 'business', name: 'Marketing & Growth Support',
-                desc: 'Strategic online positioning and digital optimization to help businesses attract more customers and grow their revenue consistently.',
-                outcome: '→ More customer inquiries',
-                bestFor: ['Growing businesses', 'Service providers', 'Personal brands'],
-              },
-            ].map(svc => (
-              <div key={svc.name} className="dm-service-card">
-                {/* Header band */}
-                <div className="dm-service-card-head">
-                  <div className="dm-service-card-glow" />
-                  <div className="dm-service-icon">{svc.icon}</div>
-                  <h3 className="dm-service-name">{svc.name}</h3>
-                </div>
-                {/* Card body */}
-                <div className="dm-service-card-body">
-                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career Service' : 'Business Growth'}</span>
-                  <p className="dm-service-desc">{svc.desc}</p>
-                  {svc.bestFor && (
-                    <div className="dm-service-tags">
-                      {svc.bestFor.map(b => (
-                        <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="dm-service-outcome">{svc.outcome}</div>
-                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Request a Quote →</button>
-                </div>
-              </div>
-            ))}
-          </div>
-
         </div>
       </section>
 

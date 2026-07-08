@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
+import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
 import ServicesPage from './ServicesPage';
 import ATSSimulator from './ATSSimulator';
 import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBunker';
@@ -8,7 +8,6 @@ import AcademyDashboard from './components/academy/AcademyDashboard';
 import WorkshopLanding from './components/workshop/WorkshopLanding';
 import WorkshopJoin from './components/workshop/WorkshopJoin';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
-import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
 import JSZip from 'jszip';
 
@@ -22,14 +21,6 @@ const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
 // Pricing (in KES) — matches server-side expectation
 const PRICE_KES = 49;
 const BATCH_PRICE_KES = 4;
-
-const VIDEO_TOOL_PRICING = {
-  aspect: 99,
-  compress: 79,
-  watermark: 79,
-  audio: 49,
-  frames: 99
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function isValidEmail(email) {
@@ -1332,16 +1323,16 @@ function App() {
                             style={{
                               padding: '0.4rem 0.8rem',
                               fontSize: '0.8rem',
-                              background: isPaid ? 'var(--primary-light)' : '#FEF3C7',
-                              color: isPaid ? 'var(--primary)' : '#B45309',
-                              border: isPaid ? 'none' : '1px solid #FCD34D',
+                              background: 'var(--primary-light)',
+                              color: 'var(--primary)',
+                              border: 'none',
                               borderRadius: '6px',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.25rem',
                             }}
                           >
-                            {isPaid ? <Download size={12} /> : <Lock size={12} />} Download
+                            <Download size={12} /> Download
                           </button>
                         )}
 
@@ -1417,7 +1408,7 @@ function App() {
 
                 <button
                   onClick={handleDownloadAllBatch}
-                  disabled={successCount === 0 || isPaying}
+                  disabled={successCount === 0}
                   className="btn"
                   style={{
                     display: 'flex',
@@ -1427,11 +1418,7 @@ function App() {
                     boxShadow: successCount > 0 ? '0 4px 14px rgba(0, 82, 204, 0.3)' : 'none',
                   }}
                 >
-                  {isPaying ? (
-                    <><Loader2 size={18} className="spin-icon" /> Processing...</>
-                  ) : (
-                    <><Download size={18} /> {isPaid ? `Download All (${successCount})` : `Pay KES ${BATCH_PRICE_KES} & Download All`}</>
-                  )}
+                  <Download size={18} /> Download All ({successCount})
                 </button>
               </div>
             </div>
@@ -1605,26 +1592,15 @@ function App() {
           <div className="preview-container">
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <img src={previewUrl} className="preview-img" alt="Processed preview" />
-              {isPaid ? (
-                <div style={{
-                  position: 'absolute', top: '10px', right: '10px',
-                  background: 'rgba(16, 185, 129, 0.95)', color: 'white',
-                  padding: '4px 12px', borderRadius: '20px',
-                  fontSize: '0.75rem', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                }}>
-                  <CheckCircle size={14} /> Paid — ready to download
-                </div>
-              ) : (
-                <div style={{
-                  position: 'absolute', top: '10px', right: '10px',
-                  background: 'rgba(0,0,0,0.6)', color: 'white',
-                  padding: '4px 12px', borderRadius: '20px',
-                  fontSize: '0.75rem', fontWeight: 600,
-                }}>
-                  Preview
-                </div>
-              )}
+              <div style={{
+                position: 'absolute', top: '10px', right: '10px',
+                background: 'rgba(16, 185, 129, 0.95)', color: 'white',
+                padding: '4px 12px', borderRadius: '20px',
+                fontSize: '0.75rem', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '4px',
+              }}>
+                <CheckCircle size={14} /> Ready to download
+              </div>
             </div>
 
             <div className="metadata-info" style={{ marginTop: '1rem' }}>
@@ -1634,36 +1610,32 @@ function App() {
               )}
             </div>
 
-            {!isPaid && (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '1rem' }}>
-                The preview has a watermark. Pay <b style={{ color: 'var(--text)' }}>KES {PRICE_KES}</b> to download the clean, portal-ready version.
-              </p>
-            )}
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '1rem' }}>
+              Your clean, portal-ready version is ready to download. 100% Free.
+            </p>
 
             <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 className="btn"
                 onClick={handleDownload}
-                disabled={isPaying}
+                disabled={isProcessing}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.875rem 2rem', fontSize: '1rem' }}
               >
-                {isPaying
+                {isProcessing
                   ? <><Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite' }} /> Processing…</>
-                  : <><Download size={18} /> {isPaid ? 'Download Clean Photo' : `Pay KES ${PRICE_KES} & Download`}</>
+                  : <><Download size={18} /> Download Clean Photo</>
                 }
               </button>
 
-              {!isPaid && (
-                <label style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                  Try a different photo
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    style={{ display: 'none' }}
-                    onChange={handleFileSelect}
-                  />
-                </label>
-              )}
+              <label style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                Try a different photo
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={handleFileSelect}
+                />
+              </label>
             </div>
           </div>
         )}
