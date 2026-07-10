@@ -155,3 +155,29 @@ Never produce prototype-quality UI. Always generate production-ready frontend co
 
 The objective is to produce interfaces that meet or exceed the quality of leading modern SaaS products.
 
+---
+
+# Canvas Design & Frontend Design Integration Policy
+
+For any visual art, poster creation, or frontend layout tasks, you must automatically integrate the guidelines from `canvas-design` and `frontend-design` skills:
+
+1. **Design Philosophy Pass (`canvas-design`)**:
+   - For any static graphic design or poster creation, you must create a visual philosophy/manifesto (e.g., "Brutalist Joy", "Chromatic Silence") before visual generation.
+   - Restrain text to a 90% visual / 10% essential text ratio.
+
+2. **Distinctive Opinionated Design (`frontend-design`)**:
+   - Act as an opinionated design lead. Make deliberate, customized palette, typography, and layout choices.
+   - Avoid generic AI-generated design templates (e.g., warm cream with high-contrast serif, near-black with bright acid-green, or broadsheet newspaper columns) unless specifically requested.
+   - Take at least one justified aesthetic risk per project.
+
+3. **Strict Spatial Layout Integrity (Zero Overlaps, Zero Clipping, Visible Contrast)**:
+   - Allow a 10-15% safety margin on all sides of the canvas to prevent text from being cut off. Scale down text tracking or size dynamically to prevent right/left margin overflow.
+   - Typography Over Image Safety (Legibility Rule): Never place raw text directly over photographic backgrounds unless there is a contrast ratio of at least 4.5:1. Use solid/semi-transparent backings or gradient scrims if placing text near/over images.
+   - Body copy and text blocks must never overlap with image containers or photography. Clear and wrap elements dynamically.
+   - Crop safety: Ensure the subject's head is never cut off at the top when applying geometric/circular masks. Use high-quality rounded rectangles, clean borders, or custom geometric masks (pill/arched shapes).
+   - High contrast and visibility are mandatory for all footer elements, URLs, and secondary CTAs (like "CLICK TO APPLY" or "REGISTER NOW"). Never use dark/low-opacity text on dark backgrounds.
+   - Negative Space & Composition: Keep at least 30-40% of the canvas clear of heavy graphical noise to provide breathing room. Establish a clear visual hierarchy (hook -> secondary details -> CTA).
+
+
+
+

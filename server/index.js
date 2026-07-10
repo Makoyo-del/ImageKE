@@ -240,10 +240,10 @@ function getExpectedAmount(metadata) {
   if (type === 'career_service') {
     const pkgId = metadata?.package;
     if (currency === 'USD') {
-      const careerPricingUSD = { essential: 12, professional: 28, executive: 48 };
+      const careerPricingUSD = { essential: 20, executive: 75 };
       return careerPricingUSD[pkgId] ?? null;
     } else {
-      const careerPricingKES = { essential: 1500, professional: 3500, executive: 6000 };
+      const careerPricingKES = { essential: 2500, executive: 9500 };
       return careerPricingKES[pkgId] ?? null;
     }
   }
@@ -261,6 +261,10 @@ function getExpectedAmount(metadata) {
 
   if (type === 'ats_report') {
     return 99;
+  }
+
+  if (type === 'ats_blueprint') {
+    return 999;
   }
 
   // Reject unknown or free-tool payment types
@@ -542,6 +546,105 @@ app.post('/api/paystack/webhook', (req, res) => {
           }
         } catch (err) {
           console.error('[Webhook Workshop Processing Error]', err.message);
+        }
+      })();
+    } else if (metadata?.type === 'career_service' || metadata?.type === 'ats_blueprint') {
+      // Auto-provision Academy access for high-ticket buyers
+      (async () => {
+        try {
+          const emailToProvision = customer?.email?.trim()?.toLowerCase();
+          if (!emailToProvision) return;
+          
+          const { supabase, supabaseAnon } = await import('./supabase.js');
+          
+          // Check if user already exists
+          const { data: existingUser, error: checkErr } = await supabaseAnon.auth.signInWithOtp({
+             email: emailToProvision,
+             options: { shouldCreateUser: false }
+          });
+          
+          // Generate token
+          const verificationToken = crypto.randomBytes(32).toString('hex');
+          const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+          let userId = null;
+
+          if (checkErr && checkErr.message.includes('Signups not allowed')) {
+            // User does not exist, create them
+            const { data: userData, error: signupErr } = await supabaseAnon.auth.signUp({
+              email: emailToProvision,
+              password: crypto.randomBytes(16).toString('hex'), // Random temp password
+              options: {
+                data: {
+                  full_name: customer?.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : emailToProvision.split('@')[0],
+                }
+              }
+            });
+            if (signupErr) {
+               console.error('[Webhook Academy Provisioning Error] Signup failed:', signupErr.message);
+               return;
+            }
+            userId = userData.user.id;
+          } else {
+             // We can't directly get the user ID from OTP check easily without admin privileges,
+             // so we'll rely on the profiles table matching the email instead.
+             const { data: existingProfile } = await supabase
+               .from('profiles')
+               .select('id')
+               .eq('email', emailToProvision)
+               .maybeSingle();
+             
+             if (existingProfile) {
+                userId = existingProfile.id;
+             }
+          }
+
+          if (userId) {
+            // Update profile
+            await supabase
+              .from('profiles')
+              .update({
+                academy_verification_token: verificationToken,
+                academy_verification_expires: expiresAt,
+                academy_access: true
+              })
+              .eq('id', userId);
+
+            const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
+            const verifyLink = `${academyDashboardUrl.split('#')[0]}?verify_token=${verificationToken}#/academy`;
+
+            await sendEmail({
+              to: emailToProvision,
+              subject: 'Bonus: Your Career Academy Access',
+              html: `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
+                    <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
+                    <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Bonus Access Unlocked</p>
+                  </div>
+                  <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
+                    <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Hello,</p>
+                    <p style="color: #475569; margin-bottom: 24px;">As part of your recent career service purchase, you've been granted complimentary access to the <strong>Duncan Makoyo Career Academy</strong>. Please verify your email to unlock your resources.</p>
+        
+                    <div style="text-align: center; margin: 28px 0;">
+                      <a href="${verifyLink}" target="_blank"
+                        style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
+                        Verify & Access Academy
+                      </a>
+                    </div>
+        
+                    <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
+                      <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
+                      <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Career Mentor</p>
+                    </div>
+                  </div>
+                </div>
+              `,
+            });
+            console.log(`[Webhook Success] Provisioned Academy access for ${emailToProvision}`);
+          }
+        } catch (err) {
+          console.error('[Webhook Academy Provisioning Error]', err.message);
         }
       })();
     }

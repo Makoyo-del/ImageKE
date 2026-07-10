@@ -46,7 +46,18 @@ const WorkshopJoin = () => {
       
       // Redirect to the meeting link after a short delay
       setTimeout(() => {
-        window.location.href = data.link;
+        let redirectUrl = data.link;
+        if (!redirectUrl || typeof redirectUrl !== 'string') {
+          redirectUrl = 'https://meet.google.com/gof-rfcr-hno';
+        }
+        let trimmed = redirectUrl.trim();
+        if (trimmed === '' || trimmed.toLowerCase() === 'undefined' || trimmed.toLowerCase() === 'null') {
+          trimmed = 'https://meet.google.com/gof-rfcr-hno';
+        }
+        if (!/^https?:\/\//i.test(trimmed)) {
+          trimmed = 'https://' + trimmed;
+        }
+        window.location.href = trimmed;
       }, 1500);
 
     } catch (err) {

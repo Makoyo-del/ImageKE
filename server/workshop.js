@@ -55,6 +55,37 @@ const authenticateMentor = async (req, res, next) => {
   }
 };
 
+// ─── Helpers: Sanitize Links to Prevent Redirect/Empty Page Issues ───────────
+function sanitizeMeetingLink(link) {
+  const defaultLink = 'https://meet.google.com/gof-rfcr-hno';
+  if (!link || typeof link !== 'string') {
+    return defaultLink;
+  }
+  let trimmed = link.trim();
+  if (trimmed === '' || trimmed.toLowerCase() === 'undefined' || trimmed.toLowerCase() === 'null') {
+    return defaultLink;
+  }
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = 'https://' + trimmed;
+  }
+  return trimmed;
+}
+
+function sanitizeWhatsappLink(link) {
+  const defaultLink = 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
+  if (!link || typeof link !== 'string') {
+    return defaultLink;
+  }
+  let trimmed = link.trim();
+  if (trimmed === '' || trimmed.toLowerCase() === 'undefined' || trimmed.toLowerCase() === 'null') {
+    return defaultLink;
+  }
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = 'https://' + trimmed;
+  }
+  return trimmed;
+}
+
 // ─── Email Helper ─────────────────────────────────────────────────────────────
 async function sendEmail({ to, subject, html, scheduledAt }) {
   const resendKey = process.env.RESEND_API_KEY;
@@ -388,7 +419,7 @@ router.post('/join-link', async (req, res) => {
     }
 
     // Give them the actual link
-    const meetLink = process.env.WORKSHOP_MEETING_LINK || 'https://meet.google.com/gof-rfcr-hno';
+    const meetLink = sanitizeMeetingLink(process.env.WORKSHOP_MEETING_LINK);
     return res.json({ success: true, link: meetLink });
 
   } catch (err) {
@@ -477,7 +508,7 @@ router.post('/mentor/send-certificate', authenticateMentor, async (req, res) => 
 // ─── Helper: Send Confirmation Email ─────────────────────────────────────────
 export async function sendConfirmationEmail(registration) {
   const gatewayLink       = `https://duncanmakoyo.com/#/workshop/join?email=${encodeURIComponent(registration.email)}`;
-  const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK  || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
+  const whatsappGroupLink = sanitizeWhatsappLink(process.env.WORKSHOP_WHATSAPP_LINK);
   const sessionDate       = process.env.WORKSHOP_SESSION_DATE   || 'Saturday, 18th July 2026';
   const sessionTime       = process.env.WORKSHOP_SESSION_TIME   || '2:00 PM EAT';
   const sessionDuration   = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';
@@ -599,7 +630,7 @@ function getWaitlistEmailHtml(name) {
 // ─── Helper: Generate Reminder Email Body ─────────────────────────────────────
 function getReminderEmailHtml(registration, type) {
   const gatewayLink = `https://duncanmakoyo.com/#/workshop/join?email=${encodeURIComponent(registration.email)}`;
-  const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
+  const whatsappGroupLink = sanitizeWhatsappLink(process.env.WORKSHOP_WHATSAPP_LINK);
   const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
   const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
 
@@ -646,8 +677,8 @@ function getReminderEmailHtml(registration, type) {
 
 // ─── Helper: Send Access Email (Resend links if lost) ─────────────────────────
 async function sendCertificateEmail(registration) {
-  const googleMeetLink = process.env.WORKSHOP_MEETING_LINK || 'https://meet.google.com/gof-rfcr-hno';
-  const whatsappGroupLink = process.env.WORKSHOP_WHATSAPP_LINK || 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
+  const googleMeetLink = sanitizeMeetingLink(process.env.WORKSHOP_MEETING_LINK);
+  const whatsappGroupLink = sanitizeWhatsappLink(process.env.WORKSHOP_WHATSAPP_LINK);
   const sessionDate = process.env.WORKSHOP_SESSION_DATE || 'Saturday, 18th July 2026';
   const sessionTime = process.env.WORKSHOP_SESSION_TIME || '2:00 PM EAT';
   const sessionDuration = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';

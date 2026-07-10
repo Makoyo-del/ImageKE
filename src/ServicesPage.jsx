@@ -15,8 +15,8 @@ const CAREER_PACKAGES = [
   {
     id: 'essential',
     tier: 'Essential',
-    priceKES: 1500,
-    priceUSD: 12,
+    priceKES: 2500,
+    priceUSD: 20,
     delivery: 'Delivery: 48–72 Hours · 1 Revision',
     features: [
       'ATS-Optimized CV',
@@ -26,26 +26,12 @@ const CAREER_PACKAGES = [
     ],
   },
   {
-    id: 'professional',
-    tier: 'Professional',
-    priceKES: 3500,
-    priceUSD: 28,
-    delivery: 'Delivery: 48 Hours · 2 Revisions',
-    featured: true,
-    features: [
-      'ATS CV Rewrite',
-      'Tailored Cover Letter',
-      'Advanced keyword strategy',
-      'Promotion / Career transition focus',
-      'Applicant Tracking System audit',
-    ],
-  },
-  {
     id: 'executive',
     tier: 'Executive',
-    priceKES: 6000,
-    priceUSD: 48,
+    priceKES: 9500,
+    priceUSD: 75,
     delivery: 'Delivery: 24–48 Hours · 3 Revisions',
+    featured: true,
     features: [
       'ATS CV Rewrite',
       'Tailored Cover Letter',
@@ -62,9 +48,8 @@ const CAREER_PACKAGES = [
 
 // ─── Service Options (for form dropdown) ──────────────────────────────────────
 const SERVICE_OPTIONS = [
-  'ATS CV Writing (Essential — KES 1,500)',
-  'ATS CV + Cover Letter (Professional — KES 3,500)',
-  'Executive Career Package (KES 6,000)',
+  'ATS CV Writing (Essential — KES 2,500)',
+  'Executive Career Package (KES 9,500)',
   'LinkedIn Profile Optimization',
   'Professional Website Development',
   'Digital Presence Setup (Email, Domain, Branding)',
@@ -538,16 +523,18 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               </div>
 
               <h1 className="dm-hero-headline">
-                Get More Interviews, More Clients, and More Opportunities
+                Land High-Paying Roles,<br />
+                Dominate the ATS, and<br />
+                <em>Accelerate Your Career</em>
               </h1>
 
               <p className="dm-hero-sub">
-                Professional CV Writing, LinkedIn Optimization, Website Development, and Digital Growth Solutions — designed to help professionals and businesses stand out.
+                Premium ATS-Optimized CV Writing, LinkedIn Profile Overhauls, and Strategic Career Positioning. Engineered to get you past the algorithms and into the interview room.
               </p>
 
               <div className="dm-hero-btns">
-                <button className="dm-btn-primary" onClick={() => scrollTo('contact')}>
-                  Request Service →
+                <button className="dm-btn-primary" onClick={() => onNavigateToPath('ats')}>
+                  Try Free ATS Audit →
                 </button>
                 <button className="dm-btn-outline" onClick={() => scrollTo('pricing')}>
                   View Packages
@@ -873,12 +860,12 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <div className="dm-audit-banner" style={{ marginBottom: '2.5rem' }}>
             <div className="dm-audit-text">
               <strong style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Target size={16} className="text-blue-500" /> Free CV Audit Available
+                <Target size={16} className="text-blue-500" /> [target] Free Instant ATS Simulator
               </strong>
-              <p>Not sure which package fits? Request a free CV audit and I'll tell you exactly what needs improving.</p>
+              <p>Not sure which package fits? Run your resume through my free ATS simulator and get instant feedback on what needs improving.</p>
             </div>
-            <button className="dm-btn-primary" onClick={() => scrollTo('contact')}>
-              Get Free Audit
+            <button className="dm-btn-primary" onClick={() => onNavigateToPath('ats')}>
+              Launch Free Simulator
             </button>
           </div>
 
