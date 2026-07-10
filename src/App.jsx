@@ -327,7 +327,7 @@ function App() {
       }
       setProcessedBlob(null);
       setSelectedPreset(null);
-      setIsPaid(false);
+
     }
   }, [currentPath, previewUrl]);
 
