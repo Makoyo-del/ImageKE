@@ -2135,7 +2135,7 @@ export default function ATSSimulator({ onBack }) {
               textAlign: 'center',
               boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>[doc]</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}><FileText size={48} color="var(--dm-navy)" /></div>
               <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
                 Download Your Branded ATS Audit PDF Report
               </h3>
