@@ -13,8 +13,7 @@ dotenv.config();
 
 // ─── Startup Validation ───────────────────────────────────────────────────────
 if (!process.env.PAYSTACK_SECRET_KEY) {
-  console.error('FATAL: PAYSTACK_SECRET_KEY is not set. Server cannot start.');
-  process.exit(1);
+  console.warn('[WARN] PAYSTACK_SECRET_KEY is not set. Career package and Academy payments will fail.');
 }
 if (!process.env.SUPABASE_URL || process.env.SUPABASE_URL.includes('your-supabase') || process.env.SUPABASE_URL.includes('placeholder')) {
   console.warn('[WARN] SUPABASE_URL is not set or is using a placeholder. Database connections will fail.');
@@ -231,69 +230,41 @@ app.get('/api/ping', pingLimiter, (req, res) => {
   });
 });
 
-// ─── Pricing Helper ─────────────────────────────────────────────────────────────
+// ─── Pricing Helper ──────────────────────────────────────────────────────────
+// Only paid products: career packages, academy, workshop, ATS report.
+// Photo/video/batch tools are FREE — do not add them here.
 function getExpectedAmount(metadata) {
-  let amount = 49; // Default photo price
   const type = metadata?.type;
   const currency = metadata?.currency || 'KES';
-  
-  if (type === 'creator_subscription') {
-    amount = 499;
-  } else if (type === 'batch_download') {
-    amount = 4; // 4 shillings for batch compression
-  } else if (type === 'video_download') {
-    const tool = metadata?.tool;
-    const videoPricing = {
-      aspect: 99,
-      compress: 79,
-      watermark: 79,
-      audio: 49,
-      frames: 99
-    };
-    amount = (tool && videoPricing[tool]) ? videoPricing[tool] : 99;
-  } else if (type === 'career_service') {
+
+  if (type === 'career_service') {
     const pkgId = metadata?.package;
     if (currency === 'USD') {
-      const careerPricingUSD = {
-        essential: 12,
-        professional: 28,
-        executive: 48
-      };
-      if (pkgId && careerPricingUSD[pkgId]) {
-        amount = careerPricingUSD[pkgId];
-      } else {
-        return null;
-      }
+      const careerPricingUSD = { essential: 12, professional: 28, executive: 48 };
+      return careerPricingUSD[pkgId] ?? null;
     } else {
-      const careerPricingKES = {
-        essential: 1500,
-        professional: 3500,
-        executive: 6000
-      };
-      if (pkgId && careerPricingKES[pkgId]) {
-        amount = careerPricingKES[pkgId];
-      } else {
-        return null;
-      }
+      const careerPricingKES = { essential: 1500, professional: 3500, executive: 6000 };
+      return careerPricingKES[pkgId] ?? null;
     }
-  } else if (type === 'academy_subscription') {
-    const pkgId = metadata?.package;
-    const academyPricing = {
-      cohort: 10000,
-      membership: 1500
-    };
-    amount = (pkgId && academyPricing[pkgId]) ? academyPricing[pkgId] : 10000;
-  } else if (type === 'workshop_registration') {
-    const pkg = metadata?.ticket_type;
-    amount = pkg === 'early_bird' ? 1000 : 1500;
-  } else if (type === 'ats_report') {
-    amount = 99;
-  } else {
-    // Default fallback or photo_download
-    amount = 49;
   }
-  
-  return amount;
+
+  if (type === 'academy_subscription') {
+    const pkgId = metadata?.package;
+    const academyPricing = { cohort: 10000, membership: 1500 };
+    return academyPricing[pkgId] ?? null;
+  }
+
+  if (type === 'workshop_registration') {
+    const ticketType = metadata?.ticket_type;
+    return ticketType === 'early_bird' ? 1000 : 1500;
+  }
+
+  if (type === 'ats_report') {
+    return 99;
+  }
+
+  // Reject unknown or free-tool payment types
+  return null;
 }
 
 // ─── Initialize Payment ───────────────────────────────────────────────────────
@@ -364,29 +335,21 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
     }
 
     const amountPaid = txData?.amount / 100; // kobo/cents → KES
-    const email = txData?.customer?.email;
     const metadata = txData?.metadata;
 
-    // VERY SECURE: Validate that the paid amount actually matches the expected pricing for this product
+    // Server-side amount validation: reject if type is unknown or amount is insufficient
     const expectedAmount = getExpectedAmount(metadata);
     if (expectedAmount === null || amountPaid < expectedAmount) {
-      console.error(`[Security Warning] Payment amount mismatch. Paid: ${amountPaid}, Expected: ${expectedAmount}`);
-      return res.status(400).json({ 
-        error: 'Security validation failed: Payment amount does not match the requested service price.', 
-        status: 'failed' 
+      console.error(`[Security] Payment amount mismatch. Paid: ${amountPaid}, Expected: ${expectedAmount}, Type: ${metadata?.type}`);
+      return res.status(400).json({
+        error: 'Security validation failed: Payment amount does not match the expected service price.',
+        status: 'failed'
       });
-    }
-
-    // Issue subscription token if amount covers the monthly plan (KES 499)
-    let token = null;
-    if (amountPaid >= 499 && email) {
-      token = generateSubscriptionToken(email, 30);
     }
 
     res.json({
       status: 'success',
       data: txData,
-      token: token,
     });
   } catch (error) {
     const detail = error.response?.data?.message || error.message;
@@ -395,25 +358,10 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
   }
 });
 
-// ─── Verify Subscription Token ───────────────────────────────────────────────
-app.post('/api/verify-subscription-token', apiLimiter, (req, res) => {
-  const { token } = req.body;
-  if (!token) {
-    return res.status(400).json({ error: 'Token is required.' });
-  }
-
-  const payload = verifySubscriptionToken(token);
-  if (!payload) {
-    return res.json({ valid: false });
-  }
-
-  res.json({
-    valid: true,
-    email: payload.email,
-    expiresAt: payload.expiresAt,
-    expiresAtISO: new Date(payload.expiresAt).toISOString(),
-  });
-});
+// ─── [REMOVED] Verify Subscription Token ─────────────────────────────────────
+// Subscription tokens were used for the former Creator Plan (video tool paywall).
+// Photo/video tools are now free. This endpoint is intentionally removed.
+// Career packages, Academy, and HookBunker use Paystack verify-payment instead.
 
 // ─── Generate ATS Report & Personalised Copy ──────────────────────────────────
 const OWNER_EMAILS = [

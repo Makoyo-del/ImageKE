@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Menu, X, ChevronDown, ExternalLink } from 'lucide-react';
+import { 
+  Menu, X, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Brain, Shield, GraduationCap, Zap, 
+  Wrench, Check, Mail, Phone, Clock, Globe, Settings, TrendingUp, Target, 
+  MessageCircle, MessageSquare, FileText, Briefcase, BarChart, DollarSign,
+  Lock, Star
+} from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -68,16 +73,74 @@ const SERVICE_OPTIONS = [
   'Other / Custom Project',
 ];
 
+// ─── Paystack helper ───────────────────────────────────────────────────────────
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 // ─── Scroll helper ─────────────────────────────────────────────────────────────
 function scrollTo(id) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ─── Paystack helper ───────────────────────────────────────────────────────────
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+// ─── Services Data ─────────────────────────────────────────────────────────────
+const ALL_SERVICES = [
+  {
+    icon: <FileText size={22} className="text-blue-600" />,
+    badge: 'career',
+    name: 'ATS CV Writing & Optimization',
+    desc: 'Most resumes fail before a recruiter ever reads them. I create ATS-friendly resumes that highlight your achievements and increase your interview rate.',
+    outcome: '→ More interview invitations',
+    bestFor: ['Job seekers', 'Career changers', 'Recent graduates'],
+    ctaLabel: 'Get Started →'
+  },
+  {
+    icon: <Mail size={22} className="text-blue-600" />,
+    badge: 'career',
+    name: 'Cover Letter Writing',
+    desc: 'A strong cover letter separates you from hundreds of applicants. I write customized letters tailored to specific industries and positions.',
+    outcome: '→ Stand out from the crowd',
+    bestFor: ['Competitive roles', 'Career transitions', 'Specific industries'],
+    ctaLabel: 'Get Started →'
+  },
+  {
+    icon: <Briefcase size={22} className="text-blue-600" />,
+    badge: 'career',
+    name: 'LinkedIn Profile Optimization',
+    desc: 'Recruiters search LinkedIn every day. I optimize your profile to improve visibility, build credibility, and attract the right opportunities.',
+    outcome: '→ Get discovered by recruiters',
+    bestFor: ['Professionals', 'Job seekers', 'Executives'],
+    ctaLabel: 'Get Started →'
+  },
+  {
+    icon: <Globe size={22} className="text-indigo-600" />,
+    badge: 'business',
+    name: 'Professional Website Development',
+    desc: 'Your website is often the first impression customers have. I build modern, responsive websites that establish credibility and convert visitors into paying leads.',
+    outcome: '→ Turn visitors into paying clients',
+    bestFor: ['Small businesses', 'Consultants', 'Agencies'],
+    ctaLabel: 'Request a Quote →'
+  },
+  {
+    icon: <Settings size={22} className="text-indigo-600" />,
+    badge: 'business',
+    name: 'Digital Presence Setup',
+    desc: 'Build a complete professional online identity — business email, domain configuration, contact forms, lead generation systems, and online branding.',
+    outcome: '→ Look credible online, instantly',
+    bestFor: ['New businesses', 'Freelancers', 'Consultants'],
+    ctaLabel: 'Request a Quote →'
+  },
+  {
+    icon: <TrendingUp size={22} className="text-indigo-600" />,
+    badge: 'business',
+    name: 'Marketing & Growth Support',
+    desc: 'Strategic online positioning and digital optimization to help businesses attract more customers and grow their revenue consistently.',
+    outcome: '→ More customer inquiries',
+    bestFor: ['Growing businesses', 'Service providers', 'Personal brands'],
+    ctaLabel: 'Request a Quote →'
+  }
+];
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
@@ -99,6 +162,20 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
   const [payError, setPayError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
   const [currency, setCurrency] = useState('KES');
+
+  // Horizontal Services Scroll Ref
+  const scrollContainerRef = useRef(null);
+
+  const scrollServices = (direction) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const scrollAmount = 412.5; // card width (390) + gap (22.5)
+    const target = container.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
+    container.scrollTo({
+      left: target,
+      behavior: 'smooth'
+    });
+  };
 
   // Load Paystack script on mount
   useEffect(() => {
@@ -218,7 +295,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 setShowPayModal(false);
                 setPayEmail('');
                 setPayingPackage(null);
-                alert(`✅ Payment confirmed! Duncan will contact you at ${payEmail} within 24 hours to begin your ${pkg.tier} package.`);
+                alert(`Payment confirmed! Duncan will contact you at ${payEmail} within 24 hours to begin your ${pkg.tier} package.`);
               } else {
                 setPayError('Payment was not confirmed. Please contact Duncan if you were charged.');
               }
@@ -313,72 +390,74 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           NAVBAR
       ══════════════════════════════════════════════════════════════════════ */}
       <nav className="dm-nav" id="top">
-        <div className="dm-nav-logo" onClick={() => scrollTo('top')}>DM<span>.</span></div>
-        <div className="dm-nav-links">
-          <button className="dm-nav-link" onClick={() => scrollTo('services')}>Services</button>
-          <button className="dm-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
-          <button className="dm-nav-link" onClick={() => scrollTo('process')}>Process</button>
-          
-          {/* Dropdown: Products & Tools */}
-          {(onNavigateToPath || onNavigateToTools) && (
+        <div className="dm-nav-container">
+          <div className="dm-nav-logo" onClick={() => scrollTo('top')}>DM<span>.</span></div>
+          <div className="dm-nav-links">
+            <button className="dm-nav-link" onClick={() => scrollTo('services')}>Services</button>
+            <button className="dm-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
+            <button className="dm-nav-link" onClick={() => scrollTo('process')}>Process</button>
+            
+            {/* Dropdown: Products & Tools */}
+            {(onNavigateToPath || onNavigateToTools) && (
+              <div className="dm-nav-dropdown">
+                <button className="dm-nav-dropdown-trigger">
+                  Products &amp; Tools <ChevronDown size={12} style={{ marginTop: '1px' }} />
+                </button>
+                <div className="dm-nav-dropdown-menu">
+                  {onNavigateToPath && (
+                    <>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('ats')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Brain size={14} className="text-blue-500" /> ATS Simulator
+                      </button>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('hookbunker')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Shield size={14} className="text-emerald-500" /> HookBunker Proxy
+                      </button>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('academy')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <GraduationCap size={14} className="text-teal-500" /> Career Academy
+                      </button>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('workshop')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Zap size={14} className="text-amber-500" /> AI Masterclass
+                      </button>
+                    </>
+                  )}
+                  {onNavigateToTools && (
+                    <button className="dm-nav-dropdown-item" onClick={onNavigateToTools} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Wrench size={14} className="text-slate-400" /> Photo &amp; Video Tools
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Dropdown: Freelance */}
             <div className="dm-nav-dropdown">
               <button className="dm-nav-dropdown-trigger">
-                Products &amp; Tools <ChevronDown size={12} style={{ marginTop: '1px' }} />
+                Freelance <ChevronDown size={12} style={{ marginTop: '1px' }} />
               </button>
               <div className="dm-nav-dropdown-menu">
-                {onNavigateToPath && (
-                  <>
-                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('ats')}>
-                      🧠 ATS Simulator
-                    </button>
-                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('hookbunker')}>
-                      🛡️ HookBunker Proxy
-                    </button>
-                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('academy')}>
-                      🎓 Career Academy
-                    </button>
-                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('workshop')}>
-                      🚀 AI Masterclass
-                    </button>
-                  </>
-                )}
-                {onNavigateToTools && (
-                  <button className="dm-nav-dropdown-item" onClick={onNavigateToTools}>
-                    🛠️ Photo &amp; Video Tools
-                  </button>
-                )}
+                <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-nav-dropdown-item" style={{ color: '#1dbf73' }}>
+                  Fiverr <ExternalLink size={11} style={{ marginLeft: 'auto' }} />
+                </a>
+                <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-nav-dropdown-item" style={{ color: '#14a800' }}>
+                  Upwork <ExternalLink size={11} style={{ marginLeft: 'auto' }} />
+                </a>
               </div>
             </div>
-          )}
 
-          {/* Dropdown: Freelance */}
-          <div className="dm-nav-dropdown">
-            <button className="dm-nav-dropdown-trigger">
-              Freelance <ChevronDown size={12} style={{ marginTop: '1px' }} />
-            </button>
-            <div className="dm-nav-dropdown-menu">
-              <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" className="dm-nav-dropdown-item" style={{ color: '#1dbf73' }}>
-                Fiverr <ExternalLink size={11} style={{ marginLeft: 'auto' }} />
-              </a>
-              <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" className="dm-nav-dropdown-item" style={{ color: '#14a800' }}>
-                Upwork <ExternalLink size={11} style={{ marginLeft: 'auto' }} />
-              </a>
-            </div>
+            <button className="dm-nav-link" onClick={() => scrollTo('about')}>About</button>
+            <button className="dm-nav-link" onClick={() => scrollTo('contact')}>Contact</button>
           </div>
-
-          <button className="dm-nav-link" onClick={() => scrollTo('about')}>About</button>
-          <button className="dm-nav-link" onClick={() => scrollTo('contact')}>Contact</button>
+          <button className="dm-nav-cta" onClick={() => scrollTo('contact')}>
+            Request Service
+          </button>
+          <button
+            className="dm-mobile-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
-        <button className="dm-nav-cta" onClick={() => scrollTo('contact')}>
-          Request Service
-        </button>
-        <button
-          className="dm-mobile-toggle"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
       </nav>
 
       {mobileMenuOpen && (
@@ -395,23 +474,23 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               <div className="dm-mobile-section-title">Products &amp; Tools</div>
               {onNavigateToPath && (
                 <>
-                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }}>
-                    🧠 ATS Simulator
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Brain size={16} /> ATS Simulator
                   </button>
-                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ color: '#10b981' }}>
-                    🛡️ HookBunker Proxy
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981' }}>
+                    <Shield size={16} /> HookBunker Proxy
                   </button>
-                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ color: '#14B8A6' }}>
-                    🎓 Career Academy
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#14B8A6' }}>
+                    <GraduationCap size={16} /> Career Academy
                   </button>
-                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('workshop'); setMobileMenuOpen(false); }} style={{ color: '#22C55E' }}>
-                    🚀 AI Masterclass
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('workshop'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22C55E' }}>
+                    <Zap size={16} /> AI Masterclass
                   </button>
                 </>
               )}
               {onNavigateToTools && (
-                <button className="dm-mobile-link" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }}>
-                  🛠️ Photo &amp; Video Tools
+                <button className="dm-mobile-link" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Wrench size={16} /> Photo &amp; Video Tools
                 </button>
               )}
             </>
@@ -437,20 +516,29 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       <section className="dm-hero" id="hero">
         <div className="dm-container" style={{ width: '100%' }}>
           <div className="dm-hero-grid">
-            {/* Left */}
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* Premium gradient avatar badge representing Duncan Makoyo */}
               <div style={{
-                display: 'inline-block', background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)',
-                borderRadius: '20px', padding: '5px 16px', fontSize: '0.8rem', fontWeight: 700,
-                letterSpacing: '0.06em', textTransform: 'uppercase', color: '#FFFFFF', marginBottom: '1.5rem',
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--dm-teal) 0%, var(--dm-primary) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                color: '#fff',
+                fontWeight: 800,
+                marginBottom: '1.5rem',
+                boxShadow: '0 8px 30px rgba(18, 56, 232, 0.25)',
+                border: '3px solid rgba(255, 255, 255, 0.1)',
+                fontFamily: 'Montserrat, sans-serif'
               }}>
-                Professional Consulting Services
+                DM
               </div>
 
               <h1 className="dm-hero-headline">
-                Get More Interviews,<br />
-                More Clients, and<br />
-                <em>More Opportunities</em>
+                Get More Interviews, More Clients, and More Opportunities
               </h1>
 
               <p className="dm-hero-sub">
@@ -461,71 +549,25 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 <button className="dm-btn-primary" onClick={() => scrollTo('contact')}>
                   Request Service →
                 </button>
-                <a
-                  href="https://www.fiverr.com/s/LdwxP1Q"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dm-btn-fiverr"
-                >
-                  Hire me on Fiverr
+                <button className="dm-btn-outline" onClick={() => scrollTo('pricing')}>
+                  View Packages
+                </button>
+              </div>
+
+              {/* Smaller client platform links row */}
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', fontWeight: 600 }}>Also on:</span>
+                <a href="https://www.fiverr.com/s/LdwxP1Q" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#1dbf73', fontWeight: 700, textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Fiverr <ExternalLink size={10} />
                 </a>
-                <a
-                  href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dm-btn-upwork"
-                >
-                  Hire me on Upwork
+                <a href="https://www.upwork.com/freelancers/~013bd30757def45e6d?mp_source=share" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#14a800', fontWeight: 700, textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Upwork <ExternalLink size={10} />
                 </a>
               </div>
 
-              <div className="dm-hero-social-proof">
+              <div className="dm-hero-social-proof" style={{ marginTop: '2rem' }}>
                 <span className="dm-stars">★★★★★</span>
                 <span>Trusted by professionals and growing businesses worldwide</span>
-              </div>
-            </div>
-
-            {/* Right — Embedded LinkedIn Post */}
-            <div className="dm-illustration" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-              <div style={{
-                position: 'relative',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(18, 56, 232, 0.2)',
-                width: '100%',
-                maxWidth: '504px',
-                aspectRatio: '504 / 669',
-                maxHeight: '85vh',
-                background: 'rgba(30, 41, 59, 0.5)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                {!loadIframe ? (
-                  <div style={{ color: '#fff', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>
-                    <div className="dm-spinner" style={{
-                      margin: '0 auto 15px',
-                      width: '40px',
-                      height: '40px',
-                      border: '3px solid rgba(255,255,255,0.1)',
-                      borderTop: '3px solid var(--dm-teal)',
-                      borderRadius: '50%'
-                    }} />
-                    <span>Loading LinkedIn Post...</span>
-                  </div>
-                ) : (
-                  <iframe
-                    src="https://www.linkedin.com/embed/feed/update/urn:li:share:7471190683199082497?collapsed=1"
-                    height="100%"
-                    width="100%"
-                    frameBorder="0"
-                    allowFullScreen=""
-                    title="Embedded post"
-                    loading="lazy"
-                    style={{ border: 'none', borderRadius: '24px', display: 'block' }}
-                  />
-                )}
               </div>
             </div>
           </div>
@@ -533,24 +575,26 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          TRUST BAR
+          MOVING RIBBON (Infinite Marquee)
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="dm-trust-bar">
-        <div className="dm-container">
-          <div className="dm-trust-items">
-            {[
-              'ATS Resume Optimization',
-              'LinkedIn Branding',
-              'Business Websites',
-              'Professional Email Setup',
-              'Digital Growth',
-            ].map(item => (
-              <div className="dm-trust-item" key={item}>
-                <span className="dm-trust-check">✓</span>
-                {item}
-              </div>
-            ))}
-          </div>
+        <div className="dm-marquee-track">
+          {[1, 2, 3, 4].map(idx => (
+            <div className="dm-marquee-group" key={idx}>
+              {[
+                'ATS Resume Optimization',
+                'LinkedIn Branding',
+                'Business Websites',
+                'Professional Email Setup',
+                'Digital Growth',
+              ].map(item => (
+                <div className="dm-trust-item" key={item}>
+                  <span className="dm-trust-check">✓</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -566,12 +610,12 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             {[
-              { icon: '📄', title: 'ATS-Optimized CVs', desc: 'Resumes engineered to pass recruiter screening systems and reach human decision-makers.' },
-              { icon: '💼', title: 'LinkedIn Visibility', desc: 'Profiles that attract recruiters, showcase credibility, and generate inbound opportunities.' },
-              { icon: '🌐', title: 'Professional Websites', desc: 'Modern, responsive sites that build trust and convert visitors into paying customers.' },
-              { icon: '⚡', title: 'Fast & Reliable', desc: 'Clear communication, fast turnaround times, and consistent delivery — every project.' },
-              { icon: '📊', title: 'Measurable Results', desc: 'Digital solutions engineered to generate interviews, clients, and real business growth.' },
-              { icon: '💰', title: 'Affordable Quality', desc: 'Premium-level work at fair pricing — no hidden fees, no generic templates.' },
+              { icon: <FileText size={20} className="text-blue-600" />, title: 'ATS-Optimized CVs', desc: 'Resumes engineered to pass recruiter screening systems and reach human decision-makers.' },
+              { icon: <Briefcase size={20} className="text-blue-600" />, title: 'LinkedIn Visibility', desc: 'Profiles that attract recruiters, showcase credibility, and generate inbound opportunities.' },
+              { icon: <Globe size={20} className="text-blue-600" />, title: 'Professional Websites', desc: 'Modern, responsive sites that build trust and convert visitors into paying customers.' },
+              { icon: <Zap size={20} className="text-blue-600" />, title: 'Fast & Reliable', desc: 'Clear communication, fast turnaround times, and consistent delivery — every project.' },
+              { icon: <BarChart size={20} className="text-blue-600" />, title: 'Measurable Results', desc: 'Digital solutions engineered to generate interviews, clients, and real business growth.' },
+              { icon: <DollarSign size={20} className="text-blue-600" />, title: 'Affordable Quality', desc: 'Premium-level work at fair pricing — no hidden fees, no generic templates.' },
             ].map(item => (
               <div key={item.title} style={{
                 display: 'flex', gap: '1rem', padding: '1.5rem',
@@ -582,7 +626,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   width: '44px', height: '44px', borderRadius: '12px',
                   background: 'var(--dm-teal-light)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.25rem', flexShrink: 0,
+                  flexShrink: 0,
                 }}>
                   {item.icon}
                 </div>
@@ -597,89 +641,43 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SERVICES
+          SERVICES (Redesigned: Horizontal Scroll Slider with Arrows)
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="services" style={{ background: 'var(--dm-bg)' }}>
+      <section className="dm-section" id="services" style={{ background: 'var(--dm-bg)', padding: '5.5rem 0', overflow: 'hidden' }}>
         <div className="dm-container">
-          <span className="dm-section-label">What I Offer</span>
-          <h2 className="dm-section-title">Services</h2>
-          <p className="dm-section-sub">Every service is designed around a specific outcome — not just a deliverable.</p>
-
-          {/* Career Services */}
-          <h3 style={{ margin: '3rem 0 1.5rem', fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ background: 'var(--dm-teal-light)', color: 'var(--dm-teal)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Career Services</span>
-          </h3>
-          <div className="dm-services-grid">
-            {[
-              {
-                icon: '📄', badge: 'career', name: 'ATS CV Writing & Optimization',
-                desc: 'Most resumes fail before a recruiter ever reads them. I create ATS-friendly resumes that highlight your achievements and increase your interview rate.',
-                outcome: '→ More interview invitations',
-                bestFor: ['Job seekers', 'Career changers', 'Recent graduates', 'Promotion seekers'],
-              },
-              {
-                icon: '✉️', badge: 'career', name: 'Cover Letter Writing',
-                desc: 'A strong cover letter separates you from hundreds of applicants. I write customized letters tailored to specific industries and positions.',
-                outcome: '→ Stand out from the crowd',
-                bestFor: ['Competitive roles', 'Career transitions', 'Specific industries'],
-              },
-              {
-                icon: '💼', badge: 'career', name: 'LinkedIn Profile Optimization',
-                desc: 'Recruiters search LinkedIn every day. I optimize your profile to improve visibility, build credibility, and attract the right opportunities.',
-                outcome: '→ Get discovered by recruiters',
-                bestFor: ['Professionals', 'Job seekers', 'Executives'],
-              },
-            ].map(svc => (
-              <div key={svc.name} className="dm-service-card">
-                {/* Dark header band */}
-                <div className="dm-service-card-head">
-                  <div className="dm-service-card-glow" />
-                  <div className="dm-service-icon">{svc.icon}</div>
-                  <h3 className="dm-service-name">{svc.name}</h3>
-                </div>
-                {/* Card body */}
-                <div className="dm-service-card-body">
-                  <span className={`dm-service-badge ${svc.badge}`}>{svc.badge === 'career' ? 'Career Service' : 'Business'}</span>
-                  <p className="dm-service-desc">{svc.desc}</p>
-                  {svc.bestFor && (
-                    <div className="dm-service-tags">
-                      {svc.bestFor.map(b => (
-                        <span key={b} style={{ fontSize: '0.72rem', background: 'var(--dm-bg)', color: 'var(--dm-slate)', border: '1px solid var(--dm-border)', borderRadius: '20px', padding: '2px 10px' }}>{b}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="dm-service-outcome">{svc.outcome}</div>
-                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Get Started →</button>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div>
+              <span className="dm-section-label">What I Offer</span>
+              <h2 className="dm-section-title" style={{ margin: 0 }}>Services</h2>
+            </div>
+            
+            {/* Scroll Navigation Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.25rem' }}>
+              <button 
+                onClick={() => scrollServices('left')}
+                className="dm-scroll-btn"
+                aria-label="Scroll Left"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button 
+                onClick={() => scrollServices('right')}
+                className="dm-scroll-btn"
+                aria-label="Scroll Right"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
+          <p className="dm-section-sub" style={{ marginTop: 0, marginBottom: '2.5rem', textAlign: 'left' }}>
+            Every service is designed around a specific outcome — not just a deliverable.
+          </p>
+        </div>
 
-          {/* Business Services */}
-          <h3 style={{ margin: '3rem 0 1.5rem', fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ background: 'rgba(99,102,241,0.08)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.2)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Business Growth</span>
-          </h3>
-          <div className="dm-services-grid">
-            {[
-              {
-                icon: '🌐', badge: 'business', name: 'Professional Website Development',
-                desc: 'Your website is often the first impression customers have. I build modern, responsive websites that establish credibility and convert visitors into paying leads.',
-                outcome: '→ Turn visitors into paying clients',
-                bestFor: ['Small businesses', 'Consultants', 'Agencies', 'Startups'],
-              },
-              {
-                icon: '⚙️', badge: 'business', name: 'Digital Presence Setup',
-                desc: 'Build a complete professional online identity — business email, domain configuration, contact forms, lead generation systems, and online branding.',
-                outcome: '→ Look credible online, instantly',
-                bestFor: ['New businesses', 'Freelancers', 'Consultants'],
-              },
-              {
-                icon: '📈', badge: 'business', name: 'Marketing & Growth Support',
-                desc: 'Strategic online positioning and digital optimization to help businesses attract more customers and grow their revenue consistently.',
-                outcome: '→ More customer inquiries',
-                bestFor: ['Growing businesses', 'Service providers', 'Personal brands'],
-              },
-            ].map(svc => (
+        {/* Horizontal scroll track */}
+        <div className="dm-services-track-wrapper" ref={scrollContainerRef}>
+          <div className="dm-services-track">
+            {ALL_SERVICES.map(svc => (
               <div key={svc.name} className="dm-service-card">
                 {/* Header band */}
                 <div className="dm-service-card-head">
@@ -699,35 +697,64 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                     </div>
                   )}
                   <div className="dm-service-outcome">{svc.outcome}</div>
-                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>Request a Quote →</button>
+                  <button className="dm-service-cta" onClick={() => scrollTo('contact')}>{svc.ctaLabel}</button>
                 </div>
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          HOW IT WORKS
+          HOW IT WORKS (Redesigned: Vertical Timeline)
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="process" style={{ background: '#fff' }}>
-        <div className="dm-container">
-          <span className="dm-section-label">The Process</span>
-          <h2 className="dm-section-title">How It Works</h2>
-          <p className="dm-section-sub">Transparent process, no surprises. Here's exactly what happens after you reach out.</p>
+      <section className="dm-section" id="process" style={{ background: '#faf9f6', color: '#090e1a', borderTop: '1px solid rgba(9, 14, 26, 0.05)', borderBottom: '1px solid rgba(9, 14, 26, 0.05)' }}>
+        <div className="dm-container" style={{ maxWidth: '1000px' }}>
+          <span className="dm-section-label" style={{ color: 'var(--dm-primary)' }}>The Process</span>
+          <h2 className="dm-section-title" style={{ color: '#090e1a', marginBottom: '3.5rem' }}>How It Works</h2>
 
-          <div className="dm-process-grid">
+          <div className="dm-timeline">
             {[
-              { num: '01', title: 'Submit Request', desc: 'Fill in the simple form below or WhatsApp me. Tell me your goal and what you need.' },
-              { num: '02', title: 'Consultation', desc: 'I review your request and may follow up with a few questions to tailor the solution.' },
-              { num: '03', title: 'Delivery', desc: 'You receive the completed work — CV, website, or digital setup — on time, every time.' },
-              { num: '04', title: 'Support', desc: 'Revisions included. I stay available for questions and follow-up support after delivery.' },
-            ].map(step => (
-              <div className="dm-process-step" key={step.num}>
-                <div className="dm-process-num">{step.num}</div>
-                <div className="dm-process-title">{step.title}</div>
-                <p className="dm-process-desc">{step.desc}</p>
+              {
+                num: '1',
+                phase: 'Step 1: Lead Inquiry',
+                title: 'Submit Your Request',
+                desc: 'Fill in the simple request form below or send me a message on WhatsApp. Share your career goals, targeted roles, or details about the business website you need built.',
+              },
+              {
+                num: '2',
+                phase: 'Step 2: Review & Alignment',
+                title: 'Tailored Consultation',
+                desc: 'I review your current CV, profile, or project details. We will schedule a brief discussion or exchange key questions to align on the perfect layout and messaging strategy.',
+              },
+              {
+                num: '3',
+                phase: 'Step 3: Custom Development',
+                title: 'Drafting & Premium Delivery',
+                desc: 'I write and structure your ATS-optimized CV, optimize your LinkedIn profile, or build your custom website. You receive premium-quality deliverables within our agreed timeline.',
+              },
+              {
+                num: '4',
+                phase: 'Step 4: Launch & Revisions',
+                title: 'Support & Revisions',
+                desc: 'We review the work together. I implement any requested revisions to ensure everything is perfect. Revisions are included, and I remain available for post-delivery support.',
+              },
+            ].map((step, index, arr) => (
+              <div key={step.num} className="dm-timeline-item">
+                
+                {/* Left Side: Number Circle & Connector Line */}
+                <div className="dm-timeline-left">
+                  <div className="dm-timeline-circle">{step.num}</div>
+                  {index < arr.length - 1 && <div className="dm-timeline-line" />}
+                </div>
+
+                {/* Right Side: Content */}
+                <div className="dm-timeline-content">
+                  <h3 className="dm-timeline-title">{step.title}</h3>
+                  <div className="dm-timeline-phase">{step.phase}</div>
+                  <p className="dm-timeline-desc">{step.desc}</p>
+                </div>
+
               </div>
             ))}
           </div>
@@ -735,22 +762,53 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          STATS
+          STATS (Redesigned: 2-Column Milky Layout)
       ══════════════════════════════════════════════════════════════════════ */}
       <section className="dm-stats">
         <div className="dm-container">
-          <div className="dm-stats-grid">
-            {[
-              { num: '10+', label: 'Happy Clients Served' },
-              { num: '100%', label: 'Client Satisfaction' },
-              { num: '100%', label: 'Got Interviews or Promotions' },
-              { num: '24–72h', label: 'Average Delivery' },
-            ].map(s => (
-              <div key={s.label}>
-                <div className="dm-stat-num">{s.num}</div>
-                <div className="dm-stat-label">{s.label}</div>
+          <div className="dm-stats-two-col">
+            
+            {/* Left Column: Heading and Context */}
+            <div className="dm-stats-left">
+              <span className="dm-section-label" style={{ color: 'var(--dm-primary)', marginBottom: '0.75rem', display: 'inline-block' }}>Proven Metrics</span>
+              <h2 style={{
+                fontFamily: 'Montserrat, sans-serif',
+                fontSize: '2rem',
+                fontWeight: 800,
+                color: 'var(--dm-navy)',
+                margin: '0 0 1rem 0',
+                lineHeight: 1.25,
+                letterSpacing: '-0.02em',
+              }}>
+                Results That Speak For Themselves
+              </h2>
+              <p style={{
+                margin: 0,
+                fontSize: '1rem',
+                color: '#475569',
+                lineHeight: 1.6,
+              }}>
+                I focus on delivering tangible growth and career advancement. Every project is engineered to achieve maximum impact, speed, and client satisfaction.
+              </p>
+            </div>
+
+            {/* Right Column: Grid of Stats */}
+            <div className="dm-stats-right">
+              <div className="dm-stats-grid-2x2">
+                {[
+                  { num: '10+', label: 'Happy Clients Served' },
+                  { num: '100%', label: 'Satisfaction Rate' },
+                  { num: '100%', label: 'Interviews & Promotions' },
+                  { num: '24–72h', label: 'Average Delivery Time' },
+                ].map(s => (
+                  <div key={s.label} className="dm-stat-card">
+                    <div className="dm-stat-num">{s.num}</div>
+                    <div className="dm-stat-label">{s.label}</div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
           </div>
         </div>
       </section>
@@ -814,7 +872,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           {/* Free Audit Banner */}
           <div className="dm-audit-banner" style={{ marginBottom: '2.5rem' }}>
             <div className="dm-audit-text">
-              <strong>🎯 Free CV Audit Available</strong>
+              <strong style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Target size={16} className="text-blue-500" /> Free CV Audit Available
+              </strong>
               <p>Not sure which package fits? Request a free CV audit and I'll tell you exactly what needs improving.</p>
             </div>
             <button className="dm-btn-primary" onClick={() => scrollTo('contact')}>
@@ -825,26 +885,38 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           <div className="dm-pricing-grid">
             {CAREER_PACKAGES.map(pkg => (
               <div key={pkg.id} className={`dm-pricing-card${pkg.featured ? ' featured' : ''}`}>
-                {pkg.featured && <div className="dm-pricing-badge">⭐ Most Popular</div>}
-                <div className="dm-pricing-tier">{pkg.tier}</div>
-                <div className="dm-pricing-price">
-                  {currency === 'USD' ? (
-                    <>
-                      <small>$</small>{pkg.priceUSD}
-                    </>
-                  ) : (
-                    <>
-                      <small>KES </small>{pkg.priceKES.toLocaleString()}
-                    </>
-                  )}
+                {pkg.featured && (
+                  <div className="dm-pricing-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Star size={10} fill="currentColor" /> Most Popular
+                  </div>
+                )}
+                <div>
+                  <div className="dm-pricing-tier">{pkg.tier}</div>
+                  <div className="dm-pricing-price">
+                    {currency === 'USD' ? (
+                      <>
+                        <small>$</small>{pkg.priceUSD}
+                      </>
+                    ) : (
+                      <>
+                        <small>KES </small>{pkg.priceKES.toLocaleString()}
+                      </>
+                    )}
+                  </div>
+                  <div className="dm-pricing-delivery">{pkg.delivery}</div>
+                  <ul className="dm-pricing-features">
+                    {pkg.features.map(f => (
+                      <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <Check size={14} className="text-emerald-500" style={{ marginTop: '3px', flexShrink: 0 }} />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="dm-pricing-delivery">{pkg.delivery}</div>
-                <ul className="dm-pricing-features">
-                  {pkg.features.map(f => <li key={f}>{f}</li>)}
-                </ul>
                 <button
                   className={`dm-pricing-btn ${pkg.featured ? 'primary' : 'outline'}`}
                   onClick={() => openPayModal(pkg)}
+                  style={{ marginTop: '1.5rem' }}
                 >
                   Get Started — {currency === 'USD' ? '$' + pkg.priceUSD : 'KES ' + pkg.priceKES.toLocaleString()}
                 </button>
@@ -852,8 +924,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             ))}
           </div>
 
-          <p style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--dm-text-muted)' }}>
-            💳 Secure payment via Paystack · M-Pesa, Card & Bank accepted · Duncan contacts you within 24 hours of payment
+          <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--dm-text-muted)', flexWrap: 'wrap' }}>
+            <Lock size={14} className="text-blue-500" /> Secure payment via Paystack · M-Pesa, Card & Bank accepted · Duncan contacts you within 24 hours of payment
           </p>
         </div>
       </section>
@@ -916,10 +988,10 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
                 {[
-                  '🟢 Contact info, skills and sections — detected live',
-                  '🔴 Missing fields shown in real time',
-                  '⚠️ Formatting issues that kill readability exposed',
-                  '📊 Detailed ATS readiness score breakdown',
+                  '[OK] Contact info, skills and sections — detected live',
+                  '[ERR] Missing fields shown in real time',
+                  '[WARN] Formatting issues that kill readability exposed',
+                  '[stats] Detailed ATS readiness score breakdown',
                 ].map(item => (
                   <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#FFFFFF', fontWeight: 500 }}>
                     {item}
@@ -941,10 +1013,10 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(43, 91, 255, 0.5)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
                   onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.4)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
                 >
-                  🔍 Try the Live ATS Simulator →
+                  [search] Try the Live ATS Simulator →
                 </button>
               )}
-              <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>🔒 100% free · No signup · Your CV never leaves your device</p>
+              <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>[lock] 100% free · No signup · Your CV never leaves your device</p>
             </div>
 
             {/* Right — Preview mockup */}
@@ -956,19 +1028,19 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               </div>
               <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.75rem' }}>// ATS Parser — Live Output</div>
               {[
-                { label: 'Name', value: 'John Doe', status: '🟢' },
-                { label: 'Email', value: 'john@email.com', status: '🟢' },
-                { label: 'Phone', value: '+254 7XX XXX XXX', status: '🟢' },
-                { label: 'LinkedIn', value: 'Not detected', status: '🔴', muted: true },
-                { label: 'Experience', value: '~5 years', status: '🟢' },
-                { label: 'Skills found', value: 'SQL, Excel, Python…', status: '🟢' },
-                { label: 'Certifications', value: 'Not detected', status: '🔴', muted: true },
-                { label: 'Multi-column', value: 'Detected — Risky!', status: '⚠️', muted: true },
+                { label: 'Name', value: 'John Doe', status: '[OK]' },
+                { label: 'Email', value: 'john@email.com', status: '[OK]' },
+                { label: 'Phone', value: '+254 7XX XXX XXX', status: '[OK]' },
+                { label: 'LinkedIn', value: 'Not detected', status: '[ERR]', muted: true },
+                { label: 'Experience', value: '~5 years', status: '[OK]' },
+                { label: 'Skills found', value: 'SQL, Excel, Python…', status: '[OK]' },
+                { label: 'Certifications', value: 'Not detected', status: '[ERR]', muted: true },
+                { label: 'Multi-column', value: 'Detected — Risky!', status: '[WARN]', muted: true },
               ].map(row => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', gap: '1rem' }}>
                   <span style={{ color: '#94A3B8', minWidth: '100px' }}>{row.label}:</span>
                   <span style={{ color: row.muted ? 'rgba(255,255,255,0.3)' : '#fff', flex: 1, textAlign: 'right', fontStyle: row.muted ? 'italic' : 'normal' }}>{row.value}</span>
-                  <span>{row.status}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{row.status}</span>
                 </div>
               ))}
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1037,99 +1109,70 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          ACADEMY SECTION
+          ACADEMY SECTION (Redesigned: Simplified & Light-Themed)
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="academy" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #0F2942 100%)', color: '#ffffff', position: 'relative', overflow: 'hidden' }}>
-        {/* Subtle background accent */}
-        <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-        <div className="dm-container" style={{ position: 'relative', zIndex: 1 }}>
-
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <div style={{ display: 'inline-block', background: 'rgba(20,184,166,0.15)', border: '1px solid rgba(20,184,166,0.4)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5EEAD4', marginBottom: '1.25rem' }}>
-              Career Accelerator Program
+      <section className="dm-section" id="academy" style={{ background: '#fff', borderTop: '1px solid var(--dm-border)' }}>
+        <div className="dm-container">
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '3rem', alignItems: 'center' }} className="academy-grid">
+            
+            {/* Left Column — Introduction */}
+            <div>
+              <span className="dm-section-label" style={{ color: 'var(--dm-teal)', background: 'var(--dm-teal-light)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Career Academy
+              </span>
+              <h2 className="dm-section-title" style={{ marginTop: '1rem', marginBottom: '1.25rem', textAlign: 'left' }}>
+                From Job Seeker to In-Demand Professional
+              </h2>
+              <p style={{ fontSize: '0.95rem', color: 'var(--dm-text-muted)', lineHeight: 1.75, marginBottom: '2rem' }}>
+                Transition your career with a structured mentorship program. Duncan guides you step-by-step through ATS CV reconstruction, LinkedIn profile domination, competitive outreach campaigns, and intensive mock interviews.
+              </p>
+              {onNavigateToPath && (
+                <button
+                  className="dm-btn-primary"
+                  onClick={() => onNavigateToPath('academy')}
+                >
+                  Explore the Academy →
+                </button>
+              )}
             </div>
-            <h2 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: 'clamp(1.75rem, 4vw, 2.6rem)', fontWeight: 800, color: '#FFFFFF', margin: '0 0 1rem', lineHeight: 1.2 }}>
-              From Job Seeker to<br />
-              <span style={{ color: '#14B8A6' }}>In-Demand Professional</span>
-            </h2>
-            <p style={{ color: '#94A3B8', fontSize: '1rem', maxWidth: '560px', margin: '0 auto', lineHeight: 1.75 }}>
-              A 6-sprint structured mentorship program covering personal branding, ATS resume writing, LinkedIn domination, interview preparation, digital skills, and direct 1-on-1 reviews by Duncan.
-            </p>
-          </div>
 
-          {/* Sprint grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '3.5rem' }}>
-            {[
-              { num: '01', title: 'Positioning & Personal Brand', desc: 'Define your niche, craft your one-sentence pitch, and build a brand that attracts opportunities.' },
-              { num: '02', title: 'ATS-Optimized Resume', desc: 'Write a CV that scores 80%+ on ATS parsers. Reviewed and approved by Duncan personally.' },
-              { num: '03', title: 'LinkedIn Profile Domination', desc: 'Restructure your profile to rank on recruiter searches and drive inbound connection requests.' },
-              { num: '04', title: 'Job Search Strategy', desc: 'Build outreach pipelines, craft cold emails, and track 20+ live applications per week.' },
-              { num: '05', title: 'Interview Prep & Communication', desc: 'Master the STAR method, salary negotiation, and professional follow-up communication.' },
-              { num: '06', title: 'Digital Skills & GMB Setup', desc: 'Create and verify a Google Business Profile to attract freelancing clients and local visibility.' },
-            ].map(sprint => (
-              <div key={sprint.num} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '1.5rem', transition: 'border-color 0.2s, background 0.2s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(20,184,166,0.4)'; e.currentTarget.style.background = 'rgba(20,184,166,0.07)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              >
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', color: '#14B8A6', textTransform: 'uppercase', marginBottom: '0.6rem' }}>Sprint {sprint.num}</div>
-                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 700, color: '#F1F5F9', lineHeight: 1.35 }}>{sprint.title}</h4>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.6 }}>{sprint.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Pricing + CTA row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-            {/* Cohort card */}
-            <div style={{ background: 'rgba(20,184,166,0.08)', border: '2px solid rgba(20,184,166,0.5)', borderRadius: '16px', padding: '2rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5EEAD4', marginBottom: '0.75rem' }}>Full Accelerator</div>
-              <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#FFFFFF', marginBottom: '0.25rem' }}>KES 10,000</div>
-              <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: '1.5rem' }}>One-time · All 6 sprints · 1-on-1 reviews</div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem', textAlign: 'left' }}>
-                {['Complete 6-Sprint curriculum', 'Personal 1-on-1 deliverable reviews', 'CV makeover included', 'WhatsApp community access', 'Final placement matching support'].map(f => (
-                  <li key={f} style={{ fontSize: '0.875rem', color: '#CBD5E1', padding: '0.3rem 0', display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                    <span style={{ color: '#14B8A6', fontWeight: 700, flexShrink: 0 }}>+</span> {f}
+            {/* Right Column — Academy Highlights Box */}
+            <div style={{
+              background: 'var(--dm-bg)',
+              border: '1px solid var(--dm-border)',
+              borderRadius: '16px',
+              padding: '2rem',
+              boxShadow: '0 4px 12px rgba(13, 27, 77, 0.02)'
+            }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--dm-navy)', fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: '1rem' }}>
+                Program Highlights
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {[
+                  { title: '6-Sprint Mentorship', desc: 'Focus on personal branding & outreach strategy.' },
+                  { title: 'Duncan 1-on-1 Reviews', desc: 'Direct feedback on your CV and materials.' },
+                  { title: 'WhatsApp Community', desc: 'Private group networking with other candidates.' },
+                  { title: 'ATS Mock Screening', desc: 'Validate your CV against live parse algorithms.' }
+                ].map(hl => (
+                  <li key={hl.title} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <Check size={14} className="text-emerald-600" style={{ marginTop: '3px', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--dm-navy)' }}>{hl.title}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--dm-text-muted)', lineHeight: 1.4 }}>{hl.desc}</div>
+                    </div>
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={() => onNavigateToPath && onNavigateToPath('academy')}
-                style={{ width: '100%', background: 'linear-gradient(135deg, #14B8A6, #0D9488)', color: '#fff', border: 'none', borderRadius: '10px', padding: '0.85rem 1.5rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', letterSpacing: '0.01em' }}
-              >
-                Enroll — KES 10,000
-              </button>
             </div>
 
-            {/* Monthly card */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '2rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#A5B4FC', marginBottom: '0.75rem' }}>Monthly Access Pass</div>
-              <div style={{ fontSize: '2.25rem', fontWeight: 800, color: '#FFFFFF', marginBottom: '0.25rem' }}>KES 1,500<span style={{ fontSize: '1rem', fontWeight: 500, color: '#94A3B8' }}>/mo</span></div>
-              <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: '1.5rem' }}>Self-paced · Cancel anytime</div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem', textAlign: 'left' }}>
-                {['Full self-paced curriculum', 'Weekly templates & resources', 'WhatsApp networking group', 'Access revoked if billing fails'].map(f => (
-                  <li key={f} style={{ fontSize: '0.875rem', color: '#CBD5E1', padding: '0.3rem 0', display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                    <span style={{ color: '#818CF8', fontWeight: 700, flexShrink: 0 }}>+</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => onNavigateToPath && onNavigateToPath('academy')}
-                style={{ width: '100%', background: 'transparent', color: '#A5B4FC', border: '1px solid rgba(165,180,252,0.5)', borderRadius: '10px', padding: '0.85rem 1.5rem', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}
-              >
-                Subscribe — KES 1,500/mo
-              </button>
-            </div>
           </div>
-
-          {/* Footer note */}
-          <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#64748B', maxWidth: '500px', margin: '0 auto' }}>
-            We prepare candidates with real skills and tools. We do not guarantee employment outcomes. Results depend on individual effort and market conditions.
-          </p>
-
         </div>
+
+        <style>{`
+          @media (max-width: 768px) {
+            .academy-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
+          }
+        `}</style>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -1173,7 +1216,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   'Digital systems that generate real business growth',
                 ].map(item => (
                   <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', fontSize: '0.9rem', color: 'var(--dm-slate)' }}>
-                    <span className="dm-about-check">✓</span>
+                    <Check size={16} className="text-teal-600" style={{ marginTop: '2px', flexShrink: 0 }} />
                     {item}
                   </div>
                 ))}
@@ -1212,21 +1255,27 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>📞</div>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Phone size={18} className="text-blue-600" />
+                  </div>
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--dm-text-muted)', marginBottom: '0.2rem' }}>Phone / WhatsApp</div>
                     <a href="tel:+254794877125" style={{ fontWeight: 700, color: 'var(--dm-navy)', textDecoration: 'none', fontSize: '0.95rem' }}>+254 794 877 125</a>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>✉️</div>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Mail size={18} className="text-blue-600" />
+                  </div>
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--dm-text-muted)', marginBottom: '0.2rem' }}>Email</div>
                     <a href="mailto:info@duncanmakoyo.com" style={{ fontWeight: 700, color: 'var(--dm-navy)', textDecoration: 'none', fontSize: '0.95rem' }}>info@duncanmakoyo.com</a>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>⏱️</div>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Clock size={18} className="text-blue-600" />
+                  </div>
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--dm-text-muted)', marginBottom: '0.2rem' }}>Response Time</div>
                     <div style={{ fontWeight: 700, color: 'var(--dm-navy)', fontSize: '0.95rem' }}>Within 24 hours</div>
@@ -1242,7 +1291,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             }}>
               {formStatus === 'success' ? (
                 <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem', color: 'var(--dm-teal)' }}>[OK]</div>
                   <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', marginBottom: '0.5rem' }}>Request Received!</h3>
                   <p style={{ color: 'var(--dm-text-muted)', fontSize: '0.95rem', lineHeight: 1.65 }}>
                     Duncan will review your request and get back to you within 24 hours. Check your email for a confirmation.
@@ -1308,7 +1357,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   </button>
 
                   <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--dm-text-muted)' }}>
-                    🔒 Your information is safe and never shared with third parties.
+                    [lock] Your information is safe and never shared with third parties.
                   </p>
                 </form>
               )}
@@ -1365,9 +1414,15 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 Professional CV Writing, LinkedIn Optimization, Website Development, and Digital Growth Solutions for professionals and businesses across Kenya.
               </p>
               <div className="dm-footer-contact">
-                <div>📞 <a href="tel:+254794877125">+254 794 877 125</a></div>
-                <div>✉️ <a href="mailto:info@duncanmakoyo.com">info@duncanmakoyo.com</a></div>
-                <div>🌐 <a href="https://duncanmakoyo.com" style={{ color: 'var(--dm-teal)' }}>duncanmakoyo.com</a></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Phone size={12} /> <a href="tel:+254794877125">+254 794 877 125</a>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Mail size={12} /> <a href="mailto:info@duncanmakoyo.com">info@duncanmakoyo.com</a>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Globe size={12} /> <a href="https://duncanmakoyo.com" style={{ color: 'var(--dm-teal)' }}>duncanmakoyo.com</a>
+                </div>
               </div>
             </div>
 
@@ -1393,8 +1448,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               )}
               {onNavigateToPath && (
                 <>
-                  <button className="dm-footer-link" onClick={() => onNavigateToPath('ats')}>🧠 ATS Simulator</button>
-                  <button className="dm-footer-link" onClick={() => onNavigateToPath('hookbunker')} style={{ color: '#10b981', fontWeight: 600 }}>🛡 HookBunker Monitor</button>
+                  <button className="dm-footer-link" onClick={() => onNavigateToPath('ats')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Brain size={12} /> ATS Simulator</button>
+                  <button className="dm-footer-link" onClick={() => onNavigateToPath('hookbunker')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: 600 }}><Shield size={12} /> HookBunker Monitor</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('terms')}>Terms of Use</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('privacy')}>Privacy Policy</button>
                 </>
@@ -1404,9 +1459,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             {/* Connect col */}
             <div>
               <div className="dm-footer-col-title">Connect</div>
-              <a className="dm-footer-link" href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>
-              <a className="dm-footer-link" href="https://www.linkedin.com/in/duncan-makoyo-196ba7307/" target="_blank" rel="noopener noreferrer">🔗 LinkedIn</a>
-              <a className="dm-footer-link" href="mailto:info@duncanmakoyo.com">✉️ Email Me</a>
+              <a className="dm-footer-link" href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><MessageCircle size={12} /> WhatsApp</a>
+              <a className="dm-footer-link" href="https://www.linkedin.com/in/duncan-makoyo-196ba7307/" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><ExternalLink size={12} /> LinkedIn</a>
+              <a className="dm-footer-link" href="mailto:info@duncanmakoyo.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Mail size={12} /> Email Me</a>
             </div>
           </div>
 
@@ -1432,8 +1487,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
         rel="noopener noreferrer"
         aria-label="Chat on WhatsApp"
         title="Chat on WhatsApp"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}
       >
-        💬
+        <MessageCircle size={24} />
       </a>
 
     </div>

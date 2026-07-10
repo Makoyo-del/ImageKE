@@ -253,7 +253,7 @@ export default function WorkshopLanding({ onNavigate }) {
                 {loadingSeats ? (
                   <span>Checking availability…</span>
                 ) : isFull ? (
-                  <span className="ws-seats-full">🔴 All {maxSeats} seats taken — join the waitlist</span>
+                  <span className="ws-seats-full">[Full] All {maxSeats} seats taken — join the waitlist</span>
                 ) : (
                   <span><strong>{remaining}</strong> of {maxSeats} free seats remaining</span>
                 )}
@@ -284,7 +284,7 @@ export default function WorkshopLanding({ onNavigate }) {
                 rel="noopener noreferrer"
                 className="ws-btn-whatsapp ws-whatsapp-glow"
               >
-                💬 WhatsApp Me
+                WhatsApp Me
               </a>
             </div>
           </div>
@@ -294,11 +294,11 @@ export default function WorkshopLanding({ onNavigate }) {
             <div className="ws-portrait-container">
               <div className="ws-portrait-glow" />
               <img src="/portrait.jpeg" alt="Duncan Makoyo — Career Mentor and AI Job Search Strategist" className="ws-portrait-img" loading="eager" decoding="async" width="340" height="453" />
-              <div className="ws-float-icon ws-fi-1" aria-hidden="true">💻</div>
-              <div className="ws-float-icon ws-fi-2" aria-hidden="true">🎓</div>
-              <div className="ws-float-icon ws-fi-3" aria-hidden="true">📄</div>
-              <div className="ws-float-icon ws-fi-4" aria-hidden="true">🤖</div>
-              <div className="ws-float-icon ws-fi-5" aria-hidden="true">⭐</div>
+              <div className="ws-float-icon ws-fi-1" aria-hidden="true">[pc]</div>
+              <div className="ws-float-icon ws-fi-2" aria-hidden="true">[edu]</div>
+              <div className="ws-float-icon ws-fi-3" aria-hidden="true">[doc]</div>
+              <div className="ws-float-icon ws-fi-4" aria-hidden="true">[bot]</div>
+              <div className="ws-float-icon ws-fi-5" aria-hidden="true">[star]</div>
               <div className="ws-trainer-tag">
                 <strong>Duncan Makoyo</strong>
                 <span>Career Mentor & AI Job Search Strategist</span>
@@ -306,7 +306,7 @@ export default function WorkshopLanding({ onNavigate }) {
             </div>
 
             <div className="ws-countdown-card" aria-label="Countdown to masterclass">
-              <div className="ws-countdown-label">⏰ Masterclass starts in:</div>
+              <div className="ws-countdown-label">[Time] Masterclass starts in:</div>
               <div className="ws-countdown-timer">
                 <div className="ws-cd-unit"><strong>{pad(countdown.days)}</strong><span>Days</span></div>
                 <div className="ws-cd-unit"><strong>{pad(countdown.hours)}</strong><span>Hrs</span></div>
@@ -314,7 +314,7 @@ export default function WorkshopLanding({ onNavigate }) {
                 <div className="ws-cd-unit"><strong>{pad(countdown.secs)}</strong><span>Secs</span></div>
               </div>
               <div className="ws-countdown-slots">
-                📅 {sessionDate} · {sessionTime}
+                [Date] {sessionDate} · {sessionTime}
               </div>
             </div>
           </div>
@@ -352,11 +352,11 @@ export default function WorkshopLanding({ onNavigate }) {
           <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '2rem', fontWeight: 800, textAlign: 'center', marginBottom: '2.5rem', letterSpacing: '-0.02em' }}>You Keep Everything</h2>
           <div className="ws-trust-grid">
             {[
-              { icon: '📚', title: 'AI Prompt Library',      desc: 'Copy-and-paste CV and cover letter workflow' },
-              { icon: '📄', title: 'ATS CV Template',        desc: 'Recruiter-approved, parser-safe template' },
-              { icon: '📐', title: 'Master CV Framework',    desc: 'Structured layout that adapts to any industry' },
-              { icon: '🎯', title: 'Job Matching Prompts',   desc: 'Extract critical keywords in seconds' },
-              { icon: '📧', title: 'Cover Letter Prompts',   desc: 'Tailor custom cover letters instantly' },
+              { icon: '[lib]', title: 'AI Prompt Library',      desc: 'Copy-and-paste CV and cover letter workflow' },
+              { icon: '[doc]', title: 'ATS CV Template',        desc: 'Recruiter-approved, parser-safe template' },
+              { icon: '[crop]', title: 'Master CV Framework',    desc: 'Structured layout that adapts to any industry' },
+              { icon: '[target]', title: 'Job Matching Prompts',   desc: 'Extract critical keywords in seconds' },
+              { icon: '[email]', title: 'Cover Letter Prompts',   desc: 'Tailor custom cover letters instantly' },
             ].map((item, i) => (
               <div key={i} className="ws-trust-card">
                 <div className="ws-trust-icon" aria-hidden="true">{item.icon}</div>
@@ -392,7 +392,7 @@ export default function WorkshopLanding({ onNavigate }) {
           <div>
             <div className="ws-pricing-card">
               <div className="ws-pricing-header">
-                <span>{isFull ? '🔴 SEATS FULL — JOIN WAITLIST' : `🎓 FREE — ${remaining} SEATS LEFT`}</span>
+                <span>{isFull ? '[FULL] SEATS FULL — JOIN WAITLIST' : `[FREE] FREE — ${remaining} SEATS LEFT`}</span>
               </div>
               <div className="ws-pricing-body">
                 {/* UI/UX Pro Max: FREE badge with strong visual contrast */}
@@ -432,7 +432,7 @@ export default function WorkshopLanding({ onNavigate }) {
                   {isFull ? 'JOIN THE WAITLIST' : 'CLAIM MY FREE SEAT'} <ArrowRight size={18} />
                 </button>
                 <div className="ws-pricing-secure">
-                  <span role="img" aria-label="lock">🔒</span> No payment required · 100% Free
+                  [lock] No payment required · 100% Free
                 </div>
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function WorkshopLanding({ onNavigate }) {
           <div className="ws-upsell-grid">
             {/* Left column: What the masterclass teaches */}
             <div className="ws-upsell-card ws-upsell-free">
-              <div className="ws-upsell-card-label">✅ What the Masterclass Teaches (Free)</div>
+              <div className="ws-upsell-card-label">[OK] What the Masterclass Teaches (Free)</div>
               <ul className="ws-upsell-list">
                 {WHAT_VS_HOW.map((item, i) => (
                   <li key={i}>
@@ -579,11 +579,11 @@ export default function WorkshopLanding({ onNavigate }) {
             rel="noopener noreferrer"
             className="ws-btn-whatsapp ws-whatsapp-glow"
           >
-            💬 WhatsApp Me
+            WhatsApp Me
           </a>
         </div>
         <div className="ws-final-phone">
-          📞 <a href="tel:+254794877125">0794 877 125</a>
+          [tel] <a href="tel:+254794877125">0794 877 125</a>
         </div>
       </section>
 
@@ -598,7 +598,7 @@ export default function WorkshopLanding({ onNavigate }) {
             <p className="ws-footer-brand-desc">Helping job seekers use AI to create CVs that get recruiters to respond.</p>
             <div className="ws-footer-socials">
               <a className="ws-footer-social" href="https://www.linkedin.com/in/duncan-makoyo-196ba7307/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">in</a>
-              <a className="ws-footer-social" href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">💬</a>
+              <a className="ws-footer-social" href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">WA</a>
             </div>
           </div>
           <div className="ws-footer-col">
@@ -609,11 +609,11 @@ export default function WorkshopLanding({ onNavigate }) {
             <button className="ws-footer-link" onClick={() => document.getElementById('ws-testimonials')?.scrollIntoView({ behavior: 'smooth' })}>Reviews</button>
           </div>
           <div className="ws-footer-col">
-            <h4>Masterclass Details</h4>
-            <div className="ws-footer-link">🎥 Live on Google Meet</div>
-            <div className="ws-footer-link">⏱ {sessionDuration} Interactive Session</div>
-            <div className="ws-footer-link">🎟 Limited to {maxSeats} Free Seats</div>
-            <div className="ws-footer-link">📅 {sessionDate} · {sessionTime}</div>
+            <h4>Curriculum Details</h4>
+            <div className="ws-footer-link">[vid] Live on Google Meet</div>
+            <div className="ws-footer-link">[time] {sessionDuration} Interactive Session</div>
+            <div className="ws-footer-link">[ticket] Limited to {maxSeats} Free Seats</div>
+            <div className="ws-footer-link">[date] {sessionDate} · {sessionTime}</div>
           </div>
           <div className="ws-footer-col">
             <h4>Contact</h4>
@@ -643,7 +643,7 @@ export default function WorkshopLanding({ onNavigate }) {
               <h3 id="ws-modal-title">
                 {modalState === 'form'      && 'Claim Your Free Seat'}
                 {modalState === 'waitlist'  && 'Join the Waitlist'}
-                {modalState === 'success'   && "You're Registered! 🎉"}
+                {modalState === 'success'   && "You're Registered! [OK]"}
                 {modalState === 'already'   && 'Already Registered'}
               </h3>
               <button className="ws-modal-close" onClick={() => setShowModal(false)} aria-label="Close modal">
@@ -662,7 +662,7 @@ export default function WorkshopLanding({ onNavigate }) {
                   <h4>Seat Confirmed!</h4>
                   <p>Check your email for the masterclass join link and reminder schedule. Then join the WhatsApp group below to receive your free prompt sheets and ATS CV template before the live session.</p>
                   <a href={whatsappGroup} target="_blank" rel="noopener noreferrer" className="ws-modal-whatsapp-btn">
-                    📱 Join the Masterclass WhatsApp Group
+                    [mobile] Join the Masterclass WhatsApp Group
                   </a>
                   <button className="ws-modal-dismiss" onClick={() => setShowModal(false)}>Close</button>
                 </div>
@@ -677,7 +677,7 @@ export default function WorkshopLanding({ onNavigate }) {
                   <h4>You're Already Registered</h4>
                   <p>We found your registration. Check your inbox for the confirmation email with your join link. If you can't find it, contact Duncan on WhatsApp.</p>
                   <a href={whatsappGroup} target="_blank" rel="noopener noreferrer" className="ws-modal-whatsapp-btn">
-                    📱 Join the Masterclass WhatsApp Group
+                    [mobile] Join the Masterclass WhatsApp Group
                   </a>
                   <button className="ws-modal-dismiss" onClick={() => setShowModal(false)}>Close</button>
                 </div>
@@ -686,7 +686,7 @@ export default function WorkshopLanding({ onNavigate }) {
               {/* ── REGISTRATION FORM ── */}
               {modalState === 'form' && (
                 <>
-                  <div className="ws-modal-free-badge">🎓 FREE · No payment required</div>
+                  <div className="ws-modal-free-badge">[FREE] FREE · No payment required</div>
                   {errorMsg && <div className="ws-modal-alert error" role="alert">{errorMsg}</div>}
 
                   <form onSubmit={handleRegister} noValidate>
@@ -709,7 +709,7 @@ export default function WorkshopLanding({ onNavigate }) {
                     <button type="submit" disabled={isSubmitting} className="ws-modal-submit">
                       {isSubmitting
                         ? <><Loader2 size={16} className="ws-spin" /> Saving your seat…</>
-                        : <>🎓 Claim My Free Seat</>}
+                        : <>[Claim] Claim My Free Seat</>}
                     </button>
                   </form>
                   <p className="ws-modal-privacy">Your details are never shared. You'll receive one confirmation email and two reminders only.</p>
@@ -737,7 +737,7 @@ export default function WorkshopLanding({ onNavigate }) {
                     <button type="submit" disabled={wlSubmitting} className="ws-modal-submit">
                       {wlSubmitting
                         ? <><Loader2 size={16} className="ws-spin" /> Joining waitlist…</>
-                        : '🔔 Notify Me for the Next Cohort'}
+                        : '[Notify] Notify Me for the Next Cohort'}
                     </button>
                   </form>
                   <p className="ws-modal-privacy">Or reach Duncan directly on WhatsApp to discuss premium 1-on-1 CV optimization.</p>
@@ -758,7 +758,7 @@ export default function WorkshopLanding({ onNavigate }) {
                     rel="noopener noreferrer"
                     className="ws-modal-whatsapp-btn"
                   >
-                    💬 Book a Private Session
+                    Book a Private Session
                   </a>
                   <button className="ws-modal-dismiss" onClick={() => setShowModal(false)}>Close</button>
                 </div>

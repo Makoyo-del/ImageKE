@@ -489,14 +489,14 @@ async function extractDocxLinks(file) {
 
 // ─── Parsing Steps Definition ─────────────────────────────────────────────────
 const PARSE_STEPS = [
-  { id: 'extract', label: 'Extracting text from document', icon: '📄' },
-  { id: 'structure', label: 'Detecting document structure', icon: '🔍' },
-  { id: 'contact', label: 'Scanning contact information', icon: '👤' },
-  { id: 'experience', label: 'Parsing work experience', icon: '💼' },
-  { id: 'education', label: 'Identifying education history', icon: '🎓' },
-  { id: 'skills', label: 'Extracting skills & keywords', icon: '⚙️' },
-  { id: 'formatting', label: 'Analyzing formatting compatibility', icon: '🧱' },
-  { id: 'score', label: 'Calculating ATS readiness score', icon: '📊' },
+  { id: 'extract', label: 'Extracting text from document', icon: '[doc]' },
+  { id: 'structure', label: 'Detecting document structure', icon: '[search]' },
+  { id: 'contact', label: 'Scanning contact information', icon: '[user]' },
+  { id: 'experience', label: 'Parsing work experience', icon: '[job]' },
+  { id: 'education', label: 'Identifying education history', icon: '[edu]' },
+  { id: 'skills', label: 'Extracting skills & keywords', icon: '[skills]' },
+  { id: 'formatting', label: 'Analyzing formatting compatibility', icon: '[layout]' },
+  { id: 'score', label: 'Calculating ATS readiness score', icon: '[stats]' },
 ];
 
 // ─── Score Ring Component ─────────────────────────────────────────────────────
@@ -532,17 +532,17 @@ function ScoreRing({ score, label, size = 90, color = '#63D11A' }) {
 function StatusBadge({ found, warningText, okText = 'Detected' }) {
   if (warningText) return (
     <span className="ats-status-badge" style={{ background: 'rgba(255, 210, 31, 0.12)', color: '#A16207' }}>
-      ⚠️ {warningText}
+      [WARN] {warningText}
     </span>
   );
   if (found) return (
     <span className="ats-status-badge" style={{ background: 'rgba(99, 209, 26, 0.12)', color: '#166534' }}>
-      🟢 {okText}
+      [OK] {okText}
     </span>
   );
   return (
     <span className="ats-status-badge" style={{ background: 'rgba(239, 42, 42, 0.1)', color: '#991B1B' }}>
-      🔴 Not detected
+      [ERR] Not detected
     </span>
   );
 }
@@ -1580,8 +1580,8 @@ export default function ATSSimulator({ onBack }) {
 
               {/* How it works mini-steps */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '2rem' }}>
-                {['📤 Upload CV', '→', '🔍 Live Parsing', '→', '📊 Your ATS Score', '→', '✅ Fix Issues'].map((s, i) => (
-                  <span key={i} style={{ fontSize: '0.85rem', color: s === '→' ? '#CBD5E1' : 'var(--dm-slate)', fontWeight: s === '→' ? 400 : 700 }}>{s}</span>
+                {['[up] Upload CV', '->', '[search] Live Parsing', '->', '[stats] Your ATS Score', '->', '[OK] Fix Issues'].map((s, i) => (
+                  <span key={i} style={{ fontSize: '0.85rem', color: s === '->' ? '#CBD5E1' : 'var(--dm-slate)', fontWeight: s === '->' ? 400 : 700 }}>{s}</span>
                 ))}
               </div>
             </div>
@@ -1604,7 +1604,7 @@ export default function ATSSimulator({ onBack }) {
 
               {file ? (
                 <div>
-                  <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>📋</div>
+                  <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>[file]</div>
                   <div style={{ fontWeight: 800, color: 'var(--dm-navy)', fontFamily: 'Montserrat, sans-serif', fontSize: '1.1rem', marginBottom: '0.25rem' }}>
                     {file.name}
                   </div>
@@ -1620,7 +1620,7 @@ export default function ATSSimulator({ onBack }) {
                 </div>
               ) : (
                 <div>
-                  <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📄</div>
+                  <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>[doc]</div>
                   <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', margin: '0 0 0.5rem' }}>
                     Drop your CV here
                   </h3>
@@ -1631,7 +1631,7 @@ export default function ATSSimulator({ onBack }) {
                     Select File
                   </span>
                   <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: '#475569' }}>
-                    🔒 Secure processing. Your CV is analyzed directly in the browser and never stored on any server.
+                    [lock] Secure processing. Your CV is analyzed directly in the browser and never stored on any server.
                   </p>
                 </div>
               )}
@@ -1639,7 +1639,7 @@ export default function ATSSimulator({ onBack }) {
 
             {uploadError && (
               <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '0.75rem 1rem', marginTop: '1rem', color: '#991B1B', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                ⚠️ {uploadError}
+                [WARN] {uploadError}
               </div>
             )}
 
@@ -1658,19 +1658,19 @@ export default function ATSSimulator({ onBack }) {
                 onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(43, 91, 255, 0.45)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
                 onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.35)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
               >
-                🔍 Start ATS Simulation
+                [search] Start ATS Simulation
               </button>
             )}
 
             {/* What we check */}
             <div style={{ marginTop: '3rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               {[
-                { icon: '👤', label: 'Contact Info', sub: 'Name, email, phone, LinkedIn' },
-                { icon: '💼', label: 'Work Experience', sub: 'Titles, companies, dates' },
-                { icon: '🎓', label: 'Education', sub: 'Degrees, institutions' },
-                { icon: '⚙️', label: 'Skills & Keywords', sub: '300+ keyword dictionary' },
-                { icon: '🧱', label: 'Formatting Safety', sub: 'Columns, tables, images' },
-                { icon: '📊', label: 'ATS Readiness Score', sub: 'Weighted 4-dimension score' },
+                { icon: '[user]', label: 'Contact Info', sub: 'Name, email, phone, LinkedIn' },
+                { icon: '[job]', label: 'Work Experience', sub: 'Titles, companies, dates' },
+                { icon: '[edu]', label: 'Education', sub: 'Degrees, institutions' },
+                { icon: '[skills]', label: 'Skills & Keywords', sub: '300+ keyword dictionary' },
+                { icon: '[layout]', label: 'Formatting Safety', sub: 'Columns, tables, images' },
+                { icon: '[stats]', label: 'ATS Readiness Score', sub: 'Weighted 4-dimension score' },
               ].map(item => (
                 <div key={item.label} style={{ background: '#fff', border: '1px solid var(--dm-border)', borderRadius: '12px', padding: '1.1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                   <span style={{ fontSize: '1.4rem' }}>{item.icon}</span>
@@ -1690,7 +1690,7 @@ export default function ATSSimulator({ onBack }) {
           <div style={{ width: '100%', maxWidth: '560px' }}>
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem', animation: 'ats-pulse 2s ease-in-out infinite' }}>🤖</div>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem', animation: 'ats-pulse 2s ease-in-out infinite' }}>[AI]</div>
               <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: '1.5rem', marginBottom: '0.5rem' }}>
                 ATS Parsing In Progress
               </h2>
@@ -1728,8 +1728,8 @@ export default function ATSSimulator({ onBack }) {
                     </div>
                     <div style={{ flexShrink: 0, fontSize: '1.2rem' }}>
                       {isActive && <span className="ats-spinner" />}
-                      {isDone && <span style={{ color: '#34D399' }}>✅</span>}
-                      {isError && <span style={{ color: '#F87171' }}>❌</span>}
+                      {isDone && <span style={{ color: '#34D399' }}>[OK]</span>}
+                      {isError && <span style={{ color: '#F87171' }}>[ERR]</span>}
                       {isPending && <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '1rem' }}>○</span>}
                     </div>
                   </div>
@@ -2001,14 +2001,14 @@ export default function ATSSimulator({ onBack }) {
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '2rem', color: '#94A3B8' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔴</div>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>[ERR]</div>
                     <div style={{ fontWeight: 700, color: 'var(--dm-slate)', marginBottom: '0.3rem' }}>No recognisable skills found</div>
                     <div style={{ fontSize: '0.8rem' }}>Add a dedicated skills section with industry keywords</div>
                   </div>
                 )}
 
                 <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--dm-border)', fontSize: '0.8rem', color: 'var(--dm-text-muted)' }}>
-                  📌 Skills detected against a dictionary of 300+ keywords across tech, finance, HR, and more.
+                  [info] Skills detected against a dictionary of 300+ keywords across tech, finance, HR, and more.
                 </div>
               </div>
             </div>
@@ -2017,20 +2017,20 @@ export default function ATSSimulator({ onBack }) {
             {/* ── Recruiter View ──────────────────────────────────────────── */}
             <div className="ats-section-card" style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                👁️ Recruiter View — What the ATS Actually Shows Recruiters
+                Recruiter View — What the ATS Actually Shows Recruiters
               </h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--dm-text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
                 Recruiters using ATS software don't see your beautiful design. They see structured data — like this:
               </p>
               <div style={{ background: 'var(--dm-navy-800)', borderRadius: '12px', padding: '1.5rem', fontFamily: "'Courier New', monospace", fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.8 }}>
                 <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.5rem' }}>// ATS Parsed Profile</div>
-                <div><span style={{ color: '#FB7185' }}>Name:</span> <span style={{ color: '#fff' }}>{contact.name || '⚠️ NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>Email:</span> <span style={{ color: '#fff' }}>{contact.email || '⚠️ NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>Phone:</span> <span style={{ color: '#fff' }}>{contact.phone || '⚠️ NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>LinkedIn:</span> <span style={{ color: '#fff' }}>{contact.linkedin || '⚠️ NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Name:</span> <span style={{ color: '#fff' }}>{contact.name || '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Email:</span> <span style={{ color: '#fff' }}>{contact.email || '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Phone:</span> <span style={{ color: '#fff' }}>{contact.phone || '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>LinkedIn:</span> <span style={{ color: '#fff' }}>{contact.linkedin || '[ERR] NOT DETECTED'}</span></div>
                 <div><span style={{ color: '#FB7185' }}>Experience:</span> <span style={{ color: '#fff' }}>{yearsExp}</span></div>
-                <div><span style={{ color: '#FB7185' }}>Education:</span> <span style={{ color: '#fff' }}>{hasEducation ? '✓ Detected' : '⚠️ NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>Skills ({skills.length}):</span> <span style={{ color: '#fff' }}>{skills.slice(0, 8).join(', ') || '⚠️ NONE FOUND'}{skills.length > 8 ? ` +${skills.length - 8} more` : ''}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Education:</span> <span style={{ color: '#fff' }}>{hasEducation ? '[OK] Detected' : '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Skills ({skills.length}):</span> <span style={{ color: '#fff' }}>{skills.slice(0, 8).join(', ') || '[ERR] NONE FOUND'}{skills.length > 8 ? ` +${skills.length - 8} more` : ''}</span></div>
                 <div><span style={{ color: '#FB7185' }}>ATS Score:</span> <span style={{ color: scoreColor, fontWeight: 800 }}>{overallScore}%</span></div>
               </div>
             </div>
@@ -2045,7 +2045,7 @@ export default function ATSSimulator({ onBack }) {
                   {recommendations.map((rec, i) => {
                     const bg = rec.type === 'critical' ? '#FEF2F2' : rec.type === 'warning' ? '#FEF3C7' : '#F0FDF4';
                     const border = rec.type === 'critical' ? '#FECACA' : rec.type === 'warning' ? '#FDE68A' : '#BBF7D0';
-                    const icon = rec.type === 'critical' ? '🚨' : rec.type === 'warning' ? '⚠️' : 'ℹ️';
+                    const icon = rec.type === 'critical' ? '[ERR]' : rec.type === 'warning' ? '[WARN]' : '[INFO]';
                     const textColor = rec.type === 'critical' ? '#991B1B' : rec.type === 'warning' ? '#92400E' : '#166534';
                     return (
                       <div key={i} style={{ background: bg, border: `1px solid ${border}`, borderRadius: '10px', padding: '0.875rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
@@ -2067,7 +2067,7 @@ export default function ATSSimulator({ onBack }) {
             }}>
               <div style={{ maxWidth: '620px', margin: '0 auto' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{overallScore >= 85 ? '🎯' : overallScore >= 60 ? '⚡' : '🚨'}</div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{overallScore >= 85 ? '[OK]' : overallScore >= 60 ? '[WARN]' : '[ERR]'}</div>
                   <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: '1.35rem', marginBottom: '0.75rem' }}>
                     {ctaHeadline}
                   </h2>
@@ -2078,7 +2078,7 @@ export default function ATSSimulator({ onBack }) {
 
                 {leadStatus === 'success' ? (
                   <div style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(99, 209, 26, 0.1)', border: '1px solid rgba(99, 209, 26, 0.3)', borderRadius: '14px' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>✅</div>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>[OK]</div>
                     <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', marginBottom: '0.5rem' }}>Got it! Duncan will be in touch.</h3>
                     <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Check your inbox. You'll hear back within 24 hours.</p>
                   </div>
@@ -2114,7 +2114,7 @@ export default function ATSSimulator({ onBack }) {
                     </button>
                     <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
                       <a className="ats-wa-link" href={`https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%20just%20ran%20my%20CV%20through%20your%20ATS%20Simulator%20and%20got%20a%20score%20of%20${overallScore}%25.%20I%27d%20like%20help%20improving%20it.`} target="_blank" rel="noopener noreferrer">
-                        💬 Or message Duncan directly on WhatsApp
+                        Or message Duncan directly on WhatsApp
                       </a>
                     </div>
                   </form>
@@ -2132,7 +2132,7 @@ export default function ATSSimulator({ onBack }) {
               textAlign: 'center',
               boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
             }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>[doc]</div>
               <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
                 Download Your Branded ATS Audit PDF Report
               </h3>
@@ -2254,8 +2254,8 @@ export default function ATSSimulator({ onBack }) {
             </div>
 
             {exportError && (
-              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1.25rem', color: '#991B1B', fontSize: '0.8rem', textAlign: 'left' }}>
-                ⚠️ {exportError}
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '12px', color: '#991B1B', fontSize: '0.8rem', textAlign: 'left' }}>
+                [WARN] {exportError}
               </div>
             )}
 

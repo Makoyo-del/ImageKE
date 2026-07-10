@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, DollarSign, Layers, User, Globe, Percent, GraduationCap, Compass, Lock } from 'lucide-react';
+import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, Layers, User, Globe, Percent, GraduationCap, Compass } from 'lucide-react';
 import ServicesPage from './ServicesPage';
 import ATSSimulator from './ATSSimulator';
 import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBunker';
@@ -17,19 +17,6 @@ import JSZip from 'jszip';
 // Set VITE_API_URL to your Render service URL before building for production.
 // For local dev: VITE_API_URL=http://localhost:5000
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
-
-// Pricing (in KES) — matches server-side expectation
-const PRICE_KES = 49;
-const BATCH_PRICE_KES = 4;
-
-const VIDEO_TOOL_PRICING = {
-  aspect: 99,
-  compress: 79,
-  watermark: 79,
-  audio: 49,
-  frames: 99
-};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function isValidEmail(email) {
@@ -46,77 +33,6 @@ function triggerDownload(blob, filename) {
   document.body.removeChild(a);
   // Revoke after a short delay to let the browser start the download
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-// ─── Email Modal Component ─────────────────────────────────────────────────────
-function EmailModal({ onSubmit, onCancel }) {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isValidEmail(email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    onSubmit(email.trim().toLowerCase());
-  };
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
-    }}>
-      <div style={{
-        background: '#fff', borderRadius: '16px', padding: '2rem',
-        width: '100%', maxWidth: '400px', margin: '1rem',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-      }}>
-        <h3 style={{ marginBottom: '0.5rem' }}>Enter your email</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-          Paystack uses this to send your payment receipt.
-        </p>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            autoFocus
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setError(''); }}
-            placeholder="you@example.com"
-            style={{
-              width: '100%', padding: '0.75rem 1rem',
-              border: `1px solid ${error ? '#ef4444' : 'var(--border)'}`,
-              borderRadius: '8px', fontSize: '1rem',
-              outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-          {error && (
-            <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem' }}>{error}</p>
-          )}
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-            <button
-              type="button"
-              onClick={onCancel}
-              style={{
-                flex: 1, padding: '0.75rem', borderRadius: '8px',
-                border: '1px solid var(--border)', background: 'transparent',
-                cursor: 'pointer', fontWeight: 600,
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn"
-              style={{ flex: 1 }}
-            >
-              Continue to Pay
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 }
 
 // ─── Processing Overlay ────────────────────────────────────────────────────────
@@ -239,17 +155,7 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMsg, setProcessingMsg] = useState('');
-  const [isPaid, setIsPaid] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
   const [error, setError] = useState('');
-
-  // ── Dynamic Payment Configuration ──────────────────────────────────────────
-  const [paymentTarget, setPaymentTarget] = useState({
-    amount: PRICE_KES,
-    metadata: {},
-    onSuccess: () => setIsPaid(true),
-  });
 
   // ── Video Tools States ──────────────────────────────────────────────────────
   const [activeVideoTool, setActiveVideoTool] = useState(null); // null | 'aspect' | 'compress' | 'watermark' | 'audio' | 'frames'
@@ -284,45 +190,7 @@ function App() {
   // Output states
   const [processedVideoBlob, setProcessedVideoBlob] = useState(null);
   const [processedVideoUrl, setProcessedVideoUrl] = useState('');
-  const [paidVideoTools, setPaidVideoTools] = useState({});
-  const [isSubscribed, setIsSubscribed] = useState(() => {
-    return localStorage.getItem('imageke_creator_subscription') === 'true';
-  });
-  const [isVerifyingSub, setIsVerifyingSub] = useState(false);
 
-  const isCurrentToolPaid = !!(paidVideoTools[activeVideoTool] || isSubscribed);
-
-  // Validate the subscription token on mount
-  useEffect(() => {
-    const token = localStorage.getItem('imageke_creator_token');
-    if (token) {
-      setIsVerifyingSub(true);
-      axios.post(`${API_URL}/api/verify-subscription-token`, { token })
-        .then((res) => {
-          if (res.data?.valid) {
-            setIsSubscribed(true);
-            localStorage.setItem('imageke_creator_subscription', 'true');
-          } else {
-            // Token is expired or invalid
-            localStorage.removeItem('imageke_creator_token');
-            localStorage.removeItem('imageke_creator_subscription');
-            setIsSubscribed(false);
-          }
-        })
-        .catch((err) => {
-          console.warn('[Subscription Verify Error]', err);
-          // On network failure, we fallback to the local cache value to avoid breaking user access offline
-          const cachedVal = localStorage.getItem('imageke_creator_subscription') === 'true';
-          setIsSubscribed(cachedVal);
-        })
-        .finally(() => {
-          setIsVerifyingSub(false);
-        });
-    } else {
-      setIsSubscribed(false);
-      localStorage.removeItem('imageke_creator_subscription');
-    }
-  }, []);
 
   // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
   useEffect(() => {
@@ -472,7 +340,6 @@ function App() {
           }
         });
         setBatchFiles([]);
-        setIsPaid(false);
       }
     }
   }, [currentPath, batchFiles]);
@@ -489,7 +356,6 @@ function App() {
       }
       setProcessedVideoUrl('');
       setExtractedFrames([]);
-      setPaidVideoTools({});
       setCropOffsetPercent(50);
       setWatermarkImageFile(null);
       if (watermarkImagePreview) URL.revokeObjectURL(watermarkImagePreview);
@@ -514,7 +380,6 @@ function App() {
     setPreviewUrl(null);
     setSelectedPreset(null);
     window.location.hash = '#/photo-tools';
-    setIsPaid(false);
     setError('');
   };
 
@@ -578,7 +443,6 @@ function App() {
     initialFiles.forEach(f => {
       processBatchFile(f, targetSizeKB, maxDimension);
     });
-    setIsPaid(false); // Reset payment for the new batch
   }, [targetSizeKB, maxDimension, processBatchFile]);
 
   const recompressAll = useCallback((targetSize = targetSizeKB, maxDim = maxDimension) => {
@@ -609,17 +473,8 @@ function App() {
     });
   }, [targetSizeKB, maxDimension, processBatchFile]);
 
+  // Direct free download for all batch files
   const handleDownloadAllBatch = useCallback(async () => {
-    if (!isPaid) {
-      setPaymentTarget({
-        amount: BATCH_PRICE_KES,
-        metadata: { type: 'batch_download' },
-        onSuccess: () => setIsPaid(true),
-      });
-      setShowEmailModal(true);
-      return;
-    }
-
     const successFiles = batchFiles.filter(f => f.status === 'success' && f.compressedBlob);
     if (successFiles.length === 0) return;
 
@@ -631,26 +486,13 @@ function App() {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
-  }, [batchFiles, isPaid]);
+  }, [batchFiles]);
 
+  // Direct free download for individual batch file
   const handleDownloadIndividualBatch = useCallback(async (fileItem) => {
-    if (!isPaid) {
-      setPaymentTarget({
-        amount: BATCH_PRICE_KES,
-        metadata: { type: 'batch_download' },
-        onSuccess: () => {
-          setIsPaid(true);
-          const cleanFilename = fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg";
-          triggerDownload(fileItem.compressedBlob, cleanFilename);
-        },
-      });
-      setShowEmailModal(true);
-      return;
-    }
-
     const cleanFilename = fileItem.name.replace(/\.[^/.]+$/, "") + "_compressed.jpg";
     triggerDownload(fileItem.compressedBlob, cleanFilename);
-  }, [isPaid]);
+  }, []);
 
   const resetBatch = useCallback(() => {
     batchFiles.forEach(f => {
@@ -660,7 +502,6 @@ function App() {
     });
     setBatchFiles([]);
     setError('');
-    setIsPaid(false);
   }, [batchFiles]);
 
   const removeBatchFile = useCallback((id) => {
@@ -706,7 +547,6 @@ function App() {
     addedItems.forEach(item => {
       processBatchFile(item, targetSizeKB, maxDimension);
     });
-    setIsPaid(false); // New files added, must pay again for the new batch
   }, [batchFiles, targetSizeKB, maxDimension, processBatchFile]);
 
   // ── File Upload & Processing ───────────────────────────────────────────────
@@ -729,7 +569,6 @@ function App() {
     originalFileRef.current = file;
     setProcessedBlob(null);
     setPreviewUrl(null);
-    setIsPaid(false);
     setError('');
     setIsProcessing(true);
     setProcessingMsg(`Optimizing for ${preset.name}…`);
@@ -751,110 +590,9 @@ function App() {
     }
   }, [currentPath, customSize, selectedPreset, previewUrl]);
 
-  // ── Payment Flow ───────────────────────────────────────────────────────────
-  const initiatePayment = async (email) => {
-    // Admin Exception: Bypass payment for specific emails
-    const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
-    if (adminEmails.includes(email.toLowerCase())) {
-      setShowEmailModal(false);
-      paymentTarget.onSuccess();
-      return;
-    }
 
-    setShowEmailModal(false);
-    setIsPaying(true);
-    setError('');
-
-    if (!PAYSTACK_PUBLIC_KEY) {
-      setError('Payment system is not configured. Please contact support.');
-      setIsPaying(false);
-      return;
-    }
-
-    if (!window.PaystackPop) {
-      setError('Payment gateway failed to load. Please refresh the page and try again.');
-      setIsPaying(false);
-      return;
-    }
-
-    try {
-      // Step 1: Get a reference from the backend
-      const initRes = await axios.post(`${API_URL}/api/initialize-payment`, {
-        email,
-        amount: paymentTarget.amount, // Server converts KES → kobo
-        metadata: paymentTarget.metadata,
-      });
-
-      if (!initRes.data?.status || !initRes.data?.data?.reference) {
-        throw new Error('Invalid response from payment server.');
-      }
-
-      const { reference } = initRes.data.data;
-
-      // Step 2: Open Paystack popup
-      const handler = window.PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email,
-        amount: paymentTarget.amount * 100, // Paystack popup expects kobo
-        currency: 'KES',
-        ref: reference,
-        callback: function (paystackResponse) {
-          // Paystack v1 script strictly checks for [object Function]
-          // so we cannot pass an AsyncFunction directly.
-          (async () => {
-            // Step 3: Verify with our backend
-            try {
-              setIsProcessing(true);
-              setProcessingMsg('Verifying payment…');
-              const verifyRes = await axios.get(
-                `${API_URL}/api/verify-payment/${paystackResponse.reference}`
-              );
-              
-              const isOk = verifyRes.data?.status === 'success' || verifyRes.data?.data?.status === 'success';
-              if (isOk) {
-                // Save subscription token if returned by backend
-                if (verifyRes.data?.token) {
-                  localStorage.setItem('imageke_creator_token', verifyRes.data.token);
-                  localStorage.setItem('imageke_creator_subscription', 'true');
-                }
-                paymentTarget.onSuccess();
-              } else {
-                setError('Payment was not confirmed. Please contact support if you were charged.');
-              }
-            } catch (err) {
-              setError('Payment verification failed. Please try again or contact support.');
-            } finally {
-              setIsProcessing(false);
-              setProcessingMsg('');
-              setIsPaying(false);
-            }
-          })();
-        },
-        onClose: () => {
-          setIsPaying(false);
-        },
-      });
-
-      handler.openIframe();
-    } catch (err) {
-      const msg = err.response?.data?.error || err.message || 'Could not start payment.';
-      setError('Could not initialize payment. Please try again.');
-      setIsPaying(false);
-    }
-  };
-
-  // ── Download ───────────────────────────────────────────────────────────────
+  // \u2500\u2500 Download \u2014 free, no payment gate \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const handleDownload = async () => {
-    if (!isPaid) {
-      setPaymentTarget({
-        amount: PRICE_KES,
-        metadata: { type: 'photo_download', preset: getActivePreset().name },
-        onSuccess: () => setIsPaid(true),
-      });
-      setShowEmailModal(true);
-      return;
-    }
-
     const preset = getActivePreset();
     const file = originalFileRef.current;
     if (!file) {
@@ -863,21 +601,22 @@ function App() {
     }
 
     setIsProcessing(true);
-    setProcessingMsg('Generating clean photo…');
+    setProcessingMsg('Generating your photo\u2026');
     setError('');
 
     try {
-      const cleanBlob = await processImage(file, preset, false); // no watermark
+      const cleanBlob = await processImage(file, preset, false); // no watermark \u2014 tool is free
       const filename = `${preset.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_imageke.jpg`;
       triggerDownload(cleanBlob, filename);
     } catch (err) {
       console.error('[download]', err);
-      setError(err.message || 'Failed to generate clean photo. Please try again.');
+      setError(err.message || 'Failed to generate photo. Please try again.');
     } finally {
       setIsProcessing(false);
       setProcessingMsg('');
     }
   };
+
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER: HOME
@@ -894,7 +633,7 @@ function App() {
             <strong style={{ color: '#ffffff' }}>ImageKE solves it instantly.</strong> Select your destination portal, upload your photo, and get back a file that passes every check — sized exactly right, compressed below the limit, ready to submit. No app. No signup. Just results.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
-            {['✅ eCitizen Ready', '✅ US Visa 600×600', '✅ KRA iTax', '✅ HELB Portal', '✅ M-Pesa Checkout'].map(tag => (
+            {['[OK] eCitizen Ready', '[OK] US Visa 600x600', '[OK] KRA iTax', '[OK] HELB Portal', '[OK] M-Pesa Checkout'].map(tag => (
               <span key={tag} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', padding: '5px 14px', fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{tag}</span>
             ))}
           </div>
@@ -919,17 +658,6 @@ function App() {
           textAlign: 'left',
         }}>
           <div style={{
-            position: 'absolute',
-            right: '-10px',
-            bottom: '-25px',
-            opacity: 0.15,
-            fontSize: '9rem',
-            fontWeight: 800,
-            pointerEvents: 'none',
-            userSelect: 'none',
-            lineHeight: 1,
-          }}>📄</div>
-          <div style={{
             background: 'rgba(255, 255, 255, 0.2)',
             padding: '4px 12px',
             borderRadius: '20px',
@@ -941,7 +669,7 @@ function App() {
             Tablet / slow connection optimizer
           </div>
           <div>
-            <h2 style={{ color: '#ffffff', marginBottom: '0.5rem', fontSize: '1.5rem' }}>📸 Batch Document Compressor</h2>
+            <h2 style={{ color: '#ffffff', marginBottom: '0.5rem', fontSize: '1.5rem' }}>[doc] Batch Document Compressor</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', maxWidth: '560px', lineHeight: 1.5 }}>
               Got 4 scanned pages that are 3MB each? eCitizen won't accept anything over 250KB. Upload all four here and compress them to submission size — without losing the text readability that examiners need.
             </p>
@@ -962,6 +690,7 @@ function App() {
         </div>
 
         <h2 style={{ marginBottom: '0.5rem' }}>Where do you need to submit?</h2>
+
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Each portal has different pixel and file size requirements. Select yours and we'll handle the rest automatically.</p>
         <div className="grid">
           {Object.entries(PRESETS).map(([key, preset]) => (
@@ -1089,7 +818,7 @@ function App() {
         {/* Title */}
         <div style={{ marginBottom: '2.5rem' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '2.5rem' }}>📄</span> Batch Document Compressor
+            <span style={{ fontSize: '2.5rem' }}>[doc]</span> Batch Document Compressor
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '1.05rem' }}>
             Compress up to 4 document photos locally on your tablet. Preserves layout, aspect ratio, and text sharpness.
@@ -1344,16 +1073,16 @@ function App() {
                             style={{
                               padding: '0.4rem 0.8rem',
                               fontSize: '0.8rem',
-                              background: isPaid ? 'var(--primary-light)' : '#FEF3C7',
-                              color: isPaid ? 'var(--primary)' : '#B45309',
-                              border: isPaid ? 'none' : '1px solid #FCD34D',
+                              background: 'var(--primary-light)',
+                              color: 'var(--primary)',
+                              border: 'none',
                               borderRadius: '6px',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.25rem',
                             }}
                           >
-                            {isPaid ? <Download size={12} /> : <Lock size={12} />} Download
+                            <Download size={12} /> Download
                           </button>
                         )}
 
@@ -1429,7 +1158,7 @@ function App() {
 
                 <button
                   onClick={handleDownloadAllBatch}
-                  disabled={successCount === 0 || isPaying}
+                  disabled={successCount === 0}
                   className="btn"
                   style={{
                     display: 'flex',
@@ -1439,11 +1168,7 @@ function App() {
                     boxShadow: successCount > 0 ? '0 4px 14px rgba(0, 82, 204, 0.3)' : 'none',
                   }}
                 >
-                  {isPaying ? (
-                    <><Loader2 size={18} className="spin-icon" /> Processing...</>
-                  ) : (
-                    <><Download size={18} /> {isPaid ? `Download All (${successCount})` : `Pay KES ${BATCH_PRICE_KES} & Download All`}</>
-                  )}
+                  <Download size={18} /> Download All ({successCount})
                 </button>
               </div>
             </div>
@@ -1617,26 +1342,6 @@ function App() {
           <div className="preview-container">
             <div style={{ position: 'relative', display: 'inline-block' }}>
               <img src={previewUrl} className="preview-img" alt="Processed preview" />
-              {isPaid ? (
-                <div style={{
-                  position: 'absolute', top: '10px', right: '10px',
-                  background: 'rgba(16, 185, 129, 0.95)', color: 'white',
-                  padding: '4px 12px', borderRadius: '20px',
-                  fontSize: '0.75rem', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                }}>
-                  <CheckCircle size={14} /> Paid — ready to download
-                </div>
-              ) : (
-                <div style={{
-                  position: 'absolute', top: '10px', right: '10px',
-                  background: 'rgba(0,0,0,0.6)', color: 'white',
-                  padding: '4px 12px', borderRadius: '20px',
-                  fontSize: '0.75rem', fontWeight: 600,
-                }}>
-                  Preview
-                </div>
-              )}
             </div>
 
             <div className="metadata-info" style={{ marginTop: '1rem' }}>
@@ -1646,36 +1351,24 @@ function App() {
               )}
             </div>
 
-            {!isPaid && (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '1rem' }}>
-                The preview has a watermark. Pay <b style={{ color: 'var(--text)' }}>KES {PRICE_KES}</b> to download the clean, portal-ready version.
-              </p>
-            )}
-
             <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 className="btn"
                 onClick={handleDownload}
-                disabled={isPaying}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.875rem 2rem', fontSize: '1rem' }}
               >
-                {isPaying
-                  ? <><Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite' }} /> Processing…</>
-                  : <><Download size={18} /> {isPaid ? 'Download Clean Photo' : `Pay KES ${PRICE_KES} & Download`}</>
-                }
+                <Download size={18} /> Download Photo
               </button>
 
-              {!isPaid && (
-                <label style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                  Try a different photo
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    style={{ display: 'none' }}
-                    onChange={handleFileSelect}
-                  />
-                </label>
-              )}
+              <label style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                Try a different photo
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={handleFileSelect}
+                />
+              </label>
             </div>
           </div>
         )}
@@ -1898,91 +1591,7 @@ function App() {
       const ffmpeg = await ensureFFmpegLoaded();
       setProcessingMsg('Processing video client-side (FFmpeg.wasm)…');
       let blob;
-      const useFree = !isSubscribed;
-      
-      if (activeVideoTool === 'aspect') {
-        const { width, height } = videoFileMetadata;
-        let cropWidth, cropHeight, cropX, cropY;
-        const videoAspect = width / height;
-        let targetRatioVal = 16/9;
-        if (targetAspect === '9:16') targetRatioVal = 9/16;
-        if (targetAspect === '1:1') targetRatioVal = 1;
 
-        if (videoAspect > targetRatioVal) {
-          cropHeight = height;
-          cropWidth = Math.round(height * targetRatioVal);
-          cropX = Math.round((width - cropWidth) * (cropOffsetPercent / 100));
-          cropY = 0;
-        } else {
-          cropWidth = width;
-          cropHeight = Math.round(width / targetRatioVal);
-          cropX = 0;
-          cropY = Math.round((height - cropHeight) / 2);
-        }
-        blob = await changeVideoAspectRatio(ffmpeg, videoFile, targetAspect, { x: cropX, y: cropY, width: cropWidth, height: cropHeight }, useFree);
-        const url = URL.createObjectURL(blob);
-        setProcessedVideoBlob(blob);
-        setProcessedVideoUrl(url);
-      } else if (activeVideoTool === 'compress') {
-        blob = await compressVideo(ffmpeg, videoFile, videoFileMetadata.duration, targetCompressMB, useFree);
-        const url = URL.createObjectURL(blob);
-        setProcessedVideoBlob(blob);
-        setProcessedVideoUrl(url);
-      } else if (activeVideoTool === 'watermark') {
-        const brandSource = watermarkType === 'image' ? watermarkImageFile : watermarkText;
-        if (watermarkType === 'image' && !watermarkImageFile) {
-          throw new Error('Please select a PNG logo image first.');
-        }
-        blob = await addVideoWatermark(ffmpeg, videoFile, brandSource, watermarkType, watermarkPosition, useFree);
-        const url = URL.createObjectURL(blob);
-        setProcessedVideoBlob(blob);
-        setProcessedVideoUrl(url);
-      } else if (activeVideoTool === 'audio') {
-        blob = await extractAudio(ffmpeg, videoFile);
-        const url = URL.createObjectURL(blob);
-        setProcessedVideoBlob(blob);
-        setProcessedVideoUrl(url);
-      } else if (activeVideoTool === 'frames') {
-        const frames = await extractVideoFrames(
-          ffmpeg,
-          videoFile,
-          videoFileMetadata.duration,
-          frameExtractMode,
-          frameExtractMode === 'fps' ? frameExtractFpsRate : frameExtractCount,
-          useFree
-        );
-        setExtractedFrames(frames);
-        setProcessedVideoBlob(new Blob([], { type: 'application/zip' })); // mock
-        setProcessedVideoUrl('extracted_frames'); // flag
-        
-        if (isSubscribed) {
-          setPaidVideoTools(prev => ({ ...prev, [activeVideoTool]: true }));
-          await downloadFramesAsZip(frames);
-        }
-      }
-      
-      if (isSubscribed && activeVideoTool !== 'frames') {
-        setPaidVideoTools(prev => ({ ...prev, [activeVideoTool]: true }));
-        const ext = activeVideoTool === 'audio' ? 'mp3' : 'mp4';
-        const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
-        triggerDownload(blob, cleanName);
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Video processing failed. Please check your video length and format, then try again.');
-    } finally {
-      setIsProcessing(false);
-      setProcessingMsg('');
-    }
-  };
-
-  const triggerCleanVideoProcess = async () => {
-    setIsProcessing(true);
-    setProcessingMsg('Generating clean high-quality output…');
-    setError('');
-    try {
-      const ffmpeg = await ensureFFmpegLoaded();
-      let blob;
       if (activeVideoTool === 'aspect') {
         const { width, height } = videoFileMetadata;
         let cropWidth, cropHeight, cropX, cropY;
@@ -2006,44 +1615,25 @@ function App() {
         const url = URL.createObjectURL(blob);
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
-        
-        const ext = 'mp4';
-        const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
-        triggerDownload(blob, cleanName);
       } else if (activeVideoTool === 'compress') {
         blob = await compressVideo(ffmpeg, videoFile, videoFileMetadata.duration, targetCompressMB, false);
         const url = URL.createObjectURL(blob);
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
-        
-        const ext = 'mp4';
-        const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
-        triggerDownload(blob, cleanName);
       } else if (activeVideoTool === 'watermark') {
         const brandSource = watermarkType === 'image' ? watermarkImageFile : watermarkText;
+        if (watermarkType === 'image' && !watermarkImageFile) {
+          throw new Error('Please select a PNG logo image first.');
+        }
         blob = await addVideoWatermark(ffmpeg, videoFile, brandSource, watermarkType, watermarkPosition, false);
         const url = URL.createObjectURL(blob);
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
-        
-        const ext = 'mp4';
-        const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
-        triggerDownload(blob, cleanName);
       } else if (activeVideoTool === 'audio') {
-        // Audio: the full-length MP3 is already rendered in the preview blob.
-        // Reuse it instead of running FFmpeg a second time.
-        if (processedVideoBlob) {
-          const ext = 'mp3';
-          const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
-          triggerDownload(processedVideoBlob, cleanName);
-          return; // skip finally setIsProcessing cleanup below — we didn't start it
-        }
         blob = await extractAudio(ffmpeg, videoFile);
         const url = URL.createObjectURL(blob);
         setProcessedVideoBlob(blob);
         setProcessedVideoUrl(url);
-        const cleanNameAudio = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.mp3`;
-        triggerDownload(blob, cleanNameAudio);
       } else if (activeVideoTool === 'frames') {
         const frames = await extractVideoFrames(
           ffmpeg,
@@ -2056,48 +1646,35 @@ function App() {
         setExtractedFrames(frames);
         setProcessedVideoBlob(new Blob([], { type: 'application/zip' }));
         setProcessedVideoUrl('extracted_frames');
+        // Auto-download all frames
         await downloadFramesAsZip(frames);
+        return; // frames are already downloaded
+      }
+
+      // Auto-download for all non-frames tools
+      if (blob && activeVideoTool !== 'frames') {
+        const ext = activeVideoTool === 'audio' ? 'mp3' : 'mp4';
+        const cleanName = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
+        triggerDownload(blob, cleanName);
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to generate high-quality output. Please try again.');
+      setError('Video processing failed. Please check your video length and format, then try again.');
     } finally {
       setIsProcessing(false);
       setProcessingMsg('');
     }
   };
 
-  const handlePayForVideo = () => {
-    const toolPrice = VIDEO_TOOL_PRICING[activeVideoTool] || 99;
-    setPaymentTarget({
-      amount: toolPrice, // Shown in UI only — server enforces correct amount from metadata
-      metadata: { type: 'video_download', filename: videoFile?.name, tool: activeVideoTool },
-      onSuccess: () => {
-        setPaidVideoTools(prev => ({ ...prev, [activeVideoTool]: true }));
-        triggerCleanVideoProcess();
-      },
-    });
-    setShowEmailModal(true);
-  };
-
-  const handleSubscribe = () => {
-    setPaymentTarget({
-      amount: 499, // Shown in UI only — server enforces 499 from metadata
-      metadata: { type: 'creator_subscription' },
-      onSuccess: () => {
-        setIsSubscribed(true);
-        localStorage.setItem('imageke_creator_subscription', 'true');
-        alert('Payment verified! You are now subscribed to the Creator Plan.');
-      },
-    });
-    setShowEmailModal(true);
-  };
-
-  const handleCancelSubscription = () => {
-    if (confirm('Are you sure you want to cancel your Creator Plan subscription?')) {
-      setIsSubscribed(false);
-      localStorage.removeItem('imageke_creator_subscription');
+  const handleDownloadVideo = () => {
+    if (!processedVideoBlob) return;
+    if (activeVideoTool === 'frames') {
+      downloadFramesAsZip(extractedFrames);
+      return;
     }
+    const ext = activeVideoTool === 'audio' ? 'mp3' : 'mp4';
+    const filename = `${videoFile.name.replace(/\.[^/.]+$/, "")}_edited.${ext}`;
+    triggerDownload(processedVideoBlob, filename);
   };
 
   const handleWatermarkImageUpload = (e) => {
@@ -2105,17 +1682,6 @@ function App() {
     if (!file) return;
     setWatermarkImageFile(file);
     setWatermarkImagePreview(URL.createObjectURL(file));
-  };
-
-  const handleDownloadFreePreview = () => {
-    if (activeVideoTool === 'frames') {
-      downloadFramesAsZip(extractedFrames);
-      return;
-    }
-    if (!processedVideoBlob) return;
-    const ext = activeVideoTool === 'audio' ? 'mp3' : 'mp4';
-    const filename = `${videoFile.name.replace(/\.[^/.]+$/, "")}_preview.${ext}`;
-    triggerDownload(processedVideoBlob, filename);
   };
 
   const resetVideoState = () => {
@@ -2128,7 +1694,6 @@ function App() {
     }
     setProcessedVideoUrl('');
     setExtractedFrames([]);
-    setPaidVideoTools({});
     setCropOffsetPercent(50);
     setWatermarkImageFile(null);
     if (watermarkImagePreview) URL.revokeObjectURL(watermarkImagePreview);
@@ -2142,7 +1707,7 @@ function App() {
         <div className="container">
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '20px', padding: '4px 14px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem', color: 'rgba(255,255,255,0.9)' }}>Browser-Powered · No Upload · No Desktop App</div>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: '#fff' }}>
-            🎥 Your Video Studio, Right in Your Browser
+            [vid] Your Video Studio, Right in Your Browser
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.05rem', maxWidth: '620px', margin: '0 auto', lineHeight: 1.7 }}>
             You shot a great video. But it's 45MB — WhatsApp won't send it. Or it's 16:9 and TikTok needs 9:16. Or you recorded a podcast and just need the audio. You shouldn't need Premiere Pro or CapCut for a 30-second fix.
@@ -2150,7 +1715,7 @@ function App() {
             <strong style={{ color: '#fff' }}>ImageKE Video Studio does it in your browser.</strong> No uploads. No waiting. Your video never leaves your device.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
-            {['📐 TikTok 9:16 Crop', '📦 WhatsApp Compress', '🎵 MP3 Extractor', '🖼️ Frame Extractor', '🏷️ Brand Watermark'].map(tag => (
+            {['[crop] TikTok 9:16 Crop', '[zip] WhatsApp Compress', '[mp3] MP3 Extractor', '[frames] Frame Extractor', '[label] Brand Watermark'].map(tag => (
               <span key={tag} style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', padding: '5px 14px', fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{tag}</span>
             ))}
           </div>
@@ -2158,52 +1723,6 @@ function App() {
       </section>
 
       <div className="container">
-        {/* Subscription / Billing Banner */}
-        <div style={{
-          background: isSubscribed
-            ? 'linear-gradient(135deg, #63D11A 0%, #4CAF0A 100%)'
-            : 'linear-gradient(135deg, #1238E8 0%, #0D1B4D 100%)',
-          color: '#ffffff',
-          borderRadius: '16px',
-          padding: '2rem',
-          marginBottom: '2.5rem',
-          boxShadow: '0 8px 30px rgba(18, 56, 232, 0.15)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1.5rem',
-          textAlign: 'left',
-        }}>
-          <div>
-            <h2 style={{ color: '#ffffff', marginBottom: '0.5rem', fontSize: '1.5rem' }}>
-              {isSubscribed ? '⭐ Creator Plan Active' : '🚀 Unlimited Video Studio'}
-            </h2>
-            <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.95rem', maxWidth: '500px', lineHeight: 1.5 }}>
-              {isSubscribed
-                ? 'Thank you for subscribing! You have full, unlimited access to water-mark free high-speed video tools.'
-                : 'Get the Creator Subscription for KSh 499 / Month. Download unlimited full-length videos without watermarks.'}
-            </p>
-          </div>
-          {isSubscribed ? (
-            <button
-              onClick={handleCancelSubscription}
-              className="btn"
-              style={{ background: 'rgba(255, 255, 255, 0.2)', color: '#ffffff', border: '1px solid #ffffff' }}
-            >
-              Cancel Subscription
-            </button>
-          ) : (
-            <button
-              onClick={handleSubscribe}
-              className="btn"
-              style={{ background: '#ffffff', color: '#1238E8', fontWeight: 700 }}
-            >
-              Subscribe KSh 499 / Mo
-            </button>
-          )}
-        </div>
-
         <h2 style={{ marginBottom: '0.5rem' }}>Choose Your Video Tool</h2>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Click a tool to get started. Your video is processed locally — nothing is uploaded.</p>
         <div className="grid">
@@ -2280,11 +1799,11 @@ function App() {
         </button>
 
         <h1 style={{ marginBottom: '0.5rem', textTransform: 'capitalize' }}>
-          {activeVideoTool === 'aspect' && '📐 Crop & Aspect Ratio Converter'}
-          {activeVideoTool === 'compress' && '📦 WhatsApp / Email Compressor'}
-          {activeVideoTool === 'watermark' && '🏷️ Brand Watermarker'}
-          {activeVideoTool === 'audio' && '🎵 Audio Extractor (MP3)'}
-          {activeVideoTool === 'frames' && '🖼️ Video Frame Extractor'}
+          {activeVideoTool === 'aspect' && '[crop] Crop & Aspect Ratio Converter'}
+          {activeVideoTool === 'compress' && '[zip] WhatsApp / Email Compressor'}
+          {activeVideoTool === 'watermark' && '[label] Brand Watermarker'}
+          {activeVideoTool === 'audio' && '[mp3] Audio Extractor (MP3)'}
+          {activeVideoTool === 'frames' && '[frames] Video Frame Extractor'}
         </h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
           {activeVideoTool === 'aspect' && 'Reformat 16:9 widescreen to 9:16 portrait (TikTok/Reels) or 1:1 square. Visual crop box shows exactly what will be cut.'}
@@ -2668,7 +2187,7 @@ function App() {
                     </div>
                   )}
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--primary-light)', padding: '0.75rem', borderRadius: '8px', lineHeight: 1.5 }}>
-                    💡 <b>Use case:</b> AI training datasets, storyboard generation, thumbnail selection, video analysis.
+                    [info] <b>Use case:</b> AI training datasets, storyboard generation, thumbnail selection, video analysis.
                   </p>
                 </div>
               )}
@@ -2685,26 +2204,26 @@ function App() {
                     fontWeight: 700,
                   }}
                 >
-                  🚀 Render Preview
+                  [run] Render Preview
                 </button>
               )}
 
-              {/* Outputs & Paywalls */}
+              {/* Output & Download */}
               {isProcessed && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                  <h3>✅ Processing Complete</h3>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                    <CheckCircle size={18} style={{ color: 'var(--success)' }} /> Processing Complete
+                  </h3>
 
-                  {/* Frame extractor specific output */}
+                  {/* Frame extractor output */}
                   {activeVideoTool === 'frames' && processedVideoUrl === 'extracted_frames' ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        <b>{extractedFrames.length} frames</b> extracted successfully.
-                        {isCurrentToolPaid ? ' Download your ZIP below.' : ' Preview the first 5 frames below. Pay KSh 99 to download all.'}
+                        <b>{extractedFrames.length} frames</b> extracted and downloaded as ZIP.
                       </p>
-
                       {/* Frame thumbnails grid */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '6px' }}>
-                        {extractedFrames.slice(0, isCurrentToolPaid ? extractedFrames.length : 5).map((frame, idx) => (
+                        {extractedFrames.map((frame, idx) => (
                           <div key={idx} style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', background: '#000', aspectRatio: '16/9' }}>
                             <img
                               src={URL.createObjectURL(frame.blob)}
@@ -2713,55 +2232,14 @@ function App() {
                             />
                           </div>
                         ))}
-                        {!isCurrentToolPaid && extractedFrames.length > 5 && (
-                          <div style={{ borderRadius: '6px', border: '1px dashed var(--dm-border)', background: 'var(--dm-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '16/9', fontSize: '0.7rem', color: 'var(--dm-primary)', fontWeight: 700, textAlign: 'center', padding: '4px' }}>
-                            +{extractedFrames.length - 5} more locked
-                          </div>
-                        )}
                       </div>
-
-                      {!isCurrentToolPaid ? (
-                        <div style={{
-                          background: 'var(--dm-bg)', border: '1px solid var(--dm-border)',
-                          borderRadius: '12px', padding: '1rem',
-                        }}>
-                          <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.25rem' }}>🔒 Unlock All Frames</h4>
-                          <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.4, marginBottom: '1rem' }}>
-                            The free preview shows the first 5 frames. Pay <b>KSh {VIDEO_TOOL_PRICING.frames}</b> to download all {extractedFrames.length} frames as a ZIP archive, or subscribe for unlimited access.
-                          </p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <button
-                              onClick={handleDownloadFreePreview}
-                              className="btn"
-                              style={{ background: 'transparent', color: 'var(--dm-primary)', border: '1.5px solid var(--dm-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                            >
-                              Download First 5 Frames (Free)
-                            </button>
-                            <button
-                              onClick={handlePayForVideo}
-                              className="btn"
-                              style={{ background: 'var(--primary)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                            >
-                              <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING.frames} — Download All {extractedFrames.length} Frames as ZIP
-                            </button>
-                            <button
-                              onClick={handleSubscribe}
-                              className="btn"
-                              style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                            >
-                              Join Creator Plan (KSh 499 / Mo — Unlimited)
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => downloadFramesAsZip(extractedFrames)}
-                          className="btn"
-                          style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
-                        >
-                          <Download size={18} /> Download All {extractedFrames.length} Frames as ZIP
-                        </button>
-                      )}
+                      <button
+                        onClick={() => downloadFramesAsZip(extractedFrames)}
+                        className="btn"
+                        style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
+                      >
+                        <Download size={18} /> Download All {extractedFrames.length} Frames as ZIP
+                      </button>
                     </div>
                   ) : (
                     // Standard video/audio output
@@ -2772,65 +2250,16 @@ function App() {
                         <video src={processedVideoUrl} controls style={{ width: '100%', borderRadius: '8px', maxHeight: '200px', background: '#000' }} />
                       )}
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        Output Size: <b>{formatSize(processedVideoBlob?.size)}</b>
+                        Output size: <b>{formatSize(processedVideoBlob?.size)}</b>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Paywall for standard tools */}
-                  {activeVideoTool !== 'frames' && (
-                    !isCurrentToolPaid ? (
-                      <div style={{ background: 'var(--dm-bg)', border: '1px solid var(--dm-border)', borderRadius: '12px', padding: '1.25rem', marginTop: '0.5rem' }}>
-                        {activeVideoTool === 'audio' ? (
-                          <>
-                            <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.35rem' }}>🔒 Preview Only · Pay to Download MP3</h4>
-                            <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                              Full-length audio preview plays above — nothing is cut. Pay <b>KSh {VIDEO_TOOL_PRICING.audio}</b> once to download the clean MP3 file.
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <h4 style={{ color: 'var(--dm-navy)', marginBottom: '0.35rem' }}>🔒 Watermarked Preview Only</h4>
-                            <p style={{ fontSize: '0.825rem', color: 'var(--dm-primary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                              The free preview is limited to <b>15 seconds</b> with a corner watermark. Pay <b>KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99}</b> once to download the full-length clean output — or subscribe for unlimited access.
-                            </p>
-                          </>
-                        )}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {activeVideoTool !== 'audio' && (
-                            <button
-                              onClick={handleDownloadFreePreview}
-                              className="btn"
-                              style={{ background: 'transparent', color: 'var(--dm-primary)', border: '1.5px solid var(--dm-primary)', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                            >
-                              Download Free Preview (15s, watermarked)
-                            </button>
-                          )}
-                          <button
-                            onClick={handlePayForVideo}
-                            className="btn"
-                            style={{ background: 'var(--primary)', padding: '0.75rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                          >
-                            <DollarSign size={14} /> Pay KSh {VIDEO_TOOL_PRICING[activeVideoTool] ?? 99} — {activeVideoTool === 'audio' ? 'Download Full MP3' : 'Download Full Clean Version'}
-                          </button>
-                          <button
-                            onClick={handleSubscribe}
-                            className="btn"
-                            style={{ background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border)', padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                          >
-                            Join Creator Plan (KSh 499 / Mo — Unlimited)
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
                       <button
-                        onClick={activeVideoTool === 'audio' ? () => handleDownloadFreePreview() : triggerCleanVideoProcess}
+                        onClick={handleDownloadVideo}
                         className="btn"
-                        style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
+                        style={{ background: 'var(--success)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', padding: '0.875rem 2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', width: '100%' }}
                       >
-                        <Download size={18} /> Download Clean Full-Length
+                        <Download size={18} /> Download {activeVideoTool === 'audio' ? 'MP3' : 'Edited Video'}
                       </button>
-                    )
+                    </div>
                   )}
 
                   <button
@@ -2951,7 +2380,7 @@ function App() {
               onKeyDown={e => e.key === 'Enter' && (window.location.hash = '#/')}
               aria-label="Back to home"
             >
-              <span className="app-logo-text">🇰🇪 ImageKE <span className="app-logo-badge">PRO</span></span>
+              <span className="app-logo-text">[KE] ImageKE <span className="app-logo-badge">PRO</span></span>
             </div>
           </header>
           <div style={{ flex: 1 }}>
@@ -2987,7 +2416,7 @@ function App() {
               aria-label="Home"
             >
               <span className="app-logo-text">
-                🇰🇪 ImageKE <span className="app-logo-badge">PRO</span>
+                [KE] ImageKE <span className="app-logo-badge">PRO</span>
               </span>
             </div>
             <nav className="app-nav" aria-label="Main navigation">
@@ -2996,14 +2425,14 @@ function App() {
                 onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/photo-tools'; }}
                 aria-current={currentTab === 'images' ? 'page' : undefined}
               >
-                📸 Photo Tools
+                [img] Photo Tools
               </button>
               <button
                 className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
                 onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/video-tools'; }}
                 aria-current={currentTab === 'videos' ? 'page' : undefined}
               >
-                🎥 Video Tools
+                [vid] Video Tools
               </button>
             </nav>
             <button
@@ -3014,15 +2443,10 @@ function App() {
             </button>
           </header>
 
-          <div style={{ flex: 1 }}>
+           <div style={{ flex: 1 }}>
             {isProcessing && <ProcessingOverlay message={processingMsg} />}
-            {showEmailModal && (
-              <EmailModal
-                onSubmit={initiatePayment}
-                onCancel={() => setShowEmailModal(false)}
-              />
-            )}
             {currentTab === 'images' ? (
+
               <>
                 {currentPath === 'home' && renderHome()}
                 {currentPath === 'batch' && renderBatchPage()}
