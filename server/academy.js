@@ -1065,6 +1065,7 @@ router.post('/mentor/create-rider', authenticateUser, async (req, res) => {
         id: userData.user.id,
         name: name,
         phone: phone,
+        email: email.toLowerCase(),
       });
 
     if (insertErr) {

@@ -506,6 +506,7 @@ CREATE TABLE IF NOT EXISTS public.riders (
   id uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   name text NOT NULL,
   phone text NOT NULL,
+  email text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -559,3 +560,6 @@ CREATE POLICY "Riders can insert own collections"
 -- Add index for fast aggregation
 CREATE INDEX IF NOT EXISTS idx_fare_collections_rider_date 
   ON public.fare_collections(rider_id, created_at);
+
+-- Migration: Add email column to public.riders table
+ALTER TABLE public.riders ADD COLUMN IF NOT EXISTS email text;

@@ -1550,6 +1550,7 @@ export default function AcademyDashboard({ onNavigate }) {
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
                         <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Name</th>
                         <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Phone</th>
+                        <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Email</th>
                         <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Change Password</th>
                       </tr>
                     </thead>
@@ -1558,6 +1559,7 @@ export default function AcademyDashboard({ onNavigate }) {
                         <tr key={rider.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '12px', fontWeight: 500, color: '#0f172a' }}>{rider.name}</td>
                           <td style={{ padding: '12px', color: '#475569' }}>{rider.phone}</td>
+                          <td style={{ padding: '12px', color: '#475569' }}>{rider.email || '—'}</td>
                           <td style={{ padding: '12px', display: 'flex', gap: '8px' }}>
                             <input 
                               type="password" 
@@ -1577,7 +1579,7 @@ export default function AcademyDashboard({ onNavigate }) {
                       ))}
                       {riders.length === 0 && (
                         <tr>
-                          <td colSpan="3" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>No riders found.</td>
+                          <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>No riders found.</td>
                         </tr>
                       )}
                     </tbody>
