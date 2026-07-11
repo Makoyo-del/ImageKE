@@ -53,7 +53,7 @@ const verifyRider = async (req, res, next) => {
 // ─── POST /api/rider/charge ───
 // Initiates an STK Push via Paystack Mobile Money
 router.post('/charge', verifyRider, async (req, res) => {
-  const { phone, amount } = req.body;
+  const { phone, amount, email } = req.body;
 
   if (!phone || !amount) {
     return res.status(400).json({ error: 'Phone and amount are required' });
@@ -83,10 +83,14 @@ router.post('/charge', verifyRider, async (req, res) => {
 
     // 2. Call Paystack Charge API
     // Amount is in KES, Paystack expects subunit (multiply by 100)
-    // We generate a unique sub-email per phone number to prevent Paystack's fraud/risk engine from blocking multiple requests under a single email.
+    // If passenger provides an email, use it; otherwise fallback to a non-bouncing sub-address to prevent fraud flagging.
     const cleanPhone = formattedPhone.replace('+', '');
+    const customerEmail = email && email.trim() !== ''
+      ? email.trim().toLowerCase()
+      : `duncan+${cleanPhone}@duncanmakoyo.com`;
+
     const paystackPayload = {
-      email: `duncan+${cleanPhone}@duncanmakoyo.com`, 
+      email: customerEmail, 
       amount: Math.round(amount * 100),
       currency: 'KES',
       reference: reference,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
-import { LogOut, DollarSign, Smartphone, Loader2, CheckCircle, TrendingUp, Calendar, Clock } from 'lucide-react';
+import { LogOut, DollarSign, Smartphone, Loader2, CheckCircle, TrendingUp, Calendar, Clock, Mail } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -10,6 +10,7 @@ const RiderDashboard = () => {
   const [riderInfo, setRiderInfo] = useState(null);
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
+  const [passengerEmail, setPassengerEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [cashLoading, setCashLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -175,7 +176,8 @@ const RiderDashboard = () => {
     try {
       const res = await axios.post(`${API_URL}/api/rider/charge`, {
         phone: formattedPhone,
-        amount: Number(amount)
+        amount: Number(amount),
+        email: passengerEmail
       }, {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
@@ -183,6 +185,7 @@ const RiderDashboard = () => {
       const collectionId = res.data.collection.id;
       setPhone('');
       setAmount('');
+      setPassengerEmail('');
       
       // Start real-time polling to wait for PIN entry
       startPaymentPolling(collectionId, formattedPhone, Number(amount));
@@ -331,6 +334,20 @@ const RiderDashboard = () => {
                   onChange={(e) => setPhone(e.target.value)}
                   style={{ width: '100%', padding: '1rem 1rem 1rem 2.75rem', fontSize: '1.1rem', borderRadius: '12px', border: '2px solid var(--dm-border)', outline: 'none' }}
                   placeholder="07XX XXX XXX"
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--dm-slate-400)', marginBottom: '0.4rem' }}>Passenger Email (Optional)</label>
+              <div style={{ position: 'relative' }}>
+                <Mail style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--dm-slate-400)' }} size={20} />
+                <input 
+                  type="email" 
+                  value={passengerEmail}
+                  onChange={(e) => setPassengerEmail(e.target.value)}
+                  style={{ width: '100%', padding: '1rem 1rem 1rem 2.75rem', fontSize: '1.1rem', borderRadius: '12px', border: '2px solid var(--dm-border)', outline: 'none', color: 'var(--dm-text)' }}
+                  placeholder="name@example.com"
                 />
               </div>
             </div>
