@@ -1072,6 +1072,16 @@ router.post('/mentor/create-rider', authenticateUser, async (req, res) => {
       return res.status(500).json({ error: 'Failed to add rider to database.' });
     }
 
+    // 4. Update role in profiles table to 'rider' (since trigger defaults to 'student')
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({ role: 'rider' })
+      .eq('id', userData.user.id);
+
+    if (profileErr) {
+      console.error('[Mentor Create Rider Profile Update Error]', profileErr.message);
+    }
+
     res.json({ success: true, message: 'Rider created successfully.' });
   } catch (err) {
     console.error('[Mentor Create Rider Error]', err.message);
