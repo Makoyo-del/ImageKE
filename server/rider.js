@@ -83,8 +83,10 @@ router.post('/charge', verifyRider, async (req, res) => {
 
     // 2. Call Paystack Charge API
     // Amount is in KES, Paystack expects subunit (multiply by 100)
+    // We generate a unique sub-email per phone number to prevent Paystack's fraud/risk engine from blocking multiple requests under a single email.
+    const cleanPhone = formattedPhone.replace('+', '');
     const paystackPayload = {
-      email: `duncan@duncanmakoyo.com`, // Default appended email for Paystack
+      email: `duncan+${cleanPhone}@duncanmakoyo.com`, 
       amount: Math.round(amount * 100),
       currency: 'KES',
       reference: reference,
