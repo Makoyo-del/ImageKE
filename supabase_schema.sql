@@ -217,7 +217,7 @@ alter table public.profiles add column if not exists last_payment_reference text
 -- =============================================================================
 
 -- Add role and academy columns to Profiles table
-alter table public.profiles add column if not exists role text default 'student' check (role in ('student', 'mentor'));
+alter table public.profiles add column if not exists role text default 'student' check (role in ('student', 'mentor', 'rider'));
 alter table public.profiles add column if not exists academy_status text default 'inactive' check (academy_status in ('inactive', 'active'));
 
 -- Create Academy Deliverables Table
@@ -563,3 +563,7 @@ CREATE INDEX IF NOT EXISTS idx_fare_collections_rider_date
 
 -- Migration: Add email column to public.riders table
 ALTER TABLE public.riders ADD COLUMN IF NOT EXISTS email text;
+
+-- Migration: Update profiles role check constraint to allow 'rider' role
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('student', 'mentor', 'rider'));
