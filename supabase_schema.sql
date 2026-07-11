@@ -497,6 +497,65 @@ CREATE INDEX IF NOT EXISTS idx_workshop_reg_status
 CREATE INDEX IF NOT EXISTS idx_workshop_waitlist_email
   ON public.workshop_waitlist(email);
 
+-- =============================================================================
+-- RIDER DASHBOARD & FARE COLLECTION SCHEMA
+-- =============================================================================
+
+-- 1. Create Riders Table (Managed by Mentors/Admins)
+CREATE TABLE IF NOT EXISTS public.riders (
+  id uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  name text NOT NULL,
+  phone text NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.riders ENABLE ROW LEVEL SECURITY;
+
+-- Only Mentors can manage riders
+DROP POLICY IF EXISTS "Mentors can manage riders" ON public.riders;
+CREATE POLICY "Mentors can manage riders" 
+  ON public.riders FOR ALL 
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'mentor'
+    )
+  );
+
+-- Riders can view their own record
+DROP POLICY IF EXISTS "Riders can view own record" ON public.riders;
+CREATE POLICY "Riders can view own record" 
+  ON public.riders FOR SELECT 
+  USING (auth.uid() = id);
 
 
+-- 2. Create Fare Collections Table
+CREATE TABLE IF NOT EXISTS public.fare_collections (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  rider_id uuid REFERENCES public.riders(id) ON DELETE CASCADE NOT NULL,
+  amount numeric NOT NULL,
+  payment_method text NOT NULL CHECK (payment_method IN ('mpesa', 'cash')),
+  status text NOT NULL CHECK (status IN ('pending', 'success', 'failed')),
+  passenger_phone text,
+  paystack_reference text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
+ALTER TABLE public.fare_collections ENABLE ROW LEVEL SECURITY;
+
+-- Riders can view their own collections
+DROP POLICY IF EXISTS "Riders can view own collections" ON public.fare_collections;
+CREATE POLICY "Riders can view own collections" 
+  ON public.fare_collections FOR SELECT 
+  USING (auth.uid() = rider_id);
+
+-- Riders can insert their own collections
+DROP POLICY IF EXISTS "Riders can insert own collections" ON public.fare_collections;
+CREATE POLICY "Riders can insert own collections" 
+  ON public.fare_collections FOR INSERT 
+  WITH CHECK (auth.uid() = rider_id);
+
+-- Add index for fast aggregation
+CREATE INDEX IF NOT EXISTS idx_fare_collections_rider_date 
+  ON public.fare_collections(rider_id, created_at);

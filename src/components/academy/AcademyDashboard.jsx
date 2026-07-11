@@ -75,6 +75,14 @@ export default function AcademyDashboard({ onNavigate }) {
   const [messageError, setMessageError] = useState('');
   const [messageSuccess, setMessageSuccess] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [pageMessage, setPageMessage] = useState(null);
+
+  // Mentor Riders state
+  const [riders, setRiders] = useState([]);
+  const [riderForm, setRiderForm] = useState({ name: '', phone: '', email: '', password: '' });
+  const [riderActionLoading, setRiderActionLoading] = useState(false);
+  const [newPasswords, setNewPasswords] = useState({});
 
   // Workshop management states
   const [workshopRegistrations, setWorkshopRegistrations] = useState([]);
@@ -128,6 +136,15 @@ export default function AcademyDashboard({ onNavigate }) {
       setLoadingWorkshop(false);
     }
   }, []);
+
+  const fetchRiders = async () => {
+    try {
+      const { data, error } = await supabase.from('riders').select('*').order('created_at', { ascending: false });
+      if (data) setRiders(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleUpdateAttendance = async (registrationId, currentStatus) => {
     const newStatus = currentStatus === 'attended' ? 'absent' : 'attended';
@@ -210,7 +227,11 @@ export default function AcademyDashboard({ onNavigate }) {
     if (session && activeTab === 'workshops' && state?.role === 'mentor') {
       fetchWorkshopRegistrations(session.access_token);
     }
-  }, [activeTab, session, state?.role, fetchWorkshopRegistrations]);
+    
+    if (session && activeTab === 'riders' && state?.role === 'mentor') {
+      fetchRiders();
+    }
+  }, [session, activeTab, state]);
 
   // Load Paystack script
   useEffect(() => {
@@ -510,17 +531,62 @@ export default function AcademyDashboard({ onNavigate }) {
         }),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setMessageSuccess(`Direct email successfully sent to ${messagingStudent.email}!`);
-        setMessageContent('');
-      } else {
-        setMessageError(data.error || 'Failed to send message.');
-      }
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to send message');
+      setPageMessage({ type: 'success', text: 'Message sent successfully.' });
+      setMessagingStudent(null);
     } catch (err) {
-      setMessageError('Connection error.');
+      setPageMessage({ type: 'error', text: err.message });
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleCreateRider = async (e) => {
+    e.preventDefault();
+    setRiderActionLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/academy/mentor/create-rider`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(riderForm)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      
+      setPageMessage({ type: 'success', text: 'Rider created successfully.' });
+      setRiderForm({ name: '', phone: '', email: '', password: '' });
+      fetchRiders();
+    } catch (err) {
+      setPageMessage({ type: 'error', text: err.message });
+    } finally {
+      setRiderActionLoading(false);
+    }
+  };
+
+  const handleChangeRiderPassword = async (riderId) => {
+    const password = newPasswords[riderId];
+    if (!password) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/academy/mentor/change-rider-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ riderId, newPassword: password })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      
+      setPageMessage({ type: 'success', text: 'Password changed successfully.' });
+      setNewPasswords(prev => ({ ...prev, [riderId]: '' }));
+    } catch (err) {
+      setPageMessage({ type: 'error', text: err.message });
     }
   };
 
@@ -805,12 +871,23 @@ export default function AcademyDashboard({ onNavigate }) {
               >
                 Workshops
               </button>
+              <button 
+                className={`ac-tab-btn ${activeTab === 'riders' ? 'active' : ''}`}
+                onClick={() => setActiveTab('riders')}
+              >
+                Riders
+              </button>
             </>
           )}
         </div>
 
         {/* ── Error alerts ── */}
         {error && <div className="ac-page-alert error">{error}</div>}
+        {pageMessage && (
+          <div className={`ac-page-alert ${pageMessage.type}`} onClick={() => setPageMessage(null)}>
+            {pageMessage.text}
+          </div>
+        )}
 
         {/* ── Tab Contents ── */}
         <div className="ac-tab-content">
@@ -1435,8 +1512,84 @@ export default function AcademyDashboard({ onNavigate }) {
             </div>
           )}
 
+          {/* MENTOR RIDERS TAB */}
+          {state?.role === 'mentor' && activeTab === 'riders' && (
+            <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto', gap: '2rem' }}>
+              <div className="ac-card">
+                <h3 style={{ marginBottom: '1rem', color: '#0f172a' }}>Onboard New Rider</h3>
+                <form onSubmit={handleCreateRider} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Name</label>
+                    <input type="text" required value={riderForm.name} onChange={(e) => setRiderForm({...riderForm, name: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Phone</label>
+                    <input type="tel" required value={riderForm.phone} onChange={(e) => setRiderForm({...riderForm, phone: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Email</label>
+                    <input type="email" required value={riderForm.email} onChange={(e) => setRiderForm({...riderForm, email: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Initial Password</label>
+                    <input type="password" required value={riderForm.password} onChange={(e) => setRiderForm({...riderForm, password: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  </div>
+                  <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="submit" className="ac-btn-primary" disabled={riderActionLoading}>
+                      {riderActionLoading ? 'Creating...' : 'Create Rider Account'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="ac-card" style={{ marginTop: '2rem' }}>
+                <h3 style={{ marginBottom: '1rem', color: '#0f172a' }}>Manage Riders</h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                        <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Name</th>
+                        <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Phone</th>
+                        <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Change Password</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {riders.map(rider => (
+                        <tr key={rider.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px', fontWeight: 500, color: '#0f172a' }}>{rider.name}</td>
+                          <td style={{ padding: '12px', color: '#475569' }}>{rider.phone}</td>
+                          <td style={{ padding: '12px', display: 'flex', gap: '8px' }}>
+                            <input 
+                              type="password" 
+                              placeholder="New password" 
+                              value={newPasswords[rider.id] || ''}
+                              onChange={(e) => setNewPasswords({...newPasswords, [rider.id]: e.target.value})}
+                              style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            />
+                            <button 
+                              onClick={() => handleChangeRiderPassword(rider.id)}
+                              style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
+                            >
+                              Update
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {riders.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>No riders found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+
     </div>
   );
 }

@@ -1025,4 +1025,95 @@ router.post('/mentor/message-student', authenticateUser, async (req, res) => {
   }
 });
 
+// ─── Mentor Route: Create Rider ───────────────────────────────────────────────
+router.post('/mentor/create-rider', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { name, phone, email, password } = req.body;
+
+  if (!name || !phone || !email || !password) {
+    return res.status(400).json({ error: 'All fields are required.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Create user via Admin API
+    const { data: userData, error: createErr } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase(),
+      password: password,
+      email_confirm: true,
+      user_metadata: { role: 'rider' },
+    });
+
+    if (createErr) {
+      return res.status(400).json({ error: createErr.message });
+    }
+
+    // 3. Add to riders table
+    const { error: insertErr } = await supabase
+      .from('riders')
+      .insert({
+        id: userData.user.id,
+        name: name,
+        phone: phone,
+      });
+
+    if (insertErr) {
+      return res.status(500).json({ error: 'Failed to add rider to database.' });
+    }
+
+    res.json({ success: true, message: 'Rider created successfully.' });
+  } catch (err) {
+    console.error('[Mentor Create Rider Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// ─── Mentor Route: Change Rider Password ──────────────────────────────────────
+router.post('/mentor/change-rider-password', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { riderId, newPassword } = req.body;
+
+  if (!riderId || !newPassword) {
+    return res.status(400).json({ error: 'Rider ID and new password are required.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Update password via Admin API
+    const { error: updateErr } = await supabase.auth.admin.updateUserById(
+      riderId,
+      { password: newPassword }
+    );
+
+    if (updateErr) {
+      return res.status(400).json({ error: updateErr.message });
+    }
+
+    res.json({ success: true, message: 'Rider password updated successfully.' });
+  } catch (err) {
+    console.error('[Mentor Change Rider Password Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 export default router;

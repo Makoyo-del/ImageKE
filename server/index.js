@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import hookBunkerRouter from './hookbunker.js';
 import academyRouter from './academy.js';
 import workshopRouter, { sendConfirmationEmail } from './workshop.js';
+import riderRouter from './rider.js';
 
 dotenv.config();
 
@@ -72,7 +73,7 @@ app.use(
   express.json({
     limit: '8mb',
     verify: (req, _res, buf) => {
-      if (req.originalUrl === '/api/paystack/webhook') {
+      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/rider/webhook') {
         req.rawBody = buf;
       }
     },
@@ -87,6 +88,9 @@ app.use('/api/academy', academyRouter);
 
 // ─── Workshop Mount ───────────────────────────────────────────────────────────
 app.use('/api/workshop', workshopRouter);
+
+// ─── Rider Mount ──────────────────────────────────────────────────────────────
+app.use('/api/rider', riderRouter);
 
 // ─── Health Check (for UptimeRobot / monitoring) ──────────────────────────────
 // Ping this endpoint every 5 minutes from UptimeRobot to:

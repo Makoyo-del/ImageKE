@@ -7,6 +7,8 @@ import AcademyAuth from './components/academy/AcademyAuth';
 import AcademyDashboard from './components/academy/AcademyDashboard';
 import WorkshopLanding from './components/workshop/WorkshopLanding';
 import WorkshopJoin from './components/workshop/WorkshopJoin';
+import RiderLogin from './components/rider/RiderLogin';
+import RiderDashboard from './components/rider/RiderDashboard';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
@@ -112,6 +114,10 @@ const getPathFromHash = () => {
   // Workshop paths
   if (hash.startsWith('#/workshop/join')) return 'workshop-join';
   if (hash === '#/workshop' || hash === '#/ai-jobseeker-workshop') return 'workshop';
+
+  // Rider paths
+  if (hash === '#/rider-login') return 'rider-login';
+  if (hash === '#/rider-dashboard') return 'rider-dashboard';
 
   // HookBunker paths
   if (hash === '#/hookbunker') return 'hookbunker-landing';
@@ -2384,6 +2390,10 @@ function App() {
             </div>
           </header>
           <div style={{ flex: 1 }}>
+            {currentPath === 'academy-dashboard' && <AcademyDashboard />}
+            {currentPath === 'rider-login' && <RiderLogin />}
+            {currentPath === 'rider-dashboard' && <RiderDashboard />}
+            {currentPath === 'workshop' && <WorkshopLanding />}
             {currentPath === 'terms' && renderTerms()}
             {currentPath === 'privacy' && renderPrivacy()}
           </div>
@@ -2463,6 +2473,7 @@ function App() {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
               <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
                 <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
+                <button onClick={() => window.location.hash = '#/rider-login'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Rider Portal</button>
                 <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
               </div>
             </div>

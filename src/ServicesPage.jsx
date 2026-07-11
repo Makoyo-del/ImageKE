@@ -1438,6 +1438,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('ats')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Brain size={12} /> ATS Simulator</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('hookbunker')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: 600 }}><Shield size={12} /> HookBunker Monitor</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('terms')}>Terms of Use</button>
+                  <button className="dm-footer-link" onClick={() => window.location.hash = '#/rider-login'}>Rider Portal</button>
                   <button className="dm-footer-link" onClick={() => onNavigateToPath('privacy')}>Privacy Policy</button>
                 </>
               )}
