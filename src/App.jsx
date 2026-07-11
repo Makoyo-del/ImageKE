@@ -2375,6 +2375,11 @@ function App() {
         <WorkshopJoin />
       )}
 
+      {currentPath === 'academy-dashboard' && <AcademyDashboard />}
+      {currentPath === 'rider-login' && <RiderLogin />}
+      {currentPath === 'rider-dashboard' && <RiderDashboard />}
+      {currentPath === 'workshop' && <WorkshopLanding />}
+
       {/* ── Legal pages (standalone, minimal header) ── */}
       {(currentPath === 'terms' || currentPath === 'privacy') && (
         <>
@@ -2390,10 +2395,6 @@ function App() {
             </div>
           </header>
           <div style={{ flex: 1 }}>
-            {currentPath === 'academy-dashboard' && <AcademyDashboard />}
-            {currentPath === 'rider-login' && <RiderLogin />}
-            {currentPath === 'rider-dashboard' && <RiderDashboard />}
-            {currentPath === 'workshop' && <WorkshopLanding />}
             {currentPath === 'terms' && renderTerms()}
             {currentPath === 'privacy' && renderPrivacy()}
           </div>
@@ -2413,7 +2414,8 @@ function App() {
        currentPath !== 'workshop' && 
        currentPath !== 'workshop-join' && 
        !currentPath.startsWith('hookbunker') && 
-       !currentPath.startsWith('academy') && (
+       !currentPath.startsWith('academy') && 
+       !currentPath.startsWith('rider') && (
         <>
           {/* Sticky Header */}
           <header className="app-header">
