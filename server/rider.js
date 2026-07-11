@@ -9,19 +9,19 @@ dotenv.config();
 const router = express.Router();
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
-// Helper: Format phone number to Paystack expectation (2547XXXXXXXX)
+// Helper: Format phone number to Paystack expectation (+2547XXXXXXXX)
 const formatPhoneForPaystack = (phone) => {
   let cleaned = phone.replace(/\D/g, ''); // strip non-numeric
   if (cleaned.startsWith('254') && cleaned.length === 12) {
-    return cleaned;
+    return '+' + cleaned;
   }
   if (cleaned.startsWith('0') && cleaned.length === 10) {
-    return '254' + cleaned.slice(1);
+    return '+254' + cleaned.slice(1);
   }
   if (cleaned.length === 9) {
-    return '254' + cleaned;
+    return '+254' + cleaned;
   }
-  return cleaned;
+  return '+' + cleaned;
 };
 
 // Helper: Ensure user is a rider
