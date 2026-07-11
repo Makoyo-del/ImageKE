@@ -84,26 +84,67 @@ const RiderDashboard = () => {
   const startPaymentPolling = (collectionId, phoneVal, amountVal) => {
     setPaymentOverlay({ status: 'waiting', phone: phoneVal, amount: amountVal });
     
+    let resolved = false;
+
+    // 1. Setup Supabase Realtime Subscription (Sub-second instant notification)
+    const channel = supabase
+      .channel(`fare_collection_status_${collectionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'fare_collections',
+          filter: `id=eq.${collectionId}`
+        },
+        (payload) => {
+          if (resolved) return;
+          const newStatus = payload.new.status;
+          if (newStatus === 'success') {
+            resolved = true;
+            clearInterval(fallbackInterval);
+            channel.unsubscribe();
+            setPaymentOverlay({ status: 'success', phone: phoneVal, amount: amountVal });
+            fetchStats(session.user.id);
+            setTimeout(() => setPaymentOverlay(null), 3000);
+          } else if (newStatus === 'failed') {
+            resolved = true;
+            clearInterval(fallbackInterval);
+            channel.unsubscribe();
+            setPaymentOverlay({ status: 'failed', phone: phoneVal, amount: amountVal });
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Setup standard Polling Fallback (highly reliable if Realtime has connection lags)
     let attempts = 0;
-    const interval = setInterval(async () => {
+    const fallbackInterval = setInterval(async () => {
+      if (resolved) {
+        clearInterval(fallbackInterval);
+        return;
+      }
       attempts++;
       
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('fare_collections')
           .select('status')
           .eq('id', collectionId)
           .single();
           
-        if (data) {
+        if (data && !resolved) {
           if (data.status === 'success') {
-            clearInterval(interval);
+            resolved = true;
+            clearInterval(fallbackInterval);
+            channel.unsubscribe();
             setPaymentOverlay({ status: 'success', phone: phoneVal, amount: amountVal });
-            fetchStats(session.user.id); // Update stats instantly
-            // Auto close after 3 seconds
+            fetchStats(session.user.id);
             setTimeout(() => setPaymentOverlay(null), 3000);
           } else if (data.status === 'failed') {
-            clearInterval(interval);
+            resolved = true;
+            clearInterval(fallbackInterval);
+            channel.unsubscribe();
             setPaymentOverlay({ status: 'failed', phone: phoneVal, amount: amountVal });
           }
         }
@@ -112,7 +153,9 @@ const RiderDashboard = () => {
       }
       
       if (attempts >= 30) { // 60 seconds max
-        clearInterval(interval);
+        resolved = true;
+        clearInterval(fallbackInterval);
+        channel.unsubscribe();
         setPaymentOverlay({ status: 'timeout', phone: phoneVal, amount: amountVal });
       }
     }, 2000);

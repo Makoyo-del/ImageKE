@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail } from 'lucide-react';
+import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import './AcademyDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -83,6 +83,8 @@ export default function AcademyDashboard({ onNavigate }) {
   const [riderForm, setRiderForm] = useState({ name: '', phone: '', email: '', password: '' });
   const [riderActionLoading, setRiderActionLoading] = useState(false);
   const [newPasswords, setNewPasswords] = useState({});
+  const [showOnboardPassword, setShowOnboardPassword] = useState(false);
+  const [showTablePasswords, setShowTablePasswords] = useState({});
 
   // Workshop management states
   const [workshopRegistrations, setWorkshopRegistrations] = useState([]);
@@ -1532,7 +1534,34 @@ export default function AcademyDashboard({ onNavigate }) {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Initial Password</label>
-                    <input type="password" required value={riderForm.password} onChange={(e) => setRiderForm({...riderForm, password: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        type={showOnboardPassword ? 'text' : 'password'} 
+                        required 
+                        value={riderForm.password} 
+                        onChange={(e) => setRiderForm({...riderForm, password: e.target.value})} 
+                        style={{ width: '100%', padding: '0.75rem 2.5rem 0.75rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOnboardPassword(!showOnboardPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {showOnboardPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                   <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
                     <button type="submit" className="ac-btn-primary" disabled={riderActionLoading}>
@@ -1560,14 +1589,38 @@ export default function AcademyDashboard({ onNavigate }) {
                           <td style={{ padding: '12px', fontWeight: 500, color: '#0f172a' }}>{rider.name}</td>
                           <td style={{ padding: '12px', color: '#475569' }}>{rider.phone}</td>
                           <td style={{ padding: '12px', color: '#475569' }}>{rider.email || '—'}</td>
-                          <td style={{ padding: '12px', display: 'flex', gap: '8px' }}>
-                            <input 
-                              type="password" 
-                              placeholder="New password" 
-                              value={newPasswords[rider.id] || ''}
-                              onChange={(e) => setNewPasswords({...newPasswords, [rider.id]: e.target.value})}
-                              style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                            />
+                          <td style={{ padding: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <input 
+                                type={showTablePasswords[rider.id] ? 'text' : 'password'} 
+                                placeholder="New password" 
+                                value={newPasswords[rider.id] || ''}
+                                onChange={(e) => setNewPasswords({...newPasswords, [rider.id]: e.target.value})}
+                                style={{ padding: '6px 28px 6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowTablePasswords({
+                                  ...showTablePasswords,
+                                  [rider.id]: !showTablePasswords[rider.id]
+                                })}
+                                style={{
+                                  position: 'absolute',
+                                  right: '8px',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#64748b',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                {showTablePasswords[rider.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                            </div>
                             <button 
                               onClick={() => handleChangeRiderPassword(rider.id)}
                               style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}

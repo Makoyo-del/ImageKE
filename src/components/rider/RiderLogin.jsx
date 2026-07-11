@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { supabase } from '../../supabase';
-import { Loader2, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Loader2, Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 const RiderLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -129,17 +130,17 @@ const RiderLogin = () => {
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--dm-navy)', fontWeight: 600, fontSize: '0.9rem' }}>Password</label>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--dm-slate-400)' }}>
+              <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--dm-slate-400)', zIndex: 1 }}>
                 <Lock size={18} />
               </div>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.85rem 1rem 0.85rem 2.5rem',
+                  padding: '0.85rem 2.5rem 0.85rem 2.5rem',
                   borderRadius: '8px',
                   border: '1px solid var(--dm-border)',
                   outline: 'none',
@@ -148,6 +149,27 @@ const RiderLogin = () => {
                 }}
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--dm-slate-400)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 2
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
