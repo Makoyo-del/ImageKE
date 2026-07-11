@@ -798,3 +798,134 @@
     padding: 1.5rem;
   }
 }
+
+/* ─── Mentor Light Cream Theme ───────────────────────────────────────────── */
+.mentor-theme {
+  background-color: #fdfbf7 !important; /* Creamy White */
+  color: #0f172a !important; /* High contrast dark text */
+}
+
+.mentor-theme .ac-dashboard-header {
+  background-color: #f8f6f0 !important; /* Creamy off-white header */
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mentor-theme .ac-brand-text {
+  color: #0f172a !important;
+}
+
+.mentor-theme .ac-user-email {
+  color: #475569 !important;
+}
+
+.mentor-theme .ac-nav-logout-btn {
+  border-color: #cbd5e1;
+  color: #334155 !important;
+}
+
+.mentor-theme .ac-nav-logout-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.mentor-theme .ac-tabs-bar {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.mentor-theme .ac-tab-btn {
+  color: #475569 !important;
+}
+
+.mentor-theme .ac-tab-btn:hover {
+  color: #0f172a !important;
+}
+
+.mentor-theme .ac-tab-btn.active {
+  color: #0d9488 !important;
+  border-bottom-color: #0d9488 !important;
+}
+
+.mentor-theme .ac-card {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+}
+
+.mentor-theme .ac-card h2,
+.mentor-theme .ac-card h3,
+.mentor-theme .ac-card h4 {
+  color: #0f172a !important;
+}
+
+.mentor-theme .ac-card-intro {
+  color: #334155 !important;
+}
+
+.mentor-theme .ac-m-box {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.mentor-theme .ac-m-val {
+  color: #0d9488 !important;
+}
+
+.mentor-theme .ac-m-lbl {
+  color: #475569 !important;
+}
+
+.mentor-theme .ac-data-table th {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.mentor-theme .ac-data-table td {
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.mentor-theme .ac-data-table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.mentor-theme .ac-student-email-cell {
+  color: #0f172a !important;
+}
+
+.mentor-theme .ac-btn-review-action {
+  background-color: rgba(13, 148, 136, 0.1) !important;
+  color: #0d9488 !important;
+  border-color: rgba(13, 148, 136, 0.2) !important;
+}
+
+.mentor-theme .ac-btn-review-action:hover {
+  background-color: rgba(13, 148, 136, 0.2) !important;
+}
+
+.mentor-theme .ac-sub-details-box {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.mentor-theme .ac-sub-details-box p {
+  color: #334155 !important;
+}
+
+.mentor-theme .ac-empty-text {
+  color: #94a3b8 !important;
+}
+
+.mentor-theme input,
+.mentor-theme textarea,
+.mentor-theme select {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.mentor-theme input:focus,
+.mentor-theme textarea:focus,
+.mentor-theme select:focus {
+  border-color: #0d9488 !important;
+}

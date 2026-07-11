@@ -797,7 +797,7 @@ export default function AcademyDashboard({ onNavigate }) {
   const students = data.students || [];
 
   return (
-    <div className="ac-dashboard-layout">
+    <div className={`ac-dashboard-layout ${state?.role === 'mentor' ? 'mentor-theme' : ''}`}>
       {/* ── Header ── */}
       <header className="ac-dashboard-header">
         <div className="ac-header-brand">
