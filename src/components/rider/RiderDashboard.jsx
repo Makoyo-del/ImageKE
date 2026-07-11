@@ -14,6 +14,7 @@ const RiderDashboard = () => {
   const [cashLoading, setCashLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0 });
+  const [paymentOverlay, setPaymentOverlay] = useState(null); // null or { status: 'waiting' | 'success' | 'failed' | 'timeout', phone, amount }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -80,6 +81,43 @@ const RiderDashboard = () => {
     setTimeout(() => setMessage(null), 5000);
   };
 
+  const startPaymentPolling = (collectionId, phoneVal, amountVal) => {
+    setPaymentOverlay({ status: 'waiting', phone: phoneVal, amount: amountVal });
+    
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      
+      try {
+        const { data, error } = await supabase
+          .from('fare_collections')
+          .select('status')
+          .eq('id', collectionId)
+          .single();
+          
+        if (data) {
+          if (data.status === 'success') {
+            clearInterval(interval);
+            setPaymentOverlay({ status: 'success', phone: phoneVal, amount: amountVal });
+            fetchStats(session.user.id); // Update stats instantly
+            // Auto close after 3 seconds
+            setTimeout(() => setPaymentOverlay(null), 3000);
+          } else if (data.status === 'failed') {
+            clearInterval(interval);
+            setPaymentOverlay({ status: 'failed', phone: phoneVal, amount: amountVal });
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+      
+      if (attempts >= 30) { // 60 seconds max
+        clearInterval(interval);
+        setPaymentOverlay({ status: 'timeout', phone: phoneVal, amount: amountVal });
+      }
+    }, 2000);
+  };
+
   const triggerSTK = async (e) => {
     e.preventDefault();
     if (!phone || !amount) return;
@@ -99,11 +137,12 @@ const RiderDashboard = () => {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
       
-      showMessage('success', 'M-Pesa prompt sent! Waiting for customer to enter PIN...');
+      const collectionId = res.data.collection.id;
       setPhone('');
       setAmount('');
-      // Optimistically fetch stats after a short delay to account for webhook
-      setTimeout(() => fetchStats(session.user.id), 8000);
+      
+      // Start real-time polling to wait for PIN entry
+      startPaymentPolling(collectionId, formattedPhone, Number(amount));
     } catch (err) {
       console.error(err);
       showMessage('error', err.response?.data?.error || 'Failed to trigger M-Pesa. Check connection.');
@@ -305,6 +344,137 @@ const RiderDashboard = () => {
 
         </div>
       </main>
+
+      {/* Fullscreen Payment Status Overlay */}
+      {paymentOverlay && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+          padding: '1.5rem',
+          fontFamily: 'Inter, sans-serif'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '380px',
+            backgroundColor: 'var(--dm-white)',
+            borderRadius: '16px',
+            padding: '2.5rem 2rem',
+            textAlign: 'center',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            {paymentOverlay.status === 'waiting' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                <Loader2 className="animate-spin" size={54} color="var(--dm-primary)" />
+                <h3 style={{ margin: 0, color: 'var(--dm-navy)', fontSize: '1.3rem', fontWeight: 800 }}>Requesting M-Pesa</h3>
+                <p style={{ margin: 0, color: 'var(--dm-slate-400)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                  STK prompt sent to <strong style={{ color: 'var(--dm-navy)' }}>+{paymentOverlay.phone}</strong>
+                </p>
+                <p style={{ margin: 0, color: 'var(--dm-navy)', fontSize: '1.1rem', fontWeight: 700 }}>
+                  Amount: KES {paymentOverlay.amount.toLocaleString()}
+                </p>
+                <p style={{ margin: 0, color: 'var(--dm-slate-400)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                  Please tell the passenger to enter their M-Pesa PIN on their phone.
+                </p>
+              </div>
+            )}
+
+            {paymentOverlay.status === 'success' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                <CheckCircle size={64} color="var(--dm-success)" />
+                <h3 style={{ margin: 0, color: 'var(--dm-navy)', fontSize: '1.4rem', fontWeight: 800 }}>Payment Successful</h3>
+                <p style={{ margin: 0, color: 'var(--dm-slate-400)', fontSize: '0.95rem' }}>
+                  Transaction confirmed in real-time.
+                </p>
+                <p style={{ margin: 0, color: 'var(--dm-success)', fontSize: '1.3rem', fontWeight: 800 }}>
+                  KES {paymentOverlay.amount.toLocaleString()} Collected
+                </p>
+              </div>
+            )}
+
+            {paymentOverlay.status === 'failed' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: '#FEE2E2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{ color: '#EF4444', fontSize: '2rem', fontWeight: 800 }}>×</span>
+                </div>
+                <h3 style={{ margin: 0, color: 'var(--dm-navy)', fontSize: '1.3rem', fontWeight: 800 }}>Payment Failed</h3>
+                <p style={{ margin: 0, color: 'var(--dm-slate-400)', fontSize: '0.95rem', lineHeight: 1.4 }}>
+                  The customer cancelled the prompt, entered a wrong PIN, or had insufficient funds.
+                </p>
+                <button
+                  onClick={() => setPaymentOverlay(null)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'var(--dm-navy)',
+                    color: 'white',
+                    padding: '0.85rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    marginTop: '0.5rem'
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {paymentOverlay.status === 'timeout' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: '#FEF3C7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{ color: '#D97706', fontSize: '2rem', fontWeight: 800 }}>!</span>
+                </div>
+                <h3 style={{ margin: 0, color: 'var(--dm-navy)', fontSize: '1.3rem', fontWeight: 800 }}>No Response Yet</h3>
+                <p style={{ margin: 0, color: 'var(--dm-slate-400)', fontSize: '0.95rem', lineHeight: 1.4 }}>
+                  The prompt timed out. Please check if the customer completed the payment on their phone, or try requesting again.
+                </p>
+                <button
+                  onClick={() => setPaymentOverlay(null)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: 'var(--dm-navy)',
+                    color: 'white',
+                    padding: '0.85rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    marginTop: '0.5rem'
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       <style>{`
         .animate-spin { animation: spin 1s linear infinite; }
