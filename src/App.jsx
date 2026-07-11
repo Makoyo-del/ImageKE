@@ -2375,10 +2375,8 @@ function App() {
         <WorkshopJoin />
       )}
 
-      {currentPath === 'academy-dashboard' && <AcademyDashboard />}
       {currentPath === 'rider-login' && <RiderLogin />}
       {currentPath === 'rider-dashboard' && <RiderDashboard />}
-      {currentPath === 'workshop' && <WorkshopLanding />}
 
       {/* ── Legal pages (standalone, minimal header) ── */}
       {(currentPath === 'terms' || currentPath === 'privacy') && (
