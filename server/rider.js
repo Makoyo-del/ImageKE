@@ -2,14 +2,27 @@ import express from 'express';
 import axios from 'axios';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabase.js';
 
 dotenv.config();
 
 const router = express.Router();
-
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+// Helper: Format phone number to Paystack expectation (2547XXXXXXXX)
+const formatPhoneForPaystack = (phone) => {
+  let cleaned = phone.replace(/\D/g, ''); // strip non-numeric
+  if (cleaned.startsWith('254') && cleaned.length === 12) {
+    return cleaned;
+  }
+  if (cleaned.startsWith('0') && cleaned.length === 10) {
+    return '254' + cleaned.slice(1);
+  }
+  if (cleaned.length === 9) {
+    return '254' + cleaned;
+  }
+  return cleaned;
+};
 
 // Helper: Ensure user is a rider
 const verifyRider = async (req, res, next) => {
@@ -46,6 +59,8 @@ router.post('/charge', verifyRider, async (req, res) => {
     return res.status(400).json({ error: 'Phone and amount are required' });
   }
 
+  const formattedPhone = formatPhoneForPaystack(phone);
+
   try {
     // Generate a unique reference
     const reference = `RIDER_${req.user.id}_${Date.now()}`;
@@ -58,7 +73,7 @@ router.post('/charge', verifyRider, async (req, res) => {
         amount: amount,
         payment_method: 'mpesa',
         status: 'pending',
-        passenger_phone: phone,
+        passenger_phone: formattedPhone,
         paystack_reference: reference
       })
       .select()
@@ -74,7 +89,7 @@ router.post('/charge', verifyRider, async (req, res) => {
       currency: 'KES',
       reference: reference,
       mobile_money: {
-        phone: phone,
+        phone: formattedPhone,
         provider: 'mpesa'
       }
     };
