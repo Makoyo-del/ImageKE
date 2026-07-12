@@ -561,6 +561,10 @@ CREATE POLICY "Riders can insert own collections"
 CREATE INDEX IF NOT EXISTS idx_fare_collections_rider_date 
   ON public.fare_collections(rider_id, created_at);
 
+-- Add index for fast webhook reference resolution
+CREATE INDEX IF NOT EXISTS idx_fare_collections_paystack_ref 
+  ON public.fare_collections(paystack_reference);
+
 -- Migration: Add email column to public.riders table
 ALTER TABLE public.riders ADD COLUMN IF NOT EXISTS email text;
 

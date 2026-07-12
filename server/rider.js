@@ -24,6 +24,10 @@ const formatPhoneForPaystack = (phone) => {
   return '+' + cleaned;
 };
 
+// Simple in-memory cache for rider verification status to reduce DB round-trips.
+const riderCache = new Map();
+const RIDER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Helper: Ensure user is a rider
 const verifyRider = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -33,6 +37,14 @@ const verifyRider = async (req, res, next) => {
   const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+  // Check cache first to avoid redundant database calls
+  const cachedRider = riderCache.get(user.id);
+  const now = Date.now();
+  if (cachedRider && (now - cachedRider.timestamp < RIDER_CACHE_TTL)) {
+    req.user = user;
+    return next();
+  }
 
   // Check if they are in the riders table
   const { data: rider, error: riderErr } = await supabase
@@ -44,6 +56,9 @@ const verifyRider = async (req, res, next) => {
   if (riderErr || !rider) {
     return res.status(403).json({ error: 'Not authorized as rider' });
   }
+
+  // Cache authorization status
+  riderCache.set(user.id, { timestamp: now });
 
   req.user = user;
   next();
@@ -65,25 +80,7 @@ router.post('/charge', verifyRider, async (req, res) => {
     // Generate a unique reference
     const reference = `RIDER_${req.user.id}_${Date.now()}`;
 
-    // 1. Log the pending transaction
-    const { data: collection, error: dbError } = await supabase
-      .from('fare_collections')
-      .insert({
-        rider_id: req.user.id,
-        amount: amount,
-        payment_method: 'mpesa',
-        status: 'pending',
-        passenger_phone: formattedPhone,
-        paystack_reference: reference
-      })
-      .select()
-      .single();
-
-    if (dbError) throw dbError;
-
-    // 2. Call Paystack Charge API
-    // Amount is in KES, Paystack expects subunit (multiply by 100)
-    // If passenger provides an email, use it; otherwise fallback to a non-bouncing sub-address to prevent fraud flagging.
+    // Prepare Paystack payload and customer details
     const cleanPhone = formattedPhone.replace('+', '');
     const customerEmail = email && email.trim() !== ''
       ? email.trim().toLowerCase()
@@ -100,14 +97,31 @@ router.post('/charge', verifyRider, async (req, res) => {
       }
     };
 
-    const response = await axios.post('https://api.paystack.co/charge', paystackPayload, {
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Run database insert and Paystack charge in parallel to eliminate sequential latency
+    const [dbResult, response] = await Promise.all([
+      supabase
+        .from('fare_collections')
+        .insert({
+          rider_id: req.user.id,
+          amount: amount,
+          payment_method: 'mpesa',
+          status: 'pending',
+          passenger_phone: formattedPhone,
+          paystack_reference: reference
+        })
+        .select()
+        .single(),
+      axios.post('https://api.paystack.co/charge', paystackPayload, {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      })
+    ]);
 
-    res.json({ success: true, data: response.data, collection });
+    if (dbResult.error) throw dbResult.error;
+
+    res.json({ success: true, data: response.data, collection: dbResult.data });
   } catch (error) {
     console.error('Paystack Charge Error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to initiate charge', details: error.response?.data });
