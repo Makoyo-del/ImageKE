@@ -1,18 +1,22 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, Suspense, lazy } from 'react';
 import { Upload, Download, CheckCircle, ArrowLeft, Loader2, AlertCircle, RefreshCw, Trash2, FileImage, Video, Crop, FileVideo, Music, Play, Pause, Eye, Layers, User, Globe, Percent, GraduationCap, Compass } from 'lucide-react';
-import ServicesPage from './ServicesPage';
-import ATSSimulator from './ATSSimulator';
-import { HookBunkerLanding, HookBunkerDocs, HookBunkerDashboard } from './HookBunker';
-import AcademyAuth from './components/academy/AcademyAuth';
-import AcademyDashboard from './components/academy/AcademyDashboard';
-import WorkshopLanding from './components/workshop/WorkshopLanding';
-import WorkshopJoin from './components/workshop/WorkshopJoin';
-import RiderLogin from './components/rider/RiderLogin';
-import RiderDashboard from './components/rider/RiderDashboard';
 import { PRESETS, processImage, compressDocumentImage } from './utils/imageProcessor';
 import { loadFFmpeg, changeVideoAspectRatio, compressVideo, addVideoWatermark, extractAudio, extractVideoFrames } from './utils/videoProcessor';
 import axios from 'axios';
 import JSZip from 'jszip';
+
+// Lazily load route components to reduce initial bundle size and speed up page load
+const ServicesPage = lazy(() => import('./ServicesPage'));
+const ATSSimulator = lazy(() => import('./ATSSimulator'));
+const HookBunkerLanding = lazy(() => import('./components/hookbunker/HookBunkerLanding').then(m => ({ default: m.HookBunkerLanding })));
+const HookBunkerDocs = lazy(() => import('./components/hookbunker/HookBunkerDocs').then(m => ({ default: m.HookBunkerDocs })));
+const HookBunkerDashboard = lazy(() => import('./components/hookbunker/HookBunkerDashboard').then(m => ({ default: m.HookBunkerDashboard })));
+const AcademyAuth = lazy(() => import('./components/academy/AcademyAuth'));
+const AcademyDashboard = lazy(() => import('./components/academy/AcademyDashboard'));
+const WorkshopLanding = lazy(() => import('./components/workshop/WorkshopLanding'));
+const WorkshopJoin = lazy(() => import('./components/workshop/WorkshopJoin'));
+const RiderLogin = lazy(() => import('./components/rider/RiderLogin'));
+const RiderDashboard = lazy(() => import('./components/rider/RiderDashboard'));
 
 // ─── Environment Config ────────────────────────────────────────────────────────
 // Frontend is hosted on Hostinger, backend API is on Render (cross-origin).
@@ -2326,8 +2330,16 @@ function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Suspense fallback={
+        <div style={{ height: '100vh', display: 'grid', placeItems: 'center', background: '#fafafa', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ textAlign: 'center' }}>
+            <Loader2 className="animate-spin" size={32} color="var(--primary)" style={{ margin: '0 auto 1rem' }} />
+            <p style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading interface...</p>
+          </div>
+        </div>
+      }>
 
-      {/* ── Services Landing Page (no ImageKE header shown) ── */}
+        {/* ── Services Landing Page (no ImageKE header shown) ── */}
       {currentPath === 'services' && (
         <ServicesPage
           onNavigateToTools={handleNavigateToTools}
@@ -2480,6 +2492,7 @@ function App() {
           </footer>
         </>
       )}
+      </Suspense>
     </div>
   );
 }
