@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import './AcademyDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -92,6 +92,26 @@ export default function AcademyDashboard({ onNavigate }) {
   const [workshopError, setWorkshopError] = useState('');
   const [sendingCertId, setSendingCertId] = useState(null);
 
+  // Resume Vault states (Mentor)
+  const [vaultTemplates, setVaultTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templateError, setTemplateError] = useState('');
+  const [templateSuccess, setTemplateSuccess] = useState('');
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [submittingTemplate, setSubmittingTemplate] = useState(false);
+  const [templateForm, setTemplateForm] = useState({
+    id: '',
+    name: '',
+    description: '',
+    is_free: true,
+    price_kes: 0,
+    price_usd: 0,
+    category: 'Finance',
+    optimized_companies: '',
+    file: null
+  });
+
   // Fetch Dashboard State from Backend
   const fetchDashboardData = useCallback(async (token) => {
     try {
@@ -145,6 +165,158 @@ export default function AcademyDashboard({ onNavigate }) {
       if (data) setRiders(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchVaultTemplates = useCallback(async () => {
+    try {
+      setLoadingTemplates(true);
+      setTemplateError('');
+      const res = await fetch(`${API_URL}/api/academy/templates`);
+      const data = await res.json();
+      if (res.ok) {
+        setVaultTemplates(data);
+      } else {
+        setTemplateError(data.error || 'Failed to fetch templates.');
+      }
+    } catch (err) {
+      setTemplateError('Failed to connect to server.');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, []);
+
+  const handleSaveTemplate = async (e) => {
+    e.preventDefault();
+    if (!templateForm.name.trim()) {
+      setTemplateError('Template name is required.');
+      return;
+    }
+    if (!isEditingTemplate && !templateForm.file) {
+      setTemplateError('Please upload a template file (.docx).');
+      return;
+    }
+
+    setSubmittingTemplate(true);
+    setTemplateError('');
+    setTemplateSuccess('');
+
+    const token = session?.access_token;
+
+    let fileBase64 = null;
+    let fileName = null;
+    let previewBase64 = null;
+    let previewName = null;
+
+    if (templateForm.file) {
+      try {
+        fileBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target.result.split(',')[1]);
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(templateForm.file);
+        });
+        fileName = templateForm.file.name;
+      } catch (err) {
+        setTemplateError('Failed to read document file.');
+        setSubmittingTemplate(false);
+        return;
+      }
+    }
+
+    if (templateForm.preview_image) {
+      try {
+        previewBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target.result.split(',')[1]);
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(templateForm.preview_image);
+        });
+        previewName = templateForm.preview_image.name;
+      } catch (err) {
+        setTemplateError('Failed to read preview image.');
+        setSubmittingTemplate(false);
+        return;
+      }
+    }
+
+    const payload = {
+      name: templateForm.name,
+      description: templateForm.description,
+      is_free: templateForm.is_free,
+      price_kes: templateForm.is_free ? 0 : Number(templateForm.price_kes),
+      price_usd: templateForm.is_free ? 0 : Number(templateForm.price_usd),
+      category: templateForm.category,
+      optimized_companies: templateForm.optimized_companies.split(',').map(c => c.trim()).filter(Boolean),
+      file_name: fileName,
+      file_data_base64: fileBase64,
+      preview_image_base64: previewBase64,
+      preview_image_name: previewName
+    };
+
+    try {
+      const url = isEditingTemplate 
+        ? `${API_URL}/api/academy/mentor/templates/${templateForm.id}`
+        : `${API_URL}/api/academy/mentor/templates`;
+      
+      const method = isEditingTemplate ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setTemplateSuccess(isEditingTemplate ? 'Template updated successfully!' : 'Template uploaded successfully!');
+        setShowTemplateModal(false);
+        fetchVaultTemplates();
+        setTemplateForm({
+          id: '',
+          name: '',
+          description: '',
+          is_free: true,
+          price_kes: 0,
+          price_usd: 0,
+          category: 'Finance',
+          optimized_companies: '',
+          file: null
+        });
+      } else {
+        setTemplateError(data.error || 'Failed to save template.');
+      }
+    } catch (err) {
+      setTemplateError('Failed to connect to server.');
+    } finally {
+      setSubmittingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+    const token = session?.access_token;
+    setTemplateError('');
+    setTemplateSuccess('');
+    try {
+      const res = await fetch(`${API_URL}/api/academy/mentor/templates/${templateId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTemplateSuccess('Template deleted successfully.');
+        fetchVaultTemplates();
+      } else {
+        setTemplateError(data.error || 'Failed to delete template.');
+      }
+    } catch (err) {
+      setTemplateError('Failed to connect to server.');
     }
   };
 
@@ -233,7 +405,11 @@ export default function AcademyDashboard({ onNavigate }) {
     if (session && activeTab === 'riders' && state?.role === 'mentor') {
       fetchRiders();
     }
-  }, [session, activeTab, state]);
+
+    if (session && activeTab === 'templates' && state?.role === 'mentor') {
+      fetchVaultTemplates();
+    }
+  }, [session, activeTab, state, fetchVaultTemplates]);
 
   // Load Paystack script
   useEffect(() => {
@@ -878,6 +1054,12 @@ export default function AcademyDashboard({ onNavigate }) {
                 onClick={() => setActiveTab('riders')}
               >
                 Riders
+              </button>
+              <button 
+                className={`ac-tab-btn ${activeTab === 'templates' ? 'active' : ''}`}
+                onClick={() => setActiveTab('templates')}
+              >
+                Resume Vault
               </button>
             </>
           )}
@@ -1638,6 +1820,285 @@ export default function AcademyDashboard({ onNavigate }) {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+          {/* MENTOR RESUME VAULT TEMPLATE MANAGER TAB */}
+          {state?.role === 'mentor' && activeTab === 'templates' && (
+            <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="ac-card" style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem 2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>ATS Resume Vault</h2>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>Upload and manage resume templates hosted live on the public vault.</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsEditingTemplate(false);
+                    setTemplateForm({ id: '', name: '', description: '', is_free: true, price_kes: 0, price_usd: 0, category: 'Finance', optimized_companies: '', file: null });
+                    setTemplateError('');
+                    setTemplateSuccess('');
+                    setShowTemplateModal(true);
+                  }}
+                  style={{ marginLeft: 'auto', background: '#D12630', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.75rem 1.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}
+                >
+                  + Add New Template
+                </button>
+              </div>
+
+              {templateSuccess && (
+                <div style={{ padding: '1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#166534', fontSize: '0.875rem', fontWeight: 600 }}>
+                  {templateSuccess}
+                </div>
+              )}
+              {templateError && (
+                <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '0.875rem', fontWeight: 600 }}>
+                  {templateError}
+                </div>
+              )}
+
+              <div className="ac-card" style={{ padding: 0, overflow: 'hidden' }}>
+                {loadingTemplates ? (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+                    <Loader2 className="animate-spin" size={32} style={{ margin: '0 auto 1rem', color: '#D12630' }} />
+                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Loading templates...</p>
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 700 }}>
+                          <th style={{ padding: '16px 24px' }}>Template Name</th>
+                          <th style={{ padding: '16px 24px' }}>Category</th>
+                          <th style={{ padding: '16px 24px' }}>Pricing</th>
+                          <th style={{ padding: '16px 24px' }}>Optimized For</th>
+                          <th style={{ padding: '16px 24px', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody style={{ divideY: '1px solid #e2e8f0' }}>
+                        {vaultTemplates.map((template) => (
+                          <tr key={template.id} style={{ borderBottom: '1px solid #f1f5f9', hover: { background: '#f8fafc' } }}>
+                            <td style={{ padding: '16px 24px', fontWeight: 600, color: '#0f172a' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <FileText size={16} style={{ color: '#64748b' }} />
+                                {template.name}
+                              </div>
+                            </td>
+                            <td style={{ padding: '16px 24px', color: '#475569' }}>
+                              <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>{template.category}</span>
+                            </td>
+                            <td style={{ padding: '16px 24px' }}>
+                              {template.is_free ? (
+                                <span style={{ color: '#166534', fontWeight: 700, fontSize: '0.85rem' }}>FREE</span>
+                              ) : (
+                                <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.85rem' }}>
+                                  KES {template.price_kes} / ${template.price_usd}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '16px 24px', color: '#64748b', fontSize: '0.85rem' }}>
+                              {template.optimized_companies?.join(', ') || 'Global Standards'}
+                            </td>
+                            <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                              <button 
+                                onClick={() => {
+                                  setIsEditingTemplate(true);
+                                  setTemplateForm({
+                                    id: template.id,
+                                    name: template.name,
+                                    description: template.description || '',
+                                    is_free: template.is_free,
+                                    price_kes: template.price_kes || 0,
+                                    price_usd: template.price_usd || 0,
+                                    category: template.category || 'Finance',
+                                    optimized_companies: template.optimized_companies?.join(', ') || '',
+                                    file: null
+                                  });
+                                  setTemplateError('');
+                                  setTemplateSuccess('');
+                                  setShowTemplateModal(true);
+                                }}
+                                style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 600, marginRight: '16px', fontSize: '0.85rem' }}
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTemplate(template.id)}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {vaultTemplates.length === 0 && (
+                          <tr>
+                            <td colSpan="5" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>No templates uploaded yet. Click "+ Add New Template" to get started.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TEMPLATE ADD/EDIT MODAL OVERLAY */}
+          {showTemplateModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+              <div className="ac-card" style={{ maxWidth: '550px', width: '100%', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '90vh', overflowY: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {isEditingTemplate ? 'Edit Resume Template' : 'Upload New Template'}
+                  </h3>
+                  <button 
+                    onClick={() => setShowTemplateModal(false)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: '#64748b', cursor: 'pointer', marginLeft: 'auto' }}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Template Name</label>
+                    <input 
+                      type="text" 
+                      required 
+                      value={templateForm.name} 
+                      onChange={(e) => setTemplateForm({...templateForm, name: e.target.value})} 
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                      placeholder="e.g. Transformation Finance"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Category</label>
+                    <select
+                      value={templateForm.category}
+                      onChange={(e) => setTemplateForm({...templateForm, category: e.target.value})}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', bg: '#fff' }}
+                    >
+                      <option value="Finance">Finance & Banking</option>
+                      <option value="Technology">Technology & DevOps</option>
+                      <option value="NGO">NGO & International Development</option>
+                      <option value="Executive">Executive Director & Management</option>
+                      <option value="General">General / Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Description</label>
+                    <textarea 
+                      value={templateForm.description} 
+                      onChange={(e) => setTemplateForm({...templateForm, description: e.target.value})} 
+                      rows="3"
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', fontFamily: 'inherit' }} 
+                      placeholder="Explain features and target roles for this template..."
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Pricing Type</label>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '4px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                        <input 
+                          type="radio" 
+                          checked={templateForm.is_free} 
+                          onChange={() => setTemplateForm({...templateForm, is_free: true})} 
+                        />
+                        Free Download
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', cursor: 'pointer' }}>
+                        <input 
+                          type="radio" 
+                          checked={!templateForm.is_free} 
+                          onChange={() => setTemplateForm({...templateForm, is_free: false})} 
+                        />
+                        Paid (KES & USD)
+                      </label>
+                    </div>
+                  </div>
+
+                  {!templateForm.is_free && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Price (KES)</label>
+                        <input 
+                          type="number" 
+                          required={!templateForm.is_free}
+                          value={templateForm.price_kes} 
+                          onChange={(e) => setTemplateForm({...templateForm, price_kes: e.target.value})} 
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Price (USD)</label>
+                        <input 
+                          type="number" 
+                          required={!templateForm.is_free}
+                          value={templateForm.price_usd} 
+                          onChange={(e) => setTemplateForm({...templateForm, price_usd: e.target.value})} 
+                          style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Optimized Companies (comma-separated)</label>
+                    <input 
+                      type="text" 
+                      value={templateForm.optimized_companies} 
+                      onChange={(e) => setTemplateForm({...templateForm, optimized_companies: e.target.value})} 
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                      placeholder="e.g. Equity Bank, KCB, Safaricom"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                      {isEditingTemplate ? 'Replace Template File (.docx) - Optional' : 'Upload Template File (.docx)'}
+                    </label>
+                    <input 
+                      type="file" 
+                      required={!isEditingTemplate}
+                      accept=".docx"
+                      onChange={(e) => setTemplateForm({...templateForm, file: e.target.files[0]})} 
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '4px', marginTop: '10px' }}>
+                      {isEditingTemplate ? 'Replace Preview Image (.png/.jpg/.webp) - Optional' : 'Upload Preview Image (.png/.jpg/.webp) - Optional'}
+                    </label>
+                    <input 
+                      type="file" 
+                      accept=".png,.jpg,.jpeg,.webp"
+                      onChange={(e) => setTemplateForm({...templateForm, preview_image: e.target.files[0]})} 
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }} 
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowTemplateModal(false)}
+                      style={{ padding: '0.75rem 1.5rem', border: '1px solid #cbd5e1', background: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={submittingTemplate}
+                      style={{ padding: '0.75rem 1.5rem', background: '#D12630', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                      {submittingTemplate && <Loader2 size={16} className="animate-spin" />}
+                      {isEditingTemplate ? 'Save Changes' : 'Upload Template'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

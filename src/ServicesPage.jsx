@@ -403,6 +403,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('workshop')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Zap size={14} className="text-amber-500" /> AI Masterclass
                       </button>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('vault')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FileText size={14} className="text-rose-500" /> Resume Vault
+                      </button>
                     </>
                   )}
                   {onNavigateToTools && (
@@ -470,6 +473,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   </button>
                   <button className="dm-mobile-link" onClick={() => { onNavigateToPath('workshop'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22C55E' }}>
                     <Zap size={16} /> AI Masterclass
+                  </button>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('vault'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f43f5e' }}>
+                    <FileText size={16} /> Resume Vault
                   </button>
                 </>
               )}

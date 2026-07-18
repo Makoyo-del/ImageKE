@@ -7,8 +7,12 @@ export default defineConfig({
 
   server: {
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      // COOP isolates the browsing context from cross-origin popups (good security practice).
+      // NOTE: We intentionally do NOT set Cross-Origin-Embedder-Policy (COEP) here because
+      // COEP: require-corp blocks third-party scripts (Paystack, PDF.js CDN, etc.) that
+      // don't serve a Cross-Origin-Resource-Policy response header. COEP is only needed
+      // when using SharedArrayBuffer — which this app does not.
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
   },
 

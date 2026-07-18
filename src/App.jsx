@@ -17,6 +17,7 @@ const WorkshopLanding = lazy(() => import('./components/workshop/WorkshopLanding
 const WorkshopJoin = lazy(() => import('./components/workshop/WorkshopJoin'));
 const RiderLogin = lazy(() => import('./components/rider/RiderLogin'));
 const RiderDashboard = lazy(() => import('./components/rider/RiderDashboard'));
+const ATSResumeVault = lazy(() => import('./components/vault/ATSResumeVault'));
 
 // ─── Environment Config ────────────────────────────────────────────────────────
 // Frontend is hosted on Hostinger, backend API is on Render (cross-origin).
@@ -110,6 +111,7 @@ const getPathFromHash = () => {
   if (hash === '#/photo-tools' || hash === '#/photo-editor' || hash === '#/photoeditor') return 'home';
   if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
   if (hash === '#/home' || hash === '#/tools') return 'home';
+  if (hash === '#/vault' || hash === '#/ats-vault') return 'vault';
   
   // Academy paths
   if (hash === '#/academy') return 'academy-auth';
@@ -2347,6 +2349,11 @@ function App() {
         />
       )}
 
+      {/* ── ATS Resume Vault ── */}
+      {currentPath === 'vault' && (
+        <ATSResumeVault onNavigate={navigateToPath} />
+      )}
+
       {/* ── ATS Simulator (standalone page) ── */}
       {currentPath === 'ats' && (
         <ATSSimulator onBack={() => window.location.hash = '#/'} />
@@ -2421,6 +2428,7 @@ function App() {
        currentPath !== 'terms' && 
        currentPath !== 'privacy' && 
        currentPath !== 'ats' && 
+       currentPath !== 'vault' && 
        currentPath !== 'workshop' && 
        currentPath !== 'workshop-join' && 
        !currentPath.startsWith('hookbunker') && 

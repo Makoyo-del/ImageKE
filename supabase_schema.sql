@@ -569,5 +569,56 @@ CREATE INDEX IF NOT EXISTS idx_fare_collections_paystack_ref
 ALTER TABLE public.riders ADD COLUMN IF NOT EXISTS email text;
 
 -- Migration: Update profiles role check constraint to allow 'rider' role
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('student', 'mentor', 'rider'));
+
+-- ─── 3. Create Resume Templates Table ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.resume_templates (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  description text,
+  is_free boolean DEFAULT true,
+  price_kes numeric DEFAULT 0,
+  price_usd numeric DEFAULT 0,
+  file_url text, -- Public or signed Supabase Storage URL
+  category text DEFAULT 'General',
+  optimized_companies text[] DEFAULT '{}',
+  file_type text DEFAULT 'docx',
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.resume_templates ENABLE ROW LEVEL SECURITY;
+
+-- Policies for public.resume_templates
+DROP POLICY IF EXISTS "Anyone can view templates" ON public.resume_templates;
+CREATE POLICY "Anyone can view templates" ON public.resume_templates
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Only mentors can manage templates" ON public.resume_templates;
+CREATE POLICY "Only mentors can manage templates" ON public.resume_templates
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'mentor'
+    )
+  );
+
+-- Storage bucket configurations for resume-templates
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('resume-templates', 'resume-templates', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Anyone can download templates" ON storage.objects;
+CREATE POLICY "Anyone can download templates" ON storage.objects
+  FOR SELECT USING (bucket_id = 'resume-templates');
+
+DROP POLICY IF EXISTS "Mentors can manage templates in storage" ON storage.objects;
+CREATE POLICY "Mentors can manage templates in storage" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'resume-templates' AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'mentor'
+    )
+  );
+

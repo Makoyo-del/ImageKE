@@ -9,6 +9,7 @@ import hookBunkerRouter from './hookbunker.js';
 import academyRouter from './academy.js';
 import workshopRouter, { sendConfirmationEmail } from './workshop.js';
 import riderRouter from './rider.js';
+import { supabase } from './supabase.js';
 
 dotenv.config();
 
@@ -237,9 +238,27 @@ app.get('/api/ping', pingLimiter, (req, res) => {
 // ─── Pricing Helper ──────────────────────────────────────────────────────────
 // Only paid products: career packages, academy, workshop, ATS report.
 // Photo/video/batch tools are FREE — do not add them here.
-function getExpectedAmount(metadata) {
+async function getExpectedAmount(metadata) {
   const type = metadata?.type;
   const currency = metadata?.currency || 'KES';
+
+  if (type === 'resume_template') {
+    const templateId = metadata?.template_id;
+    if (!templateId) return null;
+    try {
+      const { data, error } = await supabase
+        .from('resume_templates')
+        .select('is_free, price_kes, price_usd')
+        .eq('id', templateId)
+        .single();
+      if (error || !data) return null;
+      if (data.is_free) return 0;
+      return currency === 'USD' ? Number(data.price_usd) : Number(data.price_kes);
+    } catch (e) {
+      console.error('[Pricing DB Fetch Error]', e.message);
+      return null;
+    }
+  }
 
   if (type === 'career_service') {
     const pkgId = metadata?.package;
@@ -285,7 +304,7 @@ app.post('/api/initialize-payment', apiLimiter, async (req, res) => {
   }
 
   // Enforce pricing server-side based on type and tool to prevent client-side editing/tampering
-  const expectedAmount = getExpectedAmount(metadata);
+  const expectedAmount = await getExpectedAmount(metadata);
   if (expectedAmount === null) {
     return res.status(400).json({ error: 'Invalid service package.' });
   }
@@ -346,7 +365,7 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
     const metadata = txData?.metadata;
 
     // Server-side amount validation: reject if type is unknown or amount is insufficient
-    const expectedAmount = getExpectedAmount(metadata);
+    const expectedAmount = await getExpectedAmount(metadata);
     if (expectedAmount === null || amountPaid < expectedAmount) {
       console.error(`[Security] Payment amount mismatch. Paid: ${amountPaid}, Expected: ${expectedAmount}, Type: ${metadata?.type}`);
       return res.status(400).json({
@@ -363,6 +382,61 @@ app.get('/api/verify-payment/:reference', apiLimiter, async (req, res) => {
     const detail = error.response?.data?.message || error.message;
     console.error('[Paystack verify error]', detail);
     res.status(502).json({ error: 'Failed to verify payment. Please contact support.' });
+  }
+});
+
+// ─── Secure Paid Template Download Proxy ──────────────────────────────────────
+app.get('/api/download-template/:reference', apiLimiter, async (req, res) => {
+  const { reference } = req.params;
+
+  if (!reference || !/^[a-zA-Z0-9_-]+$/.test(reference)) {
+    return res.status(400).json({ error: 'Invalid payment reference.' });
+  }
+
+  try {
+    // 1. Verify transaction with Paystack
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      { headers: paystackHeaders }
+    );
+
+    const txData = response.data?.data;
+    const txStatus = txData?.status;
+    if (txStatus !== 'success') {
+      return res.status(402).json({ error: 'Payment not confirmed.', status: txStatus });
+    }
+
+    // 2. Extract template ID from Paystack transaction metadata
+    const templateId = txData.metadata?.template_id;
+    if (!templateId) {
+      return res.status(400).json({ error: 'Invalid transaction metadata.' });
+    }
+
+    // 3. Fetch template file URL and name from Supabase
+    const { data: template, error } = await supabase
+      .from('resume_templates')
+      .select('file_url, name')
+      .eq('id', templateId)
+      .single();
+
+    if (error || !template || !template.file_url) {
+      console.error('[Download Proxy DB Error]', error?.message || 'Template file not found.');
+      return res.status(404).json({ error: 'Template file not found.' });
+    }
+
+    // 4. Download file from storage bucket and pipe it to response
+    const fileRes = await axios.get(template.file_url, { responseType: 'stream' });
+    
+    // Set headers to trigger direct browser download
+    const cleanFileName = template.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanFileName}.docx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    
+    fileRes.data.pipe(res);
+  } catch (err) {
+    const detail = err.response?.data?.message || err.message;
+    console.error('[Download proxy error]', detail);
+    res.status(500).json({ error: 'Failed to process template download.' });
   }
 });
 

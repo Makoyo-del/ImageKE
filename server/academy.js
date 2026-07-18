@@ -1127,4 +1127,438 @@ router.post('/mentor/change-rider-password', authenticateUser, async (req, res) 
   }
 });
 
+// ─── Email Helper for Resend ─────────────────────────────────────────────────────
+async function sendTemplateEmail({ to, templateName, fileUrl }) {
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromAddress = process.env.EMAIL_FROM || process.env.RESEND_FROM_EMAIL || 'duncan@duncanmakoyo.com';
+
+  if (!resendKey || resendKey.includes('placeholder')) {
+    console.warn('[Resend] API key not configured. Skipping email.');
+    return;
+  }
+
+  try {
+    await axios.post(
+      'https://api.resend.com/emails',
+      {
+        from: `Duncan Makoyo Vault <${fromAddress}>`,
+        to,
+        subject: `Your Premium ATS Resume Template: ${templateName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+            <h2 style="color: #D12630; border-bottom: 2px solid #111; padding-bottom: 10px;">The ATS Resume Vault</h2>
+            <p>Hi there,</p>
+            <p>Thank you for your purchase! Your premium ATS-optimized resume template <strong>"${templateName}"</strong> is ready.</p>
+            <p>You can download it directly using the link below:</p>
+            <div style="margin: 30px 0;">
+              <a href="${fileUrl}" style="background-color: #D12630; color: #fff; padding: 12px 24px; text-decoration: none; font-weight: bold; font-size: 16px;">Download .DOCX Template</a>
+            </div>
+            <p style="font-size: 14px; color: #555;">If the button doesn't work, copy and paste this link into your browser:<br/>
+            <a href="${fileUrl}">${fileUrl}</a></p>
+            <p style="margin-top: 40px; font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 20px;">
+              Duncan Makoyo Career Strategy &copy; ${new Date().getFullYear()}
+            </p>
+          </div>
+        `,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    console.log(`[Template Email] Sent successfully to ${to}`);
+  } catch (err) {
+    console.error('[Template Email Error]', err.response?.data || err.message);
+  }
+}
+
+// ─── Resume Templates Endpoints ──────────────────────────────────────────────
+
+// GET all templates (public)
+router.get('/templates', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('resume_templates')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Get Templates Error]', error.message);
+      return res.status(500).json({ error: 'Failed to fetch templates.' });
+    }
+    res.json(data);
+  } catch (err) {
+    console.error('[Get Templates Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// POST purchase template (verify Paystack + send email)
+router.post('/templates/purchase', async (req, res) => {
+  const { reference, email, templateId } = req.body;
+
+  if (!reference || !email || !templateId) {
+    return res.status(400).json({ error: 'Missing required fields: reference, email, or templateId.' });
+  }
+
+  try {
+    // 1. Verify transaction with Paystack
+    const paystackKey = process.env.PAYSTACK_SECRET_KEY;
+    if (!paystackKey) {
+      return res.status(500).json({ error: 'Payment gateway not configured.' });
+    }
+
+    const response = await axios.get(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      { headers: { Authorization: `Bearer ${paystackKey}` } }
+    );
+
+    const txData = response.data?.data;
+    if (txData?.status !== 'success') {
+      return res.status(402).json({ error: 'Payment not confirmed.', status: txData?.status });
+    }
+
+    // Security check: Match templateId with metadata if present
+    const metaTemplateId = txData.metadata?.template_id;
+    if (metaTemplateId && String(metaTemplateId) !== String(templateId)) {
+      return res.status(400).json({ error: 'Security validation failed: Template mismatch.' });
+    }
+
+    // 2. Fetch template details
+    const { data: template, error } = await supabase
+      .from('resume_templates')
+      .select('name, file_url')
+      .eq('id', templateId)
+      .single();
+
+    if (error || !template || !template.file_url) {
+      return res.status(404).json({ error: 'Template file not found in database.' });
+    }
+
+    // 3. Send Email via Resend
+    await sendTemplateEmail({
+      to: email,
+      templateName: template.name,
+      fileUrl: template.file_url
+    });
+
+    // 4. Return success and the file URL for immediate download
+    res.json({
+      success: true,
+      file_url: template.file_url,
+      message: 'Payment verified. Email sent.'
+    });
+
+  } catch (error) {
+    const detail = error.response?.data?.message || error.message;
+    console.error('[Paystack template verify error]', detail);
+    res.status(502).json({ error: 'Failed to verify payment or send email.' });
+  }
+});
+
+// POST create/upload new template (mentor only)
+router.post('/mentor/templates', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { name, description, is_free, price_kes, price_usd, category, optimized_companies, file_name, file_data_base64, preview_image_base64, preview_image_name } = req.body;
+
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'Template name is required.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    let fileUrl = null;
+    let previewUrl = null;
+
+    // 2. Upload file if provided
+    if (file_data_base64 && file_name) {
+      const fileBuffer = Buffer.from(file_data_base64, 'base64');
+      const cleanFileName = file_name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uniquePath = `templates/${crypto.randomUUID()}_${cleanFileName}`;
+
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('resume-templates')
+        .upload(uniquePath, fileBuffer, {
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          upsert: true
+        });
+
+      if (uploadErr) {
+        console.error('[Upload Template File Error]', uploadErr.message);
+        return res.status(500).json({ error: 'Failed to upload template file.' });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('resume-templates')
+        .getPublicUrl(uniquePath);
+
+      fileUrl = publicUrl;
+    }
+
+    // 2.5 Upload preview image if provided
+    if (preview_image_base64 && preview_image_name) {
+      const previewBuffer = Buffer.from(preview_image_base64, 'base64');
+      const cleanImageName = preview_image_name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uniqueImgPath = `previews/${crypto.randomUUID()}_${cleanImageName}`;
+
+      // Detect MIME type naively by extension
+      let contentType = 'image/jpeg';
+      if (cleanImageName.toLowerCase().endsWith('.png')) contentType = 'image/png';
+      else if (cleanImageName.toLowerCase().endsWith('.webp')) contentType = 'image/webp';
+
+      const { error: imgUploadErr } = await supabase.storage
+        .from('resume-templates')
+        .upload(uniqueImgPath, previewBuffer, {
+          contentType,
+          upsert: true
+        });
+
+      if (imgUploadErr) {
+        console.error('[Upload Preview Image Error]', imgUploadErr.message);
+      } else {
+        const { data: { publicUrl: pUrl } } = supabase.storage
+          .from('resume-templates')
+          .getPublicUrl(uniqueImgPath);
+        previewUrl = pUrl;
+      }
+    }
+
+    // 3. Insert metadata into database
+    const { data, error } = await supabase
+      .from('resume_templates')
+      .insert({
+        name,
+        description: description || '',
+        is_free: is_free === undefined ? true : !!is_free,
+        price_kes: price_kes ? Number(price_kes) : 0,
+        price_usd: price_usd ? Number(price_usd) : 0,
+        file_url: fileUrl,
+        preview_url: previewUrl,
+        category: category || 'General',
+        optimized_companies: Array.isArray(optimized_companies) ? optimized_companies : []
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[Create Template Error]', error.message);
+      return res.status(500).json({ error: 'Failed to create template.' });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('[Create Template Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// PUT update template metadata (mentor only)
+router.put('/mentor/templates/:id', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+  const { name, description, is_free, price_kes, price_usd, category, optimized_companies, file_name, file_data_base64, preview_image_base64, preview_image_name } = req.body;
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Fetch existing template
+    const { data: existing, error: fetchErr } = await supabase
+      .from('resume_templates')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !existing) {
+      return res.status(404).json({ error: 'Template not found.' });
+    }
+
+    let fileUrl = existing.file_url;
+    let previewUrl = existing.preview_url;
+
+    // 3. Upload new file if provided
+    if (file_data_base64 && file_name) {
+      const fileBuffer = Buffer.from(file_data_base64, 'base64');
+      const cleanFileName = file_name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uniquePath = `templates/${crypto.randomUUID()}_${cleanFileName}`;
+
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('resume-templates')
+        .upload(uniquePath, fileBuffer, {
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          upsert: true
+        });
+
+      if (uploadErr) {
+        console.error('[Update Template File Error]', uploadErr.message);
+        return res.status(500).json({ error: 'Failed to upload new template file.' });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('resume-templates')
+        .getPublicUrl(uniquePath);
+
+      // Clean up old file from storage if it exists
+      if (existing.file_url) {
+        try {
+          const oldPath = existing.file_url.split('/storage/v1/object/public/resume-templates/')[1];
+          if (oldPath) {
+            await supabase.storage.from('resume-templates').remove([oldPath]);
+          }
+        } catch (delErr) {
+          console.error('[Clean Old File Warning]', delErr.message);
+        }
+      }
+
+      fileUrl = publicUrl;
+    }
+
+    // 3.5 Upload preview image if provided
+    if (preview_image_base64 && preview_image_name) {
+      const previewBuffer = Buffer.from(preview_image_base64, 'base64');
+      const cleanImageName = preview_image_name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uniqueImgPath = `previews/${crypto.randomUUID()}_${cleanImageName}`;
+
+      let contentType = 'image/jpeg';
+      if (cleanImageName.toLowerCase().endsWith('.png')) contentType = 'image/png';
+      else if (cleanImageName.toLowerCase().endsWith('.webp')) contentType = 'image/webp';
+
+      const { error: imgUploadErr } = await supabase.storage
+        .from('resume-templates')
+        .upload(uniqueImgPath, previewBuffer, {
+          contentType,
+          upsert: true
+        });
+
+      if (imgUploadErr) {
+        console.error('[Upload Preview Image Error]', imgUploadErr.message);
+      } else {
+        const { data: { publicUrl: pUrl } } = supabase.storage
+          .from('resume-templates')
+          .getPublicUrl(uniqueImgPath);
+
+        // Clean up old preview if exists
+        if (existing.preview_url) {
+          try {
+            const oldImgPath = existing.preview_url.split('/storage/v1/object/public/resume-templates/')[1];
+            if (oldImgPath) {
+              await supabase.storage.from('resume-templates').remove([oldImgPath]);
+            }
+          } catch (delErr) {
+            console.error('[Clean Old Preview Warning]', delErr.message);
+          }
+        }
+
+        previewUrl = pUrl;
+      }
+    }
+
+    // 4. Update metadata in database
+    const { data, error } = await supabase
+      .from('resume_templates')
+      .update({
+        name: name || existing.name,
+        description: description !== undefined ? description : existing.description,
+        is_free: is_free !== undefined ? !!is_free : existing.is_free,
+        price_kes: price_kes !== undefined ? Number(price_kes) : existing.price_kes,
+        price_usd: price_usd !== undefined ? Number(price_usd) : existing.price_usd,
+        file_url: fileUrl,
+        preview_url: previewUrl,
+        category: category || existing.category,
+        optimized_companies: Array.isArray(optimized_companies) ? optimized_companies : existing.optimized_companies
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('[Update Template Error]', error.message);
+      return res.status(500).json({ error: 'Failed to update template.' });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('[Update Template Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// DELETE template (mentor only)
+router.delete('/mentor/templates/:id', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Fetch existing template
+    const { data: existing, error: fetchErr } = await supabase
+      .from('resume_templates')
+      .select('file_url')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !existing) {
+      return res.status(404).json({ error: 'Template not found.' });
+    }
+
+    // 3. Delete file from storage
+    if (existing.file_url) {
+      try {
+        const oldPath = existing.file_url.split('/storage/v1/object/public/resume-templates/')[1];
+        if (oldPath) {
+          await supabase.storage.from('resume-templates').remove([oldPath]);
+        }
+      } catch (delErr) {
+        console.error('[Delete File Warning]', delErr.message);
+      }
+    }
+
+    // 4. Delete row from database
+    const { error } = await supabase
+      .from('resume_templates')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('[Delete Template Error]', error.message);
+      return res.status(500).json({ error: 'Failed to delete template.' });
+    }
+
+    res.json({ success: true, message: 'Template deleted successfully.' });
+  } catch (err) {
+    console.error('[Delete Template Router Error]', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 export default router;
