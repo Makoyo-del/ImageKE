@@ -515,14 +515,14 @@ export async function sendConfirmationEmail(registration) {
   const isFree            = !registration.amount_paid || registration.ticket_type === 'free';
 
   const emailHtml = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-      <div style="background: linear-gradient(135deg, #0A1628 0%, #0F1F3D 100%); padding: 32px; border-bottom: 3px solid #22C55E;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">You're In! Your Seat is Confirmed 🎓</h2>
-        <p style="color: #4ADE80; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">Free AI Job Search Masterclass</p>
+    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+      <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+        <h2 style="color: #F4F4EE; margin: 0; font-size: 1.5rem; font-family: Georgia, serif; font-weight: 700;">You're In! Your Seat is Confirmed 🎓</h2>
+        <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Free AI Job Search Masterclass</p>
       </div>
-      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-        <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Hi ${registration.full_name},</p>
-        <p style="color: #475569; margin-bottom: 24px;">
+      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+        <p style="margin-top: 0; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Hi ${registration.full_name},</p>
+        <p style="color: #333333; margin-bottom: 24px;">
           ${isFree
             ? 'Your seat for the <strong>Free AI Job Search Masterclass</strong> is confirmed. You are all set — no payment required. See you on the live call!'
             : `Your payment of <strong>KES ${registration.amount_paid}</strong> has been verified and your seat is locked in.`
@@ -530,42 +530,42 @@ export async function sendConfirmationEmail(registration) {
         </p>
 
         <!-- Session Details -->
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem; font-weight: 700;">📅 Masterclass Details</h4>
-          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
+        <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 10px; color: #111111; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">📅 Masterclass Details</h4>
+          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #555555;">
             <strong>Date:</strong> ${sessionDate}<br/>
             <strong>Time:</strong> ${sessionTime}<br/>
             <strong>Duration:</strong> ${sessionDuration} Live Training<br/>
             <strong>Platform:</strong> Google Meet
           </p>
           <a href="${gatewayLink}" target="_blank"
-            style="display: inline-block; background: #0A1628; color: #ffffff; padding: 10px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            style="display: inline-block; background: #111111; color: #ffffff; padding: 10px 20px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
             Access Your Join Link →
           </a>
         </div>
 
         <!-- WhatsApp Group -->
-        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
-          <p style="margin: 0 0 6px; font-weight: 700; color: #166534; font-size: 0.95rem;">📱 Step 2: Join the Masterclass WhatsApp Group</p>
-          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #166534;">Get the prompt sheets, ATS CV template, and live session reminders delivered to you before the call.</p>
+        <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 24px; text-align: center;">
+          <p style="margin: 0 0 6px; font-weight: 800; color: #111111; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">📱 Step 2: Join the Masterclass WhatsApp Group</p>
+          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #555555;">Get the prompt sheets, ATS CV template, and live session reminders delivered to you before the call.</p>
           <a href="${whatsappGroupLink}" target="_blank"
-            style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 8px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            style="display: inline-block; background: #25D366; color: #FFFFFF; padding: 8px 20px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em;">
             Join WhatsApp Group →
           </a>
         </div>
 
         <!-- What You'll Walk Away With -->
-        <h4 style="margin: 28px 0 10px; color: #0F172A; font-size: 0.95rem; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;">🎁 What You'll Walk Away With</h4>
-        <ul style="color: #475569; font-size: 0.875rem; margin: 0 0 16px; padding-left: 1.25rem; line-height: 2;">
+        <h4 style="margin: 28px 0 10px; color: #111111; font-size: 0.85rem; font-weight: 800; border-bottom: 2px solid #111111; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">🎁 What You'll Walk Away With</h4>
+        <ul style="color: #333333; font-size: 0.875rem; margin: 0 0 16px; padding-left: 1.25rem; line-height: 2;">
           <li>A complete AI prompting workflow for CVs and cover letters</li>
           <li>An ATS Master CV template (copy-paste ready)</li>
           <li>A live CV teardown — see errors recruiters never tell you about</li>
           <li>The exact keywords that pass Applicant Tracking Systems</li>
         </ul>
 
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-          <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #1A56DB; font-weight: 600;">Career Mentor & AI Job Search Strategist</p>
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #111111;">
+          <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+          <p style="margin: 4px 0 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Career Mentor &amp; AI Job Search Strategist</p>
         </div>
       </div>
     </div>
@@ -604,27 +604,25 @@ export async function sendConfirmationEmail(registration) {
 
 // ─── Helper: Waitlist Confirmation Email ──────────────────────────────────────
 function getWaitlistEmailHtml(name) {
-  return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
-      <div style="background: linear-gradient(135deg, #0A1628 0%, #0F1F3D 100%); padding: 32px; border-bottom: 3px solid #F59E0B;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">You're on the Waitlist!</h2>
-        <p style="color: #FCD34D; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Free AI Job Search Masterclass</p>
+  return `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+      <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+        <h2 style="color: #F4F4EE; margin: 0; font-size: 1.4rem; font-family: Georgia, serif; font-weight: 700;">You're on the Waitlist!</h2>
+        <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">// Free AI Job Search Masterclass</p>
       </div>
-      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-        <p style="margin-top: 0; font-weight: 600;">Hi ${name},</p>
-        <p style="color: #475569;">All 100 seats for the current cohort are taken — but we've saved your spot on the waitlist. We'll notify you the moment registration opens for the next cohort.</p>
-        <p style="color: #475569; margin-bottom: 24px;">In the meantime, if you'd like a head start, you can book a <strong>1-on-1 CV Strategy Session</strong> directly with Duncan:</p>
+      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+        <p style="margin-top: 0; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">Hi ${name},</p>
+        <p style="color: #333333;">All 100 seats for the current cohort are taken — but we've saved your spot on the waitlist. We'll notify you the moment registration opens for the next cohort.</p>
+        <p style="color: #333333; margin-bottom: 24px;">In the meantime, if you'd like a head start, you can book a <strong>1-on-1 CV Strategy Session</strong> directly with Duncan:</p>
         <a href="https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%27m%20on%20the%20masterclass%20waitlist%20and%20would%20like%20a%20CV%20session." target="_blank"
-          style="display: inline-block; background: #22C55E; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.9rem;">
+          style="display: inline-block; background: #25D366; color: #fff; padding: 12px 24px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em;">
           Book a Private Session on WhatsApp →
         </a>
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-          <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #1A56DB; font-weight: 600;">Career Mentor & AI Job Search Strategist</p>
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #111111;">
+          <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+          <p style="margin: 4px 0 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Career Mentor &amp; AI Job Search Strategist</p>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 // ─── Helper: Generate Reminder Email Body ─────────────────────────────────────
@@ -640,35 +638,35 @@ function getReminderEmailHtml(registration, type) {
   const sessionDuration = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';
 
   return `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-      <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Workshop Reminder ⏰</h2>
-        <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">AI Job Seeker Live Workshop</p>
+    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+      <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+        <h2 style="color: #F4F4EE; margin: 0; font-size: 1.5rem; font-family: Georgia, serif; font-weight: 700;">Workshop Reminder ⏰</h2>
+        <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// AI Job Seeker Live Workshop</p>
       </div>
-      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-        <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Dear ${registration.full_name},</p>
-        <p style="color: #475569; margin-bottom: 24px;">${introText}</p>
+      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+        <p style="margin-top: 0; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Dear ${registration.full_name},</p>
+        <p style="color: #333333; margin-bottom: 24px;">${introText}</p>
 
         <!-- Google Meet Details -->
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem;">📅 Event Join Details</h4>
-          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
+        <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 10px; color: #111111; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">📅 Event Join Details</h4>
+          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #555555;">
             <strong>Duration:</strong> ${sessionDuration} Live Training<br/>
             <strong>Platform:</strong> Google Meet<br/>
             <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
           </p>
           <a href="${gatewayLink}" target="_blank"
-            style="display: inline-block; background: #14B8A6; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
-            Verify Seat & Join Call →
+            style="display: inline-block; background: #111111; color: #ffffff; padding: 10px 20px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
+            Verify Seat &amp; Join Call →
           </a>
         </div>
 
         <!-- WhatsApp Reminder -->
-        <p style="color: #475569; margin-bottom: 16px;">If you haven't joined the cohort WhatsApp group yet, please do so to receive the prompt sheets and session slides: <a href="${whatsappGroupLink}" style="color: #14B8A6; font-weight: 600; text-decoration: none;">Join WhatsApp Community →</a></p>
+        <p style="color: #333333; margin-bottom: 16px;">If you haven't joined the cohort WhatsApp group yet, please do so to receive the prompt sheets and session slides: <a href="${whatsappGroupLink}" style="color: #D61A3C; font-weight: 700; text-decoration: none;">Join WhatsApp Community →</a></p>
 
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-          <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Career Mentor</p>
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #111111;">
+          <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+          <p style="margin: 4px 0 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tech Consultant &amp; Career Mentor</p>
         </div>
       </div>
     </div>
@@ -684,44 +682,44 @@ async function sendCertificateEmail(registration) {
   const sessionDuration = process.env.WORKSHOP_SESSION_DURATION || '2 Hours';
 
   const emailHtml = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-      <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Workshop Access Details 🚀</h2>
-        <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">AI Job Seeker Live Workshop</p>
+    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+      <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+        <h2 style="color: #F4F4EE; margin: 0; font-size: 1.5rem; font-family: Georgia, serif; font-weight: 700;">Workshop Access Details 🚀</h2>
+        <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// AI Job Seeker Live Workshop</p>
       </div>
-      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-        <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Dear ${registration.full_name},</p>
-        <p style="color: #475569; margin-bottom: 24px;">Here are your access details, calendar invitation, and WhatsApp cohort links for the upcoming AI Job Seeker Workshop.</p>
+      <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+        <p style="margin-top: 0; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Dear ${registration.full_name},</p>
+        <p style="color: #333333; margin-bottom: 24px;">Here are your access details, calendar invitation, and WhatsApp cohort links for the upcoming AI Job Seeker Workshop.</p>
 
         <!-- Google Meet Details -->
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <h4 style="margin: 0 0 10px; color: #0F172A; font-size: 0.95rem;">📅 Event Schedule & Join Link</h4>
-          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #475569;">
+        <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 10px; color: #111111; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">📅 Event Schedule &amp; Join Link</h4>
+          <p style="margin: 0 0 12px; font-size: 0.875rem; color: #555555;">
             <strong>Duration:</strong> ${sessionDuration} Live Training<br/>
             <strong>Platform:</strong> Google Meet<br/>
             <strong>Session Time:</strong> ${sessionDate} at ${sessionTime}
           </p>
           <a href="${googleMeetLink}" target="_blank"
-            style="display: inline-block; background: #0F172A; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            style="display: inline-block; background: #111111; color: #ffffff; padding: 10px 20px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
             Join Google Meet Call →
           </a>
         </div>
 
         <!-- WhatsApp Group Onboarding -->
-        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
-          <p style="margin: 0 0 8px; font-weight: 700; color: #166534; font-size: 0.95rem;">📱 Step 2: Join the WhatsApp Group</p>
-          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #166534;">Join the cohort group for slides, prompts sheets, and workshop notifications.</p>
+        <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 24px; text-align: center;">
+          <p style="margin: 0 0 8px; font-weight: 800; color: #111111; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">📱 Step 2: Join the WhatsApp Group</p>
+          <p style="margin: 0 0 12px; font-size: 0.85rem; color: #555555;">Join the cohort group for slides, prompts sheets, and workshop notifications.</p>
           <a href="${whatsappGroupLink}" target="_blank"
-            style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 8px 20px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.85rem;">
+            style="display: inline-block; background: #25D366; color: #FFFFFF; padding: 8px 20px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em;">
             Join WhatsApp Group →
           </a>
         </div>
 
-        <p style="color: #64748B; font-size: 0.875rem;">Your downloadable workshop toolkit (including the ATS Master CV Template, AI Prompt Library, and Job Description Matching framework) will be shared directly inside the cohort WhatsApp group as we approach the live session.</p>
+        <p style="color: #555555; font-size: 0.875rem;">Your downloadable workshop toolkit (including the ATS Master CV Template, AI Prompt Library, and Job Description Matching framework) will be shared directly inside the cohort WhatsApp group as we approach the live session.</p>
 
-        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-          <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-          <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Career Mentor</p>
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #111111;">
+          <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+          <p style="margin: 4px 0 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tech Consultant &amp; Career Mentor</p>
         </div>
       </div>
     </div>

@@ -695,25 +695,25 @@ app.post('/api/paystack/webhook', (req, res) => {
               to: emailToProvision,
               subject: 'Bonus: Your Career Academy Access',
               html: `
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
-                  <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-                    <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
-                    <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Bonus Access Unlocked</p>
+                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+                  <div style="background: #111111; padding: 24px 32px; border-bottom: 2px solid #111111;">
+                    <h2 style="color: #F4F4EE; margin: 0; font-size: 1.4rem; font-family: Georgia, serif; font-weight: 700;">Career Academy</h2>
+                    <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Bonus Access Unlocked</p>
                   </div>
-                  <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-                    <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Hello,</p>
-                    <p style="color: #475569; margin-bottom: 24px;">As part of your recent career service purchase, you've been granted complimentary access to the <strong>Duncan Makoyo Career Academy</strong>. Please verify your email to unlock your resources.</p>
+                  <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+                    <p style="margin-top: 0; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Hello,</p>
+                    <p style="color: #333333; margin-bottom: 24px;">As part of your recent career service purchase, you've been granted complimentary access to the <strong>Duncan Makoyo Career Academy</strong>. Please verify your email to unlock your resources.</p>
         
                     <div style="text-align: center; margin: 28px 0;">
                       <a href="${verifyLink}" target="_blank"
-                        style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
-                        Verify & Access Academy
+                        style="display: inline-block; background: #D61A3C; color: #ffffff; padding: 12px 32px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;">
+                        Verify &amp; Access Academy
                       </a>
                     </div>
         
-                    <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-                      <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-                      <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Career Mentor</p>
+                    <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #111111;">
+                      <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+                      <p style="margin: 4px 0 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tech Consultant &amp; Career Mentor</p>
                     </div>
                   </div>
                 </div>
@@ -996,27 +996,25 @@ app.post('/api/submit-service-request', formLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Service selection is required.' });
   }
 
-  const html = `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-      <div style="background:#0F172A;padding:24px 32px;border-radius:12px 12px 0 0">
-        <h2 style="color:#14B8A6;margin:0;font-size:1.2rem">New Service Request</h2>
-        <p style="color:rgba(255,255,255,0.6);margin:4px 0 0;font-size:0.875rem">Via DuncanMakoyo.com</p>
+  const html = `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; border: 2px solid #111111; background: #F4F4EE; padding: 0;">
+      <div style="background: #111111; padding: 24px 32px; border-bottom: 2px solid #111111;">
+        <h2 style="color: #F4F4EE; margin: 0; font-size: 1.3rem; font-family: Georgia, serif;">New Service Request</h2>
+        <p style="color: #D61A3C; margin: 4px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Via DuncanMakoyo.com</p>
       </div>
-      <div style="background:#F8FAFC;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 12px 12px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A;width:140px">Name</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155">${name.trim()}</td></tr>
-          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Email</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155"><a href="mailto:${email.trim()}" style="color:#14B8A6">${email.trim()}</a></td></tr>
-          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Phone</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155">${phone?.trim() || '—'}</td></tr>
-          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Service</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#14B8A6;font-weight:700">${service}</td></tr>
-          <tr><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0F172A">Free Audit?</td><td style="padding:10px 0;border-bottom:1px solid #E2E8F0;color:#334155">${wantAudit ? '✅ Yes — wants free CV audit' : 'No'}</td></tr>
-          <tr><td style="padding:10px 0;font-weight:700;color:#0F172A;vertical-align:top">Message</td><td style="padding:10px 0;color:#334155;line-height:1.6">${message?.trim() || '—'}</td></tr>
+      <div style="background: #F4F4EE; padding: 32px; font-family: Arial, sans-serif;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <tr><td style="padding: 10px 0; border-bottom: 2px solid #111111; font-weight: 800; color: #111111; width: 140px; text-transform: uppercase; letter-spacing: 0.05em;">Name</td><td style="padding: 10px 0; border-bottom: 2px solid #111111; color: #111111;">${name.trim()}</td></tr>
+          <tr><td style="padding: 10px 0; border-bottom: 2px solid #111111; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Email</td><td style="padding: 10px 0; border-bottom: 2px solid #111111; color: #111111;"><a href="mailto:${email.trim()}" style="color: #D61A3C; text-decoration: none; font-weight: 700;">${email.trim()}</a></td></tr>
+          <tr><td style="padding: 10px 0; border-bottom: 2px solid #111111; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Phone</td><td style="padding: 10px 0; border-bottom: 2px solid #111111; color: #111111;">${phone?.trim() || '—'}</td></tr>
+          <tr><td style="padding: 10px 0; border-bottom: 2px solid #111111; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Service</td><td style="padding: 10px 0; border-bottom: 2px solid #111111; color: #D61A3C; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">${service}</td></tr>
+          <tr><td style="padding: 10px 0; border-bottom: 2px solid #111111; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Free CV Audit?</td><td style="padding: 10px 0; border-bottom: 2px solid #111111; color: #111111;">${wantAudit ? 'YES — wants free CV audit' : 'No'}</td></tr>
+          <tr><td style="padding: 10px 0; font-weight: 800; color: #111111; vertical-align: top; text-transform: uppercase; letter-spacing: 0.05em;">Message</td><td style="padding: 10px 0; color: #333333; line-height: 1.6;">${message?.trim() || '—'}</td></tr>
         </table>
-        <div style="margin-top:24px;padding:16px;background:#fff;border:1px solid #E2E8F0;border-radius:8px">
-          <p style="margin:0;font-size:0.8rem;color:#64748B">Reply directly to this email to respond to <strong>${name.trim()}</strong>.</p>
+        <div style="margin-top: 24px; padding: 16px; background: #FFFFFF; border: 2px solid #111111;">
+          <p style="margin: 0; font-size: 0.75rem; color: #555555; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Reply directly to this email to respond to <strong>${name.trim()}</strong>.</p>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 
   try {
     await sendEmail({
@@ -1027,60 +1025,58 @@ app.post('/api/submit-service-request', formLimiter, async (req, res) => {
 
     // Send auto-acknowledgement email to the client
     try {
-      const clientHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+      const clientHtml = `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
           <!-- Header -->
-          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-            <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Request Received</h2>
-            <p style="color: #A5F3FC; margin: 6px 0 0; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">Via duncanmakoyo.com</p>
+          <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+            <h2 style="color: #F4F4EE; margin: 0; font-size: 1.5rem; font-family: Georgia, serif; font-weight: 700;">Request Received</h2>
+            <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Via duncanmakoyo.com</p>
           </div>
           <!-- Body -->
-          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-            <p style="margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem;">Hi ${name.trim()},</p>
-            <p style="margin-bottom: 20px; color: #475569;">Thanks for reaching out! I've successfully received your inquiry for <strong>${service}</strong>.</p>
-            <p style="margin-bottom: 24px; color: #475569;">I am reviewing your details and will get back to you within 24 hours to discuss how we can work together. If you have any immediate files or context to share (like your current resume or target job descriptions), feel free to reply directly to this email.</p>
+          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+            <p style="margin-top: 0; margin-bottom: 16px; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Hi ${name.trim()},</p>
+            <p style="margin-bottom: 20px; color: #333333;">Thanks for reaching out! I've successfully received your inquiry for <strong>${service}</strong>.</p>
+            <p style="margin-bottom: 24px; color: #333333;">I am reviewing your details and will get back to you within 24 hours to discuss how we can work together. If you have any immediate files or context to share (like your current resume or target job descriptions), feel free to reply directly to this email.</p>
             
             <!-- Details Box -->
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 32px;">
-              <h3 style="margin: 0 0 12px; font-size: 0.9rem; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Your Request Details</h3>
+            <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 32px;">
+              <h3 style="margin: 0 0 12px; font-size: 0.8rem; color: #111111; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 800;">Your Request Details</h3>
               <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
                 <tr>
-                  <td style="color: #64748B; padding: 6px 0; width: 120px; font-weight: 500;">Service:</td>
-                  <td style="font-weight: 700; color: #0F172A; padding: 6px 0;">${service}</td>
+                  <td style="color: #555555; padding: 6px 0; width: 140px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Service:</td>
+                  <td style="font-weight: 800; color: #111111; padding: 6px 0;">${service}</td>
                 </tr>
                 <tr>
-                  <td style="color: #64748B; padding: 6px 0; font-weight: 500;">Free CV Audit:</td>
-                  <td style="font-weight: 700; color: #14B8A6; padding: 6px 0;">${wantAudit ? '✅ Requested' : 'No'}</td>
+                  <td style="color: #555555; padding: 6px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Free CV Audit:</td>
+                  <td style="font-weight: 800; color: #D61A3C; padding: 6px 0;">${wantAudit ? 'Requested' : 'No'}</td>
                 </tr>
               </table>
             </div>
-
+ 
             <!-- Signature Section -->
-            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0;">
-              <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-              <p style="margin: 4px 0 16px; font-size: 0.85rem; color: #4F46E5; font-weight: 600; letter-spacing: 0.02em;">
-                Tech Consultant &nbsp;|&nbsp; Resume Writer &nbsp;|&nbsp; Digital Marketing Strategist
+            <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #111111;">
+              <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+              <p style="margin: 4px 0 16px; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">
+                Tech Consultant · Resume Writer · Digital Strategist
               </p>
               
-              <table style="width: 100%; border-collapse: collapse; font-size: 0.825rem; color: #475569; line-height: 1.6;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #555555; line-height: 1.6;">
                 <tr>
-                  <td style="padding: 2px 0;"><strong>Email:</strong> <a href="mailto:info@duncanmakoyo.com" style="color: #14B8A6; text-decoration: none; font-weight: 600;">info@duncanmakoyo.com</a></td>
-                  <td style="padding: 2px 0; padding-left: 20px;"><strong>Web:</strong> <a href="https://duncanmakoyo.com" style="color: #14B8A6; text-decoration: none; font-weight: 600;">duncanmakoyo.com</a></td>
+                  <td style="padding: 2px 0;"><strong>Email:</strong> <a href="mailto:info@duncanmakoyo.com" style="color: #D61A3C; text-decoration: none; font-weight: 700;">info@duncanmakoyo.com</a></td>
+                  <td style="padding: 2px 0; padding-left: 20px;"><strong>Web:</strong> <a href="https://duncanmakoyo.com" style="color: #D61A3C; text-decoration: none; font-weight: 700;">duncanmakoyo.com</a></td>
                 </tr>
                 <tr>
-                  <td style="padding: 2px 0;"><strong>LinkedIn:</strong> <a href="https://linkedin.com/in/duncan-makoyo" style="color: #14B8A6; text-decoration: none; font-weight: 600;">linkedin.com/in/duncan-makoyo</a></td>
+                  <td style="padding: 2px 0;"><strong>LinkedIn:</strong> <a href="https://linkedin.com/in/duncan-makoyo" style="color: #D61A3C; text-decoration: none; font-weight: 700;">linkedin.com/in/duncan-makoyo</a></td>
                   <td style="padding: 2px 0; padding-left: 20px;">&nbsp;</td>
                 </tr>
               </table>
               
-              <div style="margin-top: 16px; padding: 10px 14px; background: #F8FAFC; border-left: 3px solid #14B8A6; border-radius: 0 8px 8px 0; font-size: 0.775rem; color: #1E293B; font-style: italic; line-height: 1.4;">
-                ✦ Helped 10+ professionals get hired & earn promotions &nbsp;|&nbsp; Helping brands communicate better.
+              <div style="margin-top: 16px; padding: 12px; background: #FFFFFF; border: 2px solid #111111; border-left: 4px solid #D61A3C; font-size: 0.75rem; color: #111111; font-style: italic; line-height: 1.4;">
+                ✦ Helped 10+ professionals get hired &amp; earn promotions · Helping brands communicate better.
               </div>
             </div>
-
+ 
           </div>
-        </div>
-      `;
+        </div>`;
       await sendEmail({
         to: email.trim(),
         subject: `Request Received: ${service} — Duncan Makoyo`,
@@ -1186,69 +1182,67 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
 
     // Send payment confirmation receipt email to the client
     try {
-      const clientHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+      const clientHtml = `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
           <!-- Header -->
-          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #10B981;">
-            <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Payment Confirmed</h2>
-            <p style="color: #A7F3D0; margin: 6px 0 0; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">Order Receipt</p>
+          <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+            <h2 style="color: #F4F4EE; margin: 0; font-size: 1.5rem; font-family: Georgia, serif; font-weight: 700;">Payment Confirmed</h2>
+            <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Order Receipt</p>
           </div>
           <!-- Body -->
-          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-            <p style="margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem;">Hi there,</p>
-            <p style="margin-bottom: 20px; color: #475569;">Thank you for choosing my career consulting services. Your payment of <strong>${currSymbol}${Number(price).toLocaleString()}</strong> for the <strong>${pkg}</strong> package has been successfully verified.</p>
+          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+            <p style="margin-top: 0; margin-bottom: 16px; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Hi there,</p>
+            <p style="margin-bottom: 20px; color: #333333;">Thank you for choosing my career consulting services. Your payment of <strong>${currSymbol}${Number(price).toLocaleString()}</strong> for the <strong>${pkg}</strong> package has been successfully verified.</p>
             
-            <p style="margin-bottom: 12px; font-weight: 700; color: #0F172A;">What happens next?</p>
-            <ul style="margin: 0 0 24px; padding-left: 20px; color: #475569;">
+            <p style="margin-bottom: 12px; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">What happens next?</p>
+            <ul style="margin: 0 0 24px; padding-left: 20px; color: #333333; line-height: 1.6;">
               <li style="margin-bottom: 8px;">I will personally reach out to you at this email address within 24 hours to schedule our kick-off or request your current details.</li>
               <li style="margin-bottom: 8px;">If you want to get started immediately, simply reply directly to this email with your current CV, target job titles/descriptions, or specific career goals.</li>
             </ul>
             
             <!-- Details Box -->
-            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 32px;">
-              <h3 style="margin: 0 0 12px; font-size: 0.9rem; color: #0F172A; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Order Details</h3>
+            <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 32px;">
+              <h3 style="margin: 0 0 12px; font-size: 0.8rem; color: #111111; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 800;">Order Details</h3>
               <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
                 <tr>
-                  <td style="color: #64748B; padding: 6px 0; width: 120px; font-weight: 500;">Package:</td>
-                  <td style="font-weight: 700; color: #0F172A; padding: 6px 0;">${pkg} Package</td>
+                  <td style="color: #555555; padding: 6px 0; width: 120px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Package:</td>
+                  <td style="font-weight: 800; color: #111111; padding: 6px 0;">${pkg} Package</td>
                 </tr>
                 <tr>
-                  <td style="color: #64748B; padding: 6px 0; font-weight: 500;">Amount:</td>
-                  <td style="font-weight: 700; color: #10B981; padding: 6px 0;">${currSymbol}${Number(price).toLocaleString()}</td>
+                  <td style="color: #555555; padding: 6px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Amount:</td>
+                  <td style="font-weight: 800; color: #D61A3C; padding: 6px 0;">${currSymbol}${Number(price).toLocaleString()}</td>
                 </tr>
                 <tr>
-                  <td style="color: #64748B; padding: 6px 0; font-weight: 500;">Reference:</td>
-                  <td style="color: #64748B; padding: 6px 0; font-size: 0.8rem;">${reference}</td>
+                  <td style="color: #555555; padding: 6px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Reference:</td>
+                  <td style="color: #555555; padding: 6px 0; font-size: 0.8rem;">${reference}</td>
                 </tr>
               </table>
             </div>
-
+ 
             <!-- Signature Section -->
-            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0;">
-              <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-              <p style="margin: 4px 0 16px; font-size: 0.85rem; color: #4F46E5; font-weight: 600; letter-spacing: 0.02em;">
-                Tech Consultant &nbsp;|&nbsp; Resume Writer &nbsp;|&nbsp; Digital Marketing Strategist
+            <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #111111;">
+              <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+              <p style="margin: 4px 0 16px; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">
+                Tech Consultant · Resume Writer · Digital Strategist
               </p>
               
-              <table style="width: 100%; border-collapse: collapse; font-size: 0.825rem; color: #475569; line-height: 1.6;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #555555; line-height: 1.6;">
                 <tr>
-                  <td style="padding: 2px 0;"><strong>Email:</strong> <a href="mailto:info@duncanmakoyo.com" style="color: #14B8A6; text-decoration: none; font-weight: 600;">info@duncanmakoyo.com</a></td>
-                  <td style="padding: 2px 0; padding-left: 20px;"><strong>Web:</strong> <a href="https://duncanmakoyo.com" style="color: #14B8A6; text-decoration: none; font-weight: 600;">duncanmakoyo.com</a></td>
+                  <td style="padding: 2px 0;"><strong>Email:</strong> <a href="mailto:info@duncanmakoyo.com" style="color: #D61A3C; text-decoration: none; font-weight: 700;">info@duncanmakoyo.com</a></td>
+                  <td style="padding: 2px 0; padding-left: 20px;"><strong>Web:</strong> <a href="https://duncanmakoyo.com" style="color: #D61A3C; text-decoration: none; font-weight: 700;">duncanmakoyo.com</a></td>
                 </tr>
                 <tr>
-                  <td style="padding: 2px 0;"><strong>LinkedIn:</strong> <a href="https://linkedin.com/in/duncan-makoyo" style="color: #14B8A6; text-decoration: none; font-weight: 600;">linkedin.com/in/duncan-makoyo</a></td>
+                  <td style="padding: 2px 0;"><strong>LinkedIn:</strong> <a href="https://linkedin.com/in/duncan-makoyo" style="color: #D61A3C; text-decoration: none; font-weight: 700;">linkedin.com/in/duncan-makoyo</a></td>
                   <td style="padding: 2px 0; padding-left: 20px;">&nbsp;</td>
                 </tr>
               </table>
               
-              <div style="margin-top: 16px; padding: 10px 14px; background: #F8FAFC; border-left: 3px solid #14B8A6; border-radius: 0 8px 8px 0; font-size: 0.775rem; color: #1E293B; font-style: italic; line-height: 1.4;">
-                ✦ Helped 10+ professionals get hired & earn promotions &nbsp;|&nbsp; Helping brands communicate better.
+              <div style="margin-top: 16px; padding: 12px; background: #FFFFFF; border: 2px solid #111111; border-left: 4px solid #D61A3C; font-size: 0.75rem; color: #111111; font-style: italic; line-height: 1.4;">
+                ✦ Helped 10+ professionals get hired &amp; earn promotions · Helping brands communicate better.
               </div>
             </div>
-
+ 
           </div>
-        </div>
-      `;
+        </div>`;
       await sendEmail({
         to: email.trim().toLowerCase(),
         subject: `Confirmation: Your Career Package is Confirmed! — Duncan Makoyo`,

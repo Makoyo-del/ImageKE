@@ -164,32 +164,30 @@ router.post('/register', authLimiter, async (req, res) => {
     await sendEmail({
       to: email.trim().toLowerCase(),
       subject: 'Verify Your Career Academy Email',
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-            <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
-            <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Confirm Registration</p>
+      html: `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+          <div style="background: #111111; padding: 24px 32px; border-bottom: 2px solid #111111;">
+            <h2 style="color: #F4F4EE; margin: 0; font-size: 1.4rem; font-family: Georgia, serif; font-weight: 700;">Career Academy</h2>
+            <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Confirm Registration</p>
           </div>
-          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-            <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Welcome aboard,</p>
-            <p style="color: #475569; margin-bottom: 24px;">Your <strong>Duncan Makoyo Career Academy</strong> account has been created for <strong>${email}</strong>. To complete registration, please verify your email address by clicking the button below.</p>
+          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+            <p style="margin-top: 0; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Welcome aboard,</p>
+            <p style="color: #333333; margin-bottom: 24px;">Your <strong>Duncan Makoyo Career Academy</strong> account has been created for <strong>${email}</strong>. To complete registration, please verify your email address by clicking the button below.</p>
 
             <div style="text-align: center; margin: 28px 0;">
               <a href="${verifyLink}" target="_blank"
-                style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
+                style="display: inline-block; background: #D61A3C; color: #ffffff; padding: 12px 32px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;">
                 Verify Email Address
               </a>
             </div>
 
-            <p style="color: #64748B; font-size: 0.875rem;">Once verified, you will see the enrollment options for the <strong>6-Week AI &amp; Data Career Accelerator</strong>. This link is valid for 24 hours.</p>
+            <p style="color: #555555; font-size: 0.85rem;">Once verified, you will see the enrollment options for the <strong>6-Week AI &amp; Data Career Accelerator</strong>. This link is valid for 24 hours.</p>
 
-            <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-              <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-              <p style="margin: 4px 0 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant &amp; Career Mentor</p>
+            <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #111111;">
+              <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+              <p style="margin: 4px 0 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tech Consultant &amp; Career Mentor</p>
             </div>
           </div>
-        </div>
-      `,
+        </div>`,
     });
 
     console.log(`[Academy Register] Account created for ${email}`);
@@ -328,23 +326,23 @@ router.post('/resend-verification', authenticateUser, async (req, res) => {
       to: email,
       subject: 'Verify Your Academy Email Address',
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;">
-          <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-            <h2 style="color: #FFFFFF; margin: 0; font-size: 1.4rem; font-weight: 700;">Career Academy</h2>
-            <p style="color: #5EEAD4; margin: 6px 0 0; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">Verify Your Email</p>
+        <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+          <div style="background: #111111; padding: 24px 32px; border-bottom: 2px solid #111111;">
+            <h2 style="color: #F4F4EE; margin: 0; font-size: 1.4rem; font-family: Georgia, serif; font-weight: 700;">Career Academy</h2>
+            <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Verify Your Email</p>
           </div>
-          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-            <p style="margin-top: 0; font-weight: 600; font-size: 1.05rem;">Hi there,</p>
-            <p style="color: #475569; margin-bottom: 24px;">Please confirm your email address to complete registration and unlock your Duncan Makoyo Career Academy portal.</p>
+          <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+            <p style="margin-top: 0; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Hi there,</p>
+            <p style="color: #333333; margin-bottom: 24px;">Please confirm your email address to complete registration and unlock your Duncan Makoyo Career Academy portal.</p>
 
             <div style="text-align: center; margin: 28px 0;">
               <a href="${verifyLink}" target="_blank"
-                style="display: inline-block; background: linear-gradient(135deg, #14B8A6, #0D9488); color: #ffffff; padding: 12px 32px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.95rem; letter-spacing: 0.01em;">
+                style="display: inline-block; background: #D61A3C; color: #ffffff; padding: 12px 32px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;">
                 Verify Email Address
               </a>
             </div>
             
-            <p style="color: #64748B; font-size: 0.875rem;">This link is valid for 24 hours. If you did not request this, you can safely ignore this email.</p>
+            <p style="color: #555555; font-size: 0.85rem;">This link is valid for 24 hours. If you did not request this, you can safely ignore this email.</p>
           </div>
         </div>
       `
@@ -676,27 +674,27 @@ router.post('/verify-payment', authenticateUser, async (req, res) => {
     const academyDashboardUrl = process.env.ACADEMY_DASHBOARD_URL || 'https://duncanmakoyo.com/#/academy/dashboard';
     
     const emailHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E293B; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
-        <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 32px; border-bottom: 3px solid #14B8A6;">
-          <h2 style="color: #FFFFFF; margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;">Welcome to the Accelerator!</h2>
-          <p style="color: #A5F3FC; margin: 6px 0 0; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">Academy Access Activated</p>
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; overflow: hidden; padding: 0;">
+        <div style="background: #111111; padding: 32px; border-bottom: 2px solid #111111;">
+          <h2 style="color: #F4F4EE; margin: 0; font-size: 1.5rem; font-family: Georgia, serif; font-weight: 700;">Welcome to the Accelerator!</h2>
+          <p style="color: #D61A3C; margin: 6px 0 0; font-family: Arial, sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;">// Academy Access Activated</p>
         </div>
-        <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem;">
-          <p style="margin-top: 0; margin-bottom: 16px; font-weight: 600; font-size: 1.05rem;">Hi there,</p>
-          <p style="margin-bottom: 20px; color: #475569;">Congratulations! Your payment for the <strong>AI & Data Career Accelerator</strong> has been confirmed, and your academy dashboard is now unlocked.</p>
+        <div style="padding: 32px; line-height: 1.7; font-size: 0.95rem; font-family: Arial, sans-serif;">
+          <p style="margin-top: 0; margin-bottom: 16px; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111111;">Hi there,</p>
+          <p style="margin-bottom: 20px; color: #333333;">Congratulations! Your payment for the <strong>AI &amp; Data Career Accelerator</strong> has been confirmed, and your academy dashboard is now unlocked.</p>
           
-          <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
-            <p style="margin: 0 0 12px; font-weight: 700; color: #166534; font-size: 1rem;">Step 1: Join the Paid WhatsApp Community</p>
-            <p style="margin: 0 0 16px; font-size: 0.875rem; color: #166534;">Click the button below to join the members-only WhatsApp group for direct chat, support, and announcements.</p>
-            <a href="${whatsappCommunityLink}" target="_blank" style="display: inline-block; background: #22C55E; color: #FFFFFF; padding: 10px 24px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.9rem;">Join WhatsApp Community →</a>
+          <div style="background: #FFFFFF; border: 2px solid #111111; padding: 20px; margin-bottom: 24px; text-align: center;">
+            <p style="margin: 0 0 12px; font-weight: 800; color: #111111; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;">Step 1: Join the Paid WhatsApp Community</p>
+            <p style="margin: 0 0 16px; font-size: 0.85rem; color: #555555;">Click the button below to join the members-only WhatsApp group for direct chat, support, and announcements.</p>
+            <a href="${whatsappCommunityLink}" target="_blank" style="display: inline-block; background: #25D366; color: #FFFFFF; padding: 10px 24px; border: 2px solid #111111; font-weight: 800; text-decoration: none; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em;">Join WhatsApp Community →</a>
           </div>
 
-          <p style="margin-bottom: 12px; font-weight: 700; color: #0F172A;">Step 2: Access Your Dashboard</p>
-          <p style="margin-bottom: 24px; color: #475569;">Log in to your account at <a href="${academyDashboardUrl}" style="color: #14B8A6; font-weight: 600; text-decoration: none;">your dashboard</a> to view your active Sprints, download templates, and submit your weekly deliverables for review.</p>
+          <p style="margin-bottom: 12px; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">Step 2: Access Your Dashboard</p>
+          <p style="margin-bottom: 24px; color: #333333;">Log in to your account at <a href="${academyDashboardUrl}" style="color: #D61A3C; font-weight: 700; text-decoration: none;">your dashboard</a> to view your active Sprints, download templates, and submit your weekly deliverables for review.</p>
 
-          <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #E2E8F0;">
-            <p style="margin: 0; font-size: 1rem; font-weight: 700; color: #0F172A;">Duncan Makoyo</p>
-            <p style="margin: 4px 0; font-size: 0.85rem; color: #4F46E5; font-weight: 600;">Tech Consultant & Mentor</p>
+          <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #111111;">
+            <p style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #111111; text-transform: uppercase; letter-spacing: 0.05em;">Duncan Makoyo</p>
+            <p style="margin: 4px 0; font-size: 0.75rem; color: #D61A3C; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Tech Consultant &amp; Mentor</p>
           </div>
         </div>
       </div>
@@ -868,15 +866,15 @@ router.post('/mentor/review', authenticateUser, async (req, res) => {
       await sendEmail({
         to: student.email,
         subject: `[Academy Feedback] Your submission for ${deliverable.module_id} has been reviewed!`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;line-height:1.6">
-                <h2>Your submission is reviewed</h2>
-                <p>Hi there,</p>
-                <p>Duncan has reviewed your deliverable for <strong>${deliverable.module_id}</strong>.</p>
-                <p><strong>Feedback:</strong></p>
-                <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0">
+        html: `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; padding: 32px; line-height: 1.7;">
+                <h2 style="color: #111111; font-family: Georgia, serif; border-bottom: 2px solid #111111; padding-bottom: 0.5rem; font-weight: 700;">Your submission is reviewed</h2>
+                <p style="font-family: Arial, sans-serif;">Hi there,</p>
+                <p style="font-family: Arial, sans-serif;">Duncan has reviewed your deliverable for <strong>${deliverable.module_id}</strong>.</p>
+                <p style="font-family: Arial, sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem; margin-bottom: 0.5rem;">Feedback:</p>
+                <div style="background: #FFFFFF; padding: 1.5rem; border-left: 4px solid #D61A3C; margin: 1.5rem 0; border: 2px solid #111111; border-left: 4px solid #D61A3C; font-family: Arial, sans-serif;">
                   ${feedback.replace(/\n/g, '<br/>')}
                 </div>
-                <p>Log in to your dashboard at <a href="${academyDashboardUrl}" style="color:#14B8A6;font-weight:bold;text-decoration:none">your dashboard</a> to view this and submit the next module.</p>
+                <p style="font-family: Arial, sans-serif;">Go to your <a href="${academyDashboardUrl}" style="color: #D61A3C; font-weight: 700; text-decoration: none;">your dashboard</a> to view this and submit the next module.</p>
                </div>`
       });
     }
@@ -945,16 +943,16 @@ router.post('/mentor/broadcast', authenticateUser, async (req, res) => {
         return sendEmail({
           to: student.email,
           subject: `[Academy Announcement] ${subject}`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;line-height:1.6;color:#333">
-                  <h2 style="color:#0F172A;border-bottom:2px solid #14B8A6;padding-bottom:0.5rem">${subject}</h2>
-                  <p>Dear Student,</p>
-                  <p>Duncan Makoyo has posted a new announcement to the Mentorship portal:</p>
-                  <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0;white-space:pre-line">
+          html: `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; padding: 32px; line-height: 1.7;">
+                  <h2 style="color: #111111; font-family: Georgia, serif; border-bottom: 2px solid #111111; padding-bottom: 0.5rem; font-weight: 700;">${subject}</h2>
+                  <p style="font-family: Arial, sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">Dear Student,</p>
+                  <p style="font-family: Arial, sans-serif;">Duncan Makoyo has posted a new announcement to the Mentorship portal:</p>
+                  <div style="background: #FFFFFF; padding: 1.5rem; border-left: 4px solid #D61A3C; margin: 1.5rem 0; border: 2px solid #111111; border-left: 4px solid #D61A3C; font-family: Arial, sans-serif; white-space: pre-line">
                     ${content}
                   </div>
-                  <p>Visit your Academy dashboard at <a href="${academyDashboardUrl}" style="color:#14B8A6;font-weight:bold;text-decoration:none">your dashboard</a> to view or respond.</p>
-                  <hr style="border:none;border-top:1px solid #E2E8F0;margin:2rem 0"/>
-                  <p style="font-size:0.8rem;color:#64748B">Duncan Makoyo Career Academy & Mentorship</p>
+                  <p style="font-family: Arial, sans-serif;">Visit your Academy dashboard at <a href="${academyDashboardUrl}" style="color: #D61A3C; font-weight: 700; text-decoration: none;">your dashboard</a> to view or respond.</p>
+                  <hr style="border: none; border-top: 2px solid #111111; margin: 2rem 0"/>
+                  <p style="font-size: 0.75rem; color: #D61A3C; font-family: Arial, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Duncan Makoyo Career Academy &amp; Mentorship</p>
                  </div>`
         });
       });
@@ -1005,16 +1003,16 @@ router.post('/mentor/message-student', authenticateUser, async (req, res) => {
     await sendEmail({
       to: student.email,
       subject: `[Academy Message] ${subject}`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;line-height:1.6;color:#333">
-              <h2 style="color:#0F172A;border-bottom:2px solid #14B8A6;padding-bottom:0.5rem">${subject}</h2>
-              <p>Hello,</p>
-              <p>Duncan Makoyo has sent you a direct message regarding your progress in the Academy:</p>
-              <div style="background:#F8FAFC;padding:1.5rem;border-left:4px solid #14B8A6;margin:1.5rem 0;border-radius:0 8px 8px 0;white-space:pre-line">
+      html: `<div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; color: #111111; background: #F4F4EE; border: 2px solid #111111; padding: 32px; line-height: 1.7;">
+              <h2 style="color: #111111; font-family: Georgia, serif; border-bottom: 2px solid #111111; padding-bottom: 0.5rem; font-weight: 700;">${subject}</h2>
+              <p style="font-family: Arial, sans-serif; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem;">Hello,</p>
+              <p style="font-family: Arial, sans-serif;">Duncan Makoyo has sent you a direct message regarding your progress in the Academy:</p>
+              <div style="background: #FFFFFF; padding: 1.5rem; border-left: 4px solid #D61A3C; margin: 1.5rem 0; border: 2px solid #111111; border-left: 4px solid #D61A3C; font-family: Arial, sans-serif; white-space: pre-line">
                 ${content}
               </div>
-              <p>Go to your <a href="${academyDashboardUrl}" style="color:#14B8A6;font-weight:bold;text-decoration:none">Academy Dashboard</a> to continue your sprints.</p>
-              <hr style="border:none;border-top:1px solid #E2E8F0;margin:2rem 0"/>
-              <p style="font-size:0.8rem;color:#64748B">Duncan Makoyo Career Academy & Mentorship</p>
+              <p style="font-family: Arial, sans-serif;">Go to your <a href="${academyDashboardUrl}" style="color: #D61A3C; font-weight: 700; text-decoration: none;">Academy Dashboard</a> to continue your sprints.</p>
+              <hr style="border: none; border-top: 2px solid #111111; margin: 2rem 0"/>
+              <p style="font-size: 0.75rem; color: #D61A3C; font-family: Arial, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Duncan Makoyo Career Academy &amp; Mentorship</p>
              </div>`
     });
 
