@@ -1,12 +1,18 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  RewriteRule ^index\.html$ - [L]
+
+  # Ignore actual files, directories, or symlinks
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d [OR]
+  RewriteCond %{REQUEST_FILENAME} -l
+  RewriteRule ^ - [L]
+
+  # Exclude specific subdomains or folders
   RewriteCond %{HTTP_HOST} !^scout\.duncanmakoyo\.com [NC]
   RewriteCond %{REQUEST_URI} !^/aiscout [NC]
   RewriteCond %{REQUEST_URI} !^/scout [NC]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
-  RewriteRule . /index.html [L]
+
+  # Redirect clean paths to hash routing so shared links resolve properly
+  RewriteRule ^(.*)$ /#/$1 [NE,R=302,L]
 </IfModule>

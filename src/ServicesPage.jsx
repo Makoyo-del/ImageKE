@@ -314,29 +314,28 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ── Payment Modal ── */}
       {showPayModal && payingPackage && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          position: 'fixed', inset: 0, background: 'rgba(17,17,17,0.75)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300,
-          backdropFilter: 'blur(6px)',
         }}>
           <div style={{
-            background: '#fff', borderRadius: '20px', padding: '2.5rem',
+            background: '#F4F4EE', borderRadius: '0', padding: '2.5rem',
             width: '100%', maxWidth: '440px', margin: '1rem',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.25)',
+            border: '2px solid #111111', boxShadow: '6px 6px 0 #111111',
           }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--dm-teal)', marginBottom: '0.4rem' }}>
-                {payingPackage.tier} Package
+            <div style={{ marginBottom: '1.5rem', borderBottom: '2px solid #111111', paddingBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#D61A3C', marginBottom: '0.5rem', fontFamily: 'Inter, sans-serif' }}>
+                // {payingPackage.tier} Package
               </div>
-              <h3 style={{ margin: 0, fontFamily: 'Montserrat, sans-serif', fontSize: '1.5rem', color: 'var(--dm-navy)' }}>
+              <h3 style={{ margin: 0, fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2rem', color: '#111111', fontWeight: 900 }}>
                 {currency === 'USD' ? '$' : 'KES '}{currency === 'USD' ? payingPackage.priceUSD : payingPackage.priceKES.toLocaleString()}
               </h3>
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', color: 'var(--dm-text-muted)' }}>
+              <p style={{ margin: '0.5rem 0 0', fontSize: '0.875rem', color: '#555555', fontFamily: 'Inter, sans-serif' }}>
                 Enter your email to proceed. Duncan will contact you within 24 hours after payment.
               </p>
             </div>
 
-            <div style={{ marginBottom: '1rem' }}>
-              <label className="dm-form-label" style={{ marginBottom: '0.4rem', display: 'block' }}>Email Address</label>
+            <div style={{ marginBottom: '1rem', border: '2px solid #111111' }}>
+              <label className="dm-form-label" style={{ display: 'block' }}>Email Address</label>
               <input
                 type="email"
                 value={payEmail}
@@ -344,23 +343,24 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 onChange={e => { setPayEmail(e.target.value); setPayError(''); }}
                 placeholder="you@example.com"
                 className="dm-form-input"
+                style={{ borderRadius: 0 }}
               />
             </div>
 
             {payError && (
-              <p style={{ color: '#EF4444', fontSize: '0.85rem', marginBottom: '1rem' }}>{payError}</p>
+              <p style={{ color: '#D61A3C', fontSize: '0.85rem', marginBottom: '1rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>{payError}</p>
             )}
 
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0' }}>
               <button
                 onClick={() => { setShowPayModal(false); setIsPaying(false); }}
-                style={{ flex: 1, padding: '0.875rem', borderRadius: '10px', border: '1.5px solid var(--dm-border)', background: 'transparent', fontWeight: 600, cursor: 'pointer', fontSize: '0.9375rem', fontFamily: 'Inter, sans-serif' }}
+                style={{ flex: 1, padding: '0.875rem', borderRadius: '0', border: '2px solid #111111', borderRight: 'none', background: 'transparent', fontWeight: 800, cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' }}
               >
                 Cancel
               </button>
               <button
                 className="dm-pricing-btn primary"
-                style={{ flex: 2 }}
+                style={{ flex: 2, borderRadius: 0 }}
                 onClick={() => initiateCareerPayment(payingPackage)}
                 disabled={isPaying}
               >
@@ -507,25 +507,22 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       <section className="dm-hero" id="hero">
         <div className="dm-container" style={{ width: '100%' }}>
           <div className="dm-hero-grid">
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {/* Premium gradient avatar badge representing Duncan Makoyo */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              {/* Swiss Editorial monogram — stark ink block */}
               <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--dm-teal) 0%, var(--dm-primary) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
+                display: 'inline-block',
+                background: '#D61A3C',
                 color: '#fff',
+                fontFamily: 'Inter, sans-serif',
                 fontWeight: 800,
-                marginBottom: '1.5rem',
-                boxShadow: '0 8px 30px rgba(18, 56, 232, 0.25)',
-                border: '3px solid rgba(255, 255, 255, 0.1)',
-                fontFamily: 'Montserrat, sans-serif'
+                fontSize: '0.65rem',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                padding: '6px 16px',
+                marginBottom: '2rem',
+                border: '2px solid #111111',
               }}>
-                DM
+                // Career Consulting · Digital Strategy
               </div>
 
               <h1 className="dm-hero-headline">
@@ -594,38 +591,43 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           WHY WORK WITH ME
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" style={{ background: '#fff' }}>
+      <section className="dm-section" style={{ background: '#F4F4EE' }}>
         <div className="dm-container">
           <span className="dm-section-label">Why Choose Me</span>
-          <h2 className="dm-section-title">Results, Not Just Services</h2>
+          <h2 className="dm-section-title">Results, Not Just <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>Services</em></h2>
           <p className="dm-section-sub" style={{ marginBottom: '3rem' }}>
             I combine technology, marketing, and professional branding to help individuals and businesses create a stronger presence — and convert opportunities into real outcomes.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0', border: '2px solid #111111' }}>
             {[
-              { icon: <FileText size={20} className="text-blue-600" />, title: 'ATS-Optimized CVs', desc: 'Resumes engineered to pass recruiter screening systems and reach human decision-makers.' },
-              { icon: <Briefcase size={20} className="text-blue-600" />, title: 'LinkedIn Visibility', desc: 'Profiles that attract recruiters, showcase credibility, and generate inbound opportunities.' },
-              { icon: <Globe size={20} className="text-blue-600" />, title: 'Professional Websites', desc: 'Modern, responsive sites that build trust and convert visitors into paying customers.' },
-              { icon: <Zap size={20} className="text-blue-600" />, title: 'Fast & Reliable', desc: 'Clear communication, fast turnaround times, and consistent delivery — every project.' },
-              { icon: <BarChart size={20} className="text-blue-600" />, title: 'Measurable Results', desc: 'Digital solutions engineered to generate interviews, clients, and real business growth.' },
-              { icon: <DollarSign size={20} className="text-blue-600" />, title: 'Affordable Quality', desc: 'Premium-level work at fair pricing — no hidden fees, no generic templates.' },
-            ].map(item => (
+              { icon: <FileText size={18} />, title: 'ATS-Optimized CVs', desc: 'Resumes engineered to pass recruiter screening systems and reach human decision-makers.' },
+              { icon: <Briefcase size={18} />, title: 'LinkedIn Visibility', desc: 'Profiles that attract recruiters, showcase credibility, and generate inbound opportunities.' },
+              { icon: <Globe size={18} />, title: 'Professional Websites', desc: 'Modern, responsive sites that build trust and convert visitors into paying customers.' },
+              { icon: <Zap size={18} />, title: 'Fast & Reliable', desc: 'Clear communication, fast turnaround times, and consistent delivery — every project.' },
+              { icon: <BarChart size={18} />, title: 'Measurable Results', desc: 'Digital solutions engineered to generate interviews, clients, and real business growth.' },
+              { icon: <DollarSign size={18} />, title: 'Affordable Quality', desc: 'Premium-level work at fair pricing — no hidden fees, no generic templates.' },
+            ].map((item, i) => (
               <div key={item.title} style={{
-                display: 'flex', gap: '1rem', padding: '1.5rem',
-                background: 'var(--dm-bg)', borderRadius: '14px',
-                border: '1px solid var(--dm-border)',
-              }}>
+                display: 'flex', gap: '1rem', padding: '1.75rem',
+                background: '#F4F4EE',
+                borderRight: (i % 3 !== 2) ? '2px solid #111111' : 'none',
+                borderBottom: i < 3 ? '2px solid #111111' : 'none',
+                transition: 'background 0.12s ease',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#fff'}
+              onMouseLeave={e => e.currentTarget.style.background = '#F4F4EE'}
+              >
                 <div style={{
-                  width: '44px', height: '44px', borderRadius: '12px',
-                  background: 'var(--dm-teal-light)', display: 'flex',
+                  width: '40px', height: '40px', borderRadius: '0',
+                  background: '#111111', display: 'flex',
                   alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
+                  flexShrink: 0, color: '#F4F4EE',
                 }}>
                   {item.icon}
                 </div>
                 <div>
-                  <h4 style={{ margin: '0 0 0.3rem', color: 'var(--dm-navy)', fontFamily: 'Montserrat, sans-serif', fontWeight: 700, fontSize: '0.95rem' }}>{item.title}</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--dm-text-muted)', lineHeight: 1.55 }}>{item.desc}</p>
+                  <h4 style={{ margin: '0 0 0.3rem', color: '#111111', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.title}</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#555555', lineHeight: 1.6, fontFamily: 'Inter, sans-serif' }}>{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -701,7 +703,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           HOW IT WORKS (Redesigned: Vertical Timeline)
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="process" style={{ background: '#faf9f6', color: '#090e1a', borderTop: '1px solid rgba(9, 14, 26, 0.05)', borderBottom: '1px solid rgba(9, 14, 26, 0.05)' }}>
+      <section className="dm-section" id="process" style={{ background: '#F4F4EE', color: '#111111' }}>
         <div className="dm-container" style={{ maxWidth: '1000px' }}>
           <span className="dm-section-label" style={{ color: 'var(--dm-primary)' }}>The Process</span>
           <h2 className="dm-section-title" style={{ color: '#090e1a', marginBottom: '3.5rem' }}>How It Works</h2>
@@ -763,23 +765,24 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             
             {/* Left Column: Heading and Context */}
             <div className="dm-stats-left">
-              <span className="dm-section-label" style={{ color: 'var(--dm-primary)', marginBottom: '0.75rem', display: 'inline-block' }}>Proven Metrics</span>
+              <span className="dm-section-label" style={{ color: '#D61A3C', marginBottom: '0.75rem', display: 'inline-block' }}>Proven Metrics</span>
               <h2 style={{
-                fontFamily: 'Montserrat, sans-serif',
-                fontSize: '2rem',
-                fontWeight: 800,
-                color: 'var(--dm-navy)',
+                fontFamily: 'Playfair Display, Georgia, serif',
+                fontSize: '2.25rem',
+                fontWeight: 900,
+                color: '#F4F4EE',
                 margin: '0 0 1rem 0',
-                lineHeight: 1.25,
+                lineHeight: 1.15,
                 letterSpacing: '-0.02em',
               }}>
-                Results That Speak For Themselves
+                Results That <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>Speak</em> For Themselves
               </h2>
               <p style={{
                 margin: 0,
-                fontSize: '1rem',
-                color: '#475569',
-                lineHeight: 1.6,
+                fontSize: '0.95rem',
+                color: 'rgba(244,244,238,0.6)',
+                lineHeight: 1.75,
+                fontFamily: 'Inter, sans-serif',
               }}>
                 I focus on delivering tangible growth and career advancement. Every project is engineered to achieve maximum impact, speed, and client satisfaction.
               </p>
@@ -809,7 +812,7 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           PRICING
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="pricing" style={{ background: 'var(--dm-bg)' }}>
+      <section className="dm-section" id="pricing" style={{ background: '#F4F4EE' }}>
         <div className="dm-container">
           <span className="dm-section-label">Career Packages</span>
           <h2 className="dm-section-title">Clear, Honest Pricing</h2>
@@ -817,45 +820,19 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             Career service packages paid via Paystack (M-Pesa, Card, Bank). Website and business services — <button onClick={() => scrollTo('contact')} style={{ background: 'none', border: 'none', color: 'var(--dm-teal)', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 'inherit' }}>request a custom quote</button>.
           </p>
 
-          {/* Currency Toggle Selector */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
-            <div style={{
-              background: '#E2E8F0',
-              padding: '4px',
-              borderRadius: '30px',
-              display: 'flex',
-              gap: '4px',
-              border: '1px solid #CBD5E1',
-            }}>
+          {/* Swiss Currency Toggle */}
+          <div className="dm-currency-toggle">
+            <div className="dm-currency-group">
               <button
                 onClick={() => setCurrency('KES')}
-                style={{
-                  padding: '6px 20px',
-                  borderRadius: '20px',
-                  border: 'none',
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: currency === 'KES' ? 'var(--dm-teal)' : 'transparent',
-                  color: currency === 'KES' ? '#fff' : 'var(--dm-slate)',
-                  transition: 'all 0.2s ease',
-                }}
+                className={`dm-currency-btn ${currency === 'KES' ? 'active' : 'inactive'}`}
               >
                 KES (Shillings)
               </button>
               <button
                 onClick={() => setCurrency('USD')}
-                style={{
-                  padding: '6px 20px',
-                  borderRadius: '20px',
-                  border: 'none',
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: currency === 'USD' ? 'var(--dm-teal)' : 'transparent',
-                  color: currency === 'USD' ? '#fff' : 'var(--dm-slate)',
-                  transition: 'all 0.2s ease',
-                }}
+                className={`dm-currency-btn ${currency === 'USD' ? 'active' : 'inactive'}`}
+                style={{ borderLeft: '2px solid #111111' }}
               >
                 USD ($)
               </button>
@@ -917,8 +894,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             ))}
           </div>
 
-          <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '2rem', fontSize: '0.875rem', color: 'var(--dm-text-muted)', flexWrap: 'wrap' }}>
-            <Lock size={14} className="text-blue-500" /> Secure payment via Paystack · M-Pesa, Card & Bank accepted · Duncan contacts you within 24 hours of payment
+          <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '2rem', fontSize: '0.7rem', color: '#555555', flexWrap: 'wrap', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+            <Lock size={12} style={{ color: '#D61A3C' }} /> Secure payment via Paystack · M-Pesa, Card & Bank accepted · Duncan contacts you within 24 hours
           </p>
         </div>
       </section>
@@ -926,13 +903,13 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           RESULTS
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" style={{ background: '#fff' }}>
+      <section className="dm-section" style={{ background: '#F4F4EE' }}>
         <div className="dm-container">
           <span className="dm-section-label">Client Outcomes</span>
-          <h2 className="dm-section-title">What Clients Gain</h2>
+          <h2 className="dm-section-title">What Clients <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>Gain</em></h2>
           <p className="dm-section-sub" style={{ marginBottom: '2.5rem' }}>When we work together, these are the outcomes clients typically achieve.</p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0', border: '2px solid #111111' }}>
             {[
               'Increased interview invitations',
               'Stronger professional branding',
@@ -942,14 +919,15 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
               'Better online presence',
               'Higher conversion potential',
               'Faster career progression',
-            ].map(result => (
+            ].map((result, i) => (
               <div key={result} style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
-                padding: '1rem 1.25rem', background: 'var(--dm-bg)',
-                borderRadius: '12px', border: '1px solid var(--dm-border)',
+                padding: '1rem 1.25rem', background: '#F4F4EE',
+                borderRight: (i % 4 !== 3) ? '2px solid #111111' : 'none',
+                borderBottom: i < 4 ? '2px solid #111111' : 'none',
               }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>✓</div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--dm-slate)' }}>{result}</span>
+                <div style={{ width: '24px', height: '24px', borderRadius: '0', background: '#D61A3C', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem', flexShrink: 0, fontFamily: 'Inter, sans-serif' }}>✓</div>
+                <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#111111', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>{result}</span>
               </div>
             ))}
           </div>
@@ -959,35 +937,32 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           ATS SIMULATOR CTA SECTION
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="ats-simulator" style={{ background: 'linear-gradient(135deg, #0D1B4D 0%, #1238E8 50%, #2B5BFF 100%)', overflow: 'hidden', position: 'relative' }}>
-        {/* Background glow */}
-        <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(18, 56, 232, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '250px', height: '250px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(43, 91, 255, 0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
+      <section className="dm-section" id="ats-simulator" style={{ background: '#111111', overflow: 'hidden', position: 'relative' }}>
         <div className="dm-container" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }} className="ats-cta-grid">
 
             {/* Left — Copy */}
             <div>
-              <div style={{ display: 'inline-block', background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '20px', padding: '5px 18px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#FFFFFF', marginBottom: '1.5rem' }}>
-                Free Tool
+              <div style={{ display: 'inline-block', background: '#D61A3C', border: '2px solid #D61A3C', padding: '4px 14px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#FFFFFF', marginBottom: '1.5rem', fontFamily: 'Inter, sans-serif' }}>
+                // Free Tool
               </div>
-              <h2 style={{ fontFamily: 'Montserrat, sans-serif', color: '#fff', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '1rem', lineHeight: 1.25 }}>
-                See What ATS Systems<br />Actually Read From Your CV
+              <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', color: '#F4F4EE', fontSize: 'clamp(1.75rem, 3vw, 2.75rem)', marginBottom: '1rem', lineHeight: 1.15, fontWeight: 900 }}>
+                See What ATS Systems<br /><em style={{ color: '#D61A3C', fontStyle: 'italic' }}>Actually Read</em> From Your CV
               </h2>
-              <p style={{ color: 'rgba(255,255,255,0.9)', lineHeight: 1.75, fontSize: '0.95rem', marginBottom: '2rem' }}>
+              <p style={{ color: 'rgba(244,244,238,0.75)', lineHeight: 1.8, fontSize: '0.95rem', marginBottom: '2rem', fontFamily: 'Inter, sans-serif' }}>
                 Everybody talks about ATS systems. Very few people have actually seen one work. Upload your CV and watch a live ATS parse it — field by field — in real time. See exactly what gets detected, what gets missed, and why.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0', marginBottom: '2rem', border: '2px solid rgba(244,244,238,0.15)' }}>
                 {[
-                  '[OK] Contact info, skills and sections — detected live',
-                  '[ERR] Missing fields shown in real time',
-                  '[WARN] Formatting issues that kill readability exposed',
-                  '[stats] Detailed ATS readiness score breakdown',
+                  { tag: '[OK]', text: 'Contact info, skills and sections — detected live', tagColor: '#2D7A2D' },
+                  { tag: '[ERR]', text: 'Missing fields shown in real time', tagColor: '#D61A3C' },
+                  { tag: '[WARN]', text: 'Formatting issues that kill readability exposed', tagColor: '#A07000' },
+                  { tag: '[STATS]', text: 'Detailed ATS readiness score breakdown', tagColor: '#444' },
                 ].map(item => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#FFFFFF', fontWeight: 500 }}>
-                    {item}
+                  <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.825rem', color: 'rgba(244,244,238,0.8)', fontFamily: 'monospace', padding: '0.625rem 1rem', borderBottom: '1px solid rgba(244,244,238,0.08)' }}>
+                    <span style={{ fontWeight: 800, color: item.tagColor, flexShrink: 0, minWidth: '54px' }}>{item.tag}</span>
+                    {item.text}
                   </div>
                 ))}
               </div>
@@ -997,48 +972,50 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   onClick={() => onNavigateToPath('ats')}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
-                    background: 'var(--dm-primary)',
-                    color: '#fff', border: 'none', borderRadius: '12px',
-                    padding: '1rem 2rem', fontSize: '1rem', fontWeight: 800,
-                    fontFamily: 'Montserrat, sans-serif', cursor: 'pointer',
-                    boxShadow: '0 6px 24px rgba(18, 56, 232, 0.4)', transition: 'transform 0.15s, box-shadow 0.15s, background-color 0.15s',
+                    background: '#D61A3C',
+                    color: '#fff', border: '2px solid #D61A3C', borderRadius: '0',
+                    padding: '1rem 2rem', fontSize: '0.8rem', fontWeight: 800,
+                    fontFamily: 'Inter, sans-serif', cursor: 'pointer',
+                    boxShadow: 'none', transition: 'background 0.12s ease',
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
                   }}
-                  onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 32px rgba(43, 91, 255, 0.5)'; e.currentTarget.style.background = 'var(--dm-electric)'; }}
-                  onMouseOut={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 6px 24px rgba(18, 56, 232, 0.4)'; e.currentTarget.style.background = 'var(--dm-primary)'; }}
+                  onMouseOver={e => { e.currentTarget.style.background = '#F4F4EE'; e.currentTarget.style.color = '#111111'; e.currentTarget.style.borderColor = '#F4F4EE'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = '#D61A3C'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#D61A3C'; }}
                 >
-                  [search] Try the Live ATS Simulator →
+                  Try the Live ATS Simulator →
                 </button>
               )}
-              <p style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>[lock] 100% free · No signup · Your CV never leaves your device</p>
+              <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(244,244,238,0.4)', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}>100% free · No signup · Your CV never leaves your device</p>
             </div>
 
-            {/* Right — Preview mockup */}
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '1.5rem', fontFamily: 'monospace', fontSize: '0.8rem' }}>
-              <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem' }}>
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#34D399' }} />
+            {/* Right — Terminal mockup */}
+            <div style={{ background: '#0A0A0A', border: '2px solid rgba(244,244,238,0.15)', borderRadius: '0', padding: '1.5rem', fontFamily: 'monospace', fontSize: '0.8rem', boxShadow: '4px 4px 0 rgba(214,26,60,0.3)' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(244,244,238,0.1)', alignItems: 'center' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '0', background: '#D61A3C' }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '0', background: '#555' }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '0', background: '#555' }} />
+                <span style={{ marginLeft: '8px', color: 'rgba(244,244,238,0.3)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ATS Parser — Live Output</span>
               </div>
-              <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.75rem' }}>// ATS Parser — Live Output</div>
+              <div style={{ color: '#D61A3C', fontWeight: 700, marginBottom: '0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em' }}>// Parsing resume.pdf ...</div>
               {[
-                { label: 'Name', value: 'John Doe', status: '[OK]' },
-                { label: 'Email', value: 'john@email.com', status: '[OK]' },
-                { label: 'Phone', value: '+254 7XX XXX XXX', status: '[OK]' },
-                { label: 'LinkedIn', value: 'Not detected', status: '[ERR]', muted: true },
-                { label: 'Experience', value: '~5 years', status: '[OK]' },
-                { label: 'Skills found', value: 'SQL, Excel, Python…', status: '[OK]' },
-                { label: 'Certifications', value: 'Not detected', status: '[ERR]', muted: true },
-                { label: 'Multi-column', value: 'Detected — Risky!', status: '[WARN]', muted: true },
+                { label: 'Name', value: 'John Doe', status: '[OK]', statusColor: '#2D7A2D' },
+                { label: 'Email', value: 'john@email.com', status: '[OK]', statusColor: '#2D7A2D' },
+                { label: 'Phone', value: '+254 7XX XXX XXX', status: '[OK]', statusColor: '#2D7A2D' },
+                { label: 'LinkedIn', value: 'Not detected', status: '[ERR]', muted: true, statusColor: '#D61A3C' },
+                { label: 'Experience', value: '~5 years', status: '[OK]', statusColor: '#2D7A2D' },
+                { label: 'Skills found', value: 'SQL, Excel, Python…', status: '[OK]', statusColor: '#2D7A2D' },
+                { label: 'Certifications', value: 'Not detected', status: '[ERR]', muted: true, statusColor: '#D61A3C' },
+                { label: 'Multi-column', value: 'Detected — Risky!', status: '[WARN]', muted: true, statusColor: '#A07000' },
               ].map(row => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', gap: '1rem' }}>
-                  <span style={{ color: '#94A3B8', minWidth: '100px' }}>{row.label}:</span>
-                  <span style={{ color: row.muted ? 'rgba(255,255,255,0.3)' : '#fff', flex: 1, textAlign: 'right', fontStyle: row.muted ? 'italic' : 'normal' }}>{row.value}</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{row.status}</span>
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.375rem 0', borderBottom: '1px solid rgba(244,244,238,0.06)', gap: '1rem' }}>
+                  <span style={{ color: 'rgba(244,244,238,0.4)', minWidth: '110px', fontSize: '0.75rem' }}>{row.label}:</span>
+                  <span style={{ color: row.muted ? 'rgba(244,244,238,0.25)' : 'rgba(244,244,238,0.85)', flex: 1, textAlign: 'right', fontStyle: row.muted ? 'italic' : 'normal', fontSize: '0.75rem' }}>{row.value}</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: row.statusColor, flexShrink: 0 }}>{row.status}</span>
                 </div>
               ))}
-              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>ATS Readiness Score</span>
-                <span style={{ color: '#F59E0B', fontWeight: 800, fontSize: '1.1rem', fontFamily: 'Montserrat, sans-serif' }}>67%</span>
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid rgba(214,26,60,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'rgba(244,244,238,0.4)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ATS Readiness Score</span>
+                <span style={{ color: '#D61A3C', fontWeight: 900, fontSize: '1.25rem', fontFamily: 'Playfair Display, Georgia, serif' }}>67%</span>
               </div>
             </div>
           </div>
@@ -1104,19 +1081,17 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           ACADEMY SECTION (Redesigned: Simplified & Light-Themed)
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="academy" style={{ background: '#fff', borderTop: '1px solid var(--dm-border)' }}>
+      <section className="dm-section" id="academy" style={{ background: '#F4F4EE' }}>
         <div className="dm-container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '3rem', alignItems: 'center' }} className="academy-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0', alignItems: 'stretch', border: '2px solid #111111' }} className="academy-grid">
             
             {/* Left Column — Introduction */}
-            <div>
-              <span className="dm-section-label" style={{ color: 'var(--dm-teal)', background: 'var(--dm-teal-light)', padding: '3px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Career Academy
-              </span>
-              <h2 className="dm-section-title" style={{ marginTop: '1rem', marginBottom: '1.25rem', textAlign: 'left' }}>
-                From Job Seeker to In-Demand Professional
+            <div style={{ padding: '3rem', borderRight: '2px solid #111111' }}>
+              <span className="dm-section-label">Career Academy</span>
+              <h2 className="dm-section-title" style={{ marginTop: '0.5rem', marginBottom: '1.25rem', textAlign: 'left' }}>
+                From Job Seeker to <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>In-Demand</em> Professional
               </h2>
-              <p style={{ fontSize: '0.95rem', color: 'var(--dm-text-muted)', lineHeight: 1.75, marginBottom: '2rem' }}>
+              <p style={{ fontSize: '0.95rem', color: '#555555', lineHeight: 1.75, marginBottom: '2rem', fontFamily: 'Inter, sans-serif' }}>
                 Transition your career with a structured mentorship program. Duncan guides you step-by-step through ATS CV reconstruction, LinkedIn profile domination, competitive outreach campaigns, and intensive mock interviews.
               </p>
               {onNavigateToPath && (
@@ -1130,28 +1105,20 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
             </div>
 
             {/* Right Column — Academy Highlights Box */}
-            <div style={{
-              background: 'var(--dm-bg)',
-              border: '1px solid var(--dm-border)',
-              borderRadius: '16px',
-              padding: '2rem',
-              boxShadow: '0 4px 12px rgba(13, 27, 77, 0.02)'
-            }}>
-              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--dm-navy)', fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: '1rem' }}>
-                Program Highlights
-              </h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ background: '#111111', padding: '3rem' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#D61A3C', marginBottom: '1.25rem', fontFamily: 'Inter, sans-serif' }}>// Program Highlights</div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0' }}>
                 {[
                   { title: '6-Sprint Mentorship', desc: 'Focus on personal branding & outreach strategy.' },
                   { title: 'Duncan 1-on-1 Reviews', desc: 'Direct feedback on your CV and materials.' },
                   { title: 'WhatsApp Community', desc: 'Private group networking with other candidates.' },
                   { title: 'ATS Mock Screening', desc: 'Validate your CV against live parse algorithms.' }
                 ].map(hl => (
-                  <li key={hl.title} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                    <Check size={14} className="text-emerald-600" style={{ marginTop: '3px', flexShrink: 0 }} />
+                  <li key={hl.title} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', borderBottom: '1px solid rgba(244,244,238,0.1)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                    <span style={{ color: '#D61A3C', fontWeight: 800, fontSize: '0.9rem', flexShrink: 0, marginTop: '1px' }}>→</span>
                     <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--dm-navy)' }}>{hl.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--dm-text-muted)', lineHeight: 1.4 }}>{hl.desc}</div>
+                      <div style={{ fontSize: '0.825rem', fontWeight: 800, color: '#F4F4EE', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>{hl.title}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'rgba(244,244,238,0.55)', lineHeight: 1.5, marginTop: '0.2rem', fontFamily: 'Inter, sans-serif' }}>{hl.desc}</div>
                     </div>
                   </li>
                 ))}
@@ -1163,7 +1130,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
         <style>{`
           @media (max-width: 768px) {
-            .academy-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
+            .academy-grid { grid-template-columns: 1fr !important; border: 2px solid #111111; }
+            .academy-grid > div:first-child { border-right: none !important; border-bottom: 2px solid #111111; }
           }
         `}</style>
       </section>
@@ -1171,107 +1139,157 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       {/* ══════════════════════════════════════════════════════════════════════
           ABOUT
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="about" style={{ background: '#fff' }}>
+      <section className="dm-section" id="about" style={{ background: '#F4F4EE' }}>
         <div className="dm-container">
-          <div className="dm-about-grid">
-            <div className="dm-about-photo" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
+          {/* Swiss Bento: fixed photo col + flex text col, NO overlap */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '340px 1fr',
+            gap: 0,
+            alignItems: 'stretch',
+            border: '2px solid #111111',
+            overflow: 'hidden',
+          }}>
+
+            {/* LEFT — Photo column */}
+            <div style={{
+              position: 'relative',
+              minHeight: '520px',
+              background: '#111111',
+              borderRight: '2px solid #111111',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}>
               <img
                 src="/portrait.jpeg"
-                alt="Duncan Makoyo — Career Consultant & Digital Strategist"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
+                alt="Duncan Makoyo — Career Consultant &amp; Digital Strategist"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: 'top center',
+                  display: 'block',
+                }}
               />
-              {/* Name plate */}
+              {/* Swiss nameplate — ink strip at bottom */}
               <div style={{
                 position: 'absolute', bottom: 0, left: 0, right: 0,
-                background: 'linear-gradient(to top, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.6) 60%, transparent 100%)',
-                padding: '2rem 1.5rem 1.25rem',
+                background: '#111111',
+                padding: '1rem 1.25rem',
                 display: 'flex', flexDirection: 'column', gap: '0.2rem',
+                borderTop: '2px solid #D61A3C',
+                zIndex: 2,
               }}>
-                <span style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>Duncan Makoyo</span>
-                <span style={{ fontSize: '0.78rem', color: 'var(--dm-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>Career Consultant & Digital Strategist</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '0.875rem', color: '#F4F4EE', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Duncan Makoyo</span>
+                <span style={{ fontSize: '0.7rem', color: '#D61A3C', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'Inter, sans-serif' }}>Career Consultant · Digital Strategist</span>
               </div>
             </div>
 
-            <div>
+            {/* RIGHT — Text column */}
+            <div style={{
+              padding: '3rem',
+              minWidth: 0,       /* critical: prevents grid blowout */
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+            }}>
               <span className="dm-section-label">About</span>
-              <h2 className="dm-section-title" style={{ marginBottom: '1.25rem' }}>Hi, I'm Duncan.</h2>
-              <p style={{ fontSize: '1.05rem', color: 'var(--dm-text-muted)', lineHeight: 1.75, marginBottom: '1.5rem' }}>
+              <h2 className="dm-section-title" style={{ marginBottom: '1.25rem' }}>Hi, I’m <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>Duncan.</em></h2>
+              <p style={{ fontSize: '1rem', color: '#444444', lineHeight: 1.8, marginBottom: '1.5rem', fontFamily: 'Inter, sans-serif' }}>
                 I help professionals secure better career opportunities and assist businesses in building a stronger digital presence.
               </p>
-              <p style={{ fontSize: '0.95rem', color: 'var(--dm-text-muted)', lineHeight: 1.75, marginBottom: '2rem' }}>
+              <p style={{ fontSize: '0.9rem', color: '#555555', lineHeight: 1.8, marginBottom: '2rem', fontFamily: 'Inter, sans-serif' }}>
                 My background combines technology, professional branding, and business growth strategy. Rather than offering generic solutions, I focus on creating practical systems that help people and businesses present themselves professionally — and achieve measurable results.
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0', border: '2px solid #111111', marginBottom: '2rem' }}>
                 {[
                   'ATS-optimized CVs that pass recruiter screening',
                   'LinkedIn profiles that attract inbound opportunities',
                   'Websites that convert visitors into customers',
                   'Digital systems that generate real business growth',
                 ].map(item => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', fontSize: '0.9rem', color: 'var(--dm-slate)' }}>
-                    <Check size={16} className="text-teal-600" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8rem', color: '#111111', borderBottom: '1px solid #111111', padding: '0.75rem 1rem', fontFamily: 'Inter, sans-serif', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <span style={{ color: '#D61A3C', flexShrink: 0, fontWeight: 800 }}>→</span>
                     {item}
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button className="dm-btn-primary" onClick={() => scrollTo('contact')}>
+              <div style={{ display: 'flex', gap: '0', flexWrap: 'wrap', border: '2px solid #111111' }}>
+                <button className="dm-btn-primary" onClick={() => scrollTo('contact')} style={{ borderRadius: 0, border: 'none' }}>
                   Work With Me →
                 </button>
                 <a
                   href="https://wa.me/254794877125"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.9rem 1.5rem', borderRadius: '10px', background: 'linear-gradient(135deg, #63D11A, #4CAF0A)', color: '#fff', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif', transition: 'opacity 0.15s' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.9rem 1.5rem', borderRadius: '0', borderLeft: '2px solid #111111', background: '#25D366', color: '#fff', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}
                 >
-                  💬 WhatsApp Me
+                  WhatsApp →
                 </a>
               </div>
             </div>
+
           </div>
+
+          {/* Responsive: stack on mobile */}
+          <style>{`
+            @media (max-width: 768px) {
+              #about .dm-container > div {
+                grid-template-columns: 1fr !important;
+              }
+              #about .dm-container > div > div:first-child {
+                min-height: 320px !important;
+                border-right: none !important;
+                border-bottom: 2px solid #111111 !important;
+              }
+            }
+          `}</style>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════════
           CONTACT FORM
       ══════════════════════════════════════════════════════════════════════ */}
-      <section className="dm-section" id="contact" style={{ background: 'var(--dm-bg)' }}>
+      <section className="dm-section" id="contact" style={{ background: '#F4F4EE' }}>
         <div className="dm-container">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '4rem', alignItems: 'start' }}>
             {/* Left */}
             <div>
               <span className="dm-section-label">Get In Touch</span>
-              <h2 className="dm-section-title">Request a Service</h2>
-              <p style={{ fontSize: '0.95rem', color: 'var(--dm-text-muted)', lineHeight: 1.75, marginBottom: '2rem' }}>
+              <h2 className="dm-section-title">Request a <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>Service</em></h2>
+              <p style={{ fontSize: '0.95rem', color: '#555555', lineHeight: 1.75, marginBottom: '2rem', fontFamily: 'Inter, sans-serif' }}>
                 Whether you're applying for your next job or growing your business online, the right professional presentation makes all the difference. Let's talk.
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Phone size={18} className="text-blue-600" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0', border: '2px solid #111111' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderBottom: '2px solid #111111' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '0', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#F4F4EE' }}>
+                    <Phone size={16} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--dm-text-muted)', marginBottom: '0.2rem' }}>Phone / WhatsApp</div>
-                    <a href="tel:+254794877125" style={{ fontWeight: 700, color: 'var(--dm-navy)', textDecoration: 'none', fontSize: '0.95rem' }}>+254 794 877 125</a>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#D61A3C', marginBottom: '0.2rem', fontFamily: 'Inter, sans-serif' }}>Phone / WhatsApp</div>
+                    <a href="tel:+254794877125" style={{ fontWeight: 700, color: '#111111', textDecoration: 'none', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif' }}>+254 794 877 125</a>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Mail size={18} className="text-blue-600" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', borderBottom: '2px solid #111111' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '0', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#F4F4EE' }}>
+                    <Mail size={16} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--dm-text-muted)', marginBottom: '0.2rem' }}>Email</div>
-                    <a href="mailto:info@duncanmakoyo.com" style={{ fontWeight: 700, color: 'var(--dm-navy)', textDecoration: 'none', fontSize: '0.95rem' }}>info@duncanmakoyo.com</a>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#D61A3C', marginBottom: '0.2rem', fontFamily: 'Inter, sans-serif' }}>Email</div>
+                    <a href="mailto:info@duncanmakoyo.com" style={{ fontWeight: 700, color: '#111111', textDecoration: 'none', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif' }}>info@duncanmakoyo.com</a>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--dm-teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Clock size={18} className="text-blue-600" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '0', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#F4F4EE' }}>
+                    <Clock size={16} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--dm-text-muted)', marginBottom: '0.2rem' }}>Response Time</div>
-                    <div style={{ fontWeight: 700, color: 'var(--dm-navy)', fontSize: '0.95rem' }}>Within 24 hours</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#D61A3C', marginBottom: '0.2rem', fontFamily: 'Inter, sans-serif' }}>Response Time</div>
+                    <div style={{ fontWeight: 700, color: '#111111', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif' }}>Within 24 hours</div>
                   </div>
                 </div>
               </div>
@@ -1279,14 +1297,14 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
 
             {/* Right — Form */}
             <div style={{
-              background: '#fff', borderRadius: '20px', padding: '2.5rem',
-              border: '1.5px solid var(--dm-border)', boxShadow: 'var(--dm-shadow-md)',
+              background: '#F4F4EE', borderRadius: '0',
+              border: '2px solid #111111', boxShadow: '4px 4px 0 #111111',
             }}>
               {formStatus === 'success' ? (
-                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem', color: 'var(--dm-teal)' }}>[OK]</div>
-                  <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', marginBottom: '0.5rem' }}>Request Received!</h3>
-                  <p style={{ color: 'var(--dm-text-muted)', fontSize: '0.95rem', lineHeight: 1.65 }}>
+                <div style={{ textAlign: 'center', padding: '3rem 2.5rem' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '1rem', color: '#2D7A2D', fontFamily: 'Inter, sans-serif', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>[OK]</div>
+                  <h3 style={{ fontFamily: 'Playfair Display, Georgia, serif', color: '#111111', marginBottom: '0.5rem', fontWeight: 700 }}>Request Received!</h3>
+                  <p style={{ color: '#555555', fontSize: '0.9rem', lineHeight: 1.7, fontFamily: 'Inter, sans-serif' }}>
                     Duncan will review your request and get back to you within 24 hours. Check your email for a confirmation.
                   </p>
                   <button
@@ -1299,12 +1317,14 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 </div>
               ) : (
                 <form onSubmit={handleFormSubmit}>
-                  <h3 style={{ fontFamily: 'Montserrat, sans-serif', color: 'var(--dm-navy)', fontSize: '1.1rem', marginBottom: '1.75rem' }}>
-                    Tell Me About Your Project
-                  </h3>
+                  <div style={{ padding: '1.5rem 2rem', borderBottom: '2px solid #111111' }}>
+                    <h3 style={{ fontFamily: 'Playfair Display, Georgia, serif', color: '#111111', fontSize: '1.25rem', margin: 0, fontWeight: 700 }}>
+                      Tell Me About Your Project
+                    </h3>
+                  </div>
 
                   {formError && (
-                    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1.25rem', color: '#991B1B', fontSize: '0.875rem' }}>
+                    <div style={{ background: 'rgba(214,26,60,0.06)', border: 'none', borderLeft: '4px solid #D61A3C', borderRadius: '0', padding: '0.75rem 1rem', margin: '0 0 0 0', color: '#D61A3C', fontSize: '0.875rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
                       {formError}
                     </div>
                   )}
@@ -1349,8 +1369,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                     {formStatus === 'sending' ? 'Sending…' : 'Request a Service →'}
                   </button>
 
-                  <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--dm-text-muted)' }}>
-                    [lock] Your information is safe and never shared with third parties.
+                  <p style={{ textAlign: 'center', padding: '0.75rem', fontSize: '0.7rem', color: '#777', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', borderTop: '1px solid #111111', marginTop: 0 }}>
+                    Your information is safe and never shared with third parties.
                   </p>
                 </form>
               )}
@@ -1374,21 +1394,21 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
       ══════════════════════════════════════════════════════════════════════ */}
       <section className="dm-cta-section">
         <div className="dm-container" style={{ position: 'relative', zIndex: 1 }}>
-          <h2 className="dm-cta-title">Ready to Stand Out?</h2>
+          <h2 className="dm-cta-title">Ready to <em>Stand Out?</em></h2>
           <p className="dm-cta-sub">
             Whether you're applying for your next job or growing your business online, the right professional presentation can make all the difference. Let's build something that creates opportunities.
           </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="dm-btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1rem' }} onClick={() => scrollTo('contact')}>
+          <div style={{ display: 'flex', gap: '0', justifyContent: 'flex-start', flexWrap: 'wrap', border: '2px solid rgba(244,244,238,0.25)', display: 'inline-flex' }}>
+            <button className="dm-btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '0.8rem', borderRadius: 0 }} onClick={() => scrollTo('contact')}>
               Request a Service Today →
             </button>
             <a
               href="https://wa.me/254794877125?text=Hi%20Duncan%2C%20I%27d%20like%20to%20request%20a%20service."
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', borderRadius: '10px', background: 'linear-gradient(135deg, #63D11A, #4CAF0A)', color: '#fff', fontWeight: 700, fontSize: '1rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', borderRadius: '0', borderLeft: '2px solid rgba(244,244,238,0.25)', background: '#25D366', color: '#fff', fontWeight: 800, fontSize: '0.75rem', textDecoration: 'none', fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}
             >
-              💬 WhatsApp Me
+              WhatsApp →
             </a>
           </div>
         </div>
