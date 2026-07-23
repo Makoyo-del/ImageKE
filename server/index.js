@@ -10,7 +10,6 @@ import academyRouter from './academy.js';
 import workshopRouter, { sendConfirmationEmail } from './workshop.js';
 import riderRouter from './rider.js';
 import { supabase } from './supabase.js';
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 
 dotenv.config();
 
@@ -1303,12 +1302,11 @@ JSON SCHEMA (return exactly this structure, all fields required):
 
 app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
   try {
-    // pdfBase64: raw PDF bytes encoded as base64 (from frontend FileReader)
-    // pdfText: plain text already extracted (legacy / direct text path)
+    // pdfText: plain text extracted client-side by PDF.js (primary path — no file bytes sent)
     // headline + about: manual text entry path
-    const { targetTitle, pdfBase64, pdfFileName, pdfText, headline, about } = req.body;
+    const { targetTitle, pdfText, headline, about } = req.body;
 
-    if (!targetTitle || (!pdfBase64 && !pdfText && !headline && !about)) {
+    if (!targetTitle || (!pdfText && !headline && !about)) {
       return res.status(400).json({ error: 'Please provide a target job title and your LinkedIn profile content.' });
     }
 
@@ -1318,23 +1316,9 @@ app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Scorecard engine is temporarily unavailable.' });
     }
 
-    // ─── Extract text from PDF if base64 was provided ──────────────────────
-    let resolvedProfileText = pdfText || null;
-    if (pdfBase64 && !resolvedProfileText) {
-      try {
-        const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-        const parsed = await pdfParse(pdfBuffer);
-        resolvedProfileText = parsed.text?.trim();
-        console.log(`[LinkedIn Scorecard] PDF parsed: ${pdfFileName || 'unknown'}, chars: ${resolvedProfileText?.length || 0}`);
-      } catch (pdfErr) {
-        console.warn('[LinkedIn Scorecard] PDF parse failed, falling back to empty text:', pdfErr.message);
-        resolvedProfileText = '';
-      }
-    }
-
     // Build the candidate profile block for the AI
-    const profileBlock = resolvedProfileText
-      ? `LINKEDIN PROFILE CONTENT (Extracted from PDF Export):\n${resolvedProfileText.slice(0, 6000)}`
+    const profileBlock = pdfText
+      ? `LINKEDIN PROFILE CONTENT (Extracted from LinkedIn PDF Export):\n${pdfText.slice(0, 6000)}`
       : `Headline: ${headline || 'Not provided'}\nAbout Section: ${about || 'Not provided'}`;
 
     const promptText = `TARGET JOB TITLE THE CANDIDATE IS PURSUING: ${targetTitle}\n\n${profileBlock}\n\nUsing your Boolean recruiter search engine lens, evaluate this candidate's LinkedIn search visibility for the target role. Return strictly valid JSON per your schema.`;

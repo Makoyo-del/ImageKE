@@ -22,17 +22,37 @@ function generateDeterministicScore(targetTitle = '', inputStr = '') {
   return 48 + (positiveHash % 45); // Deterministically between 48 and 92
 }
 
-// ─── PDF Text Extraction ──────────────────────────────────────────────────────
-// Uses the browser's FileReader to read the raw bytes of a LinkedIn PDF.
-// We send the base64 payload to the backend which uses pdf-parse server-side.
-// For the frontend-only fallback we extract visible text from file metadata.
-async function readFileAsBase64(file) {
+// ─── PDF.js CDN Loader (lazy, same pattern as ATS Simulator) ────────────────
+// PDF.js runs entirely in the browser — no file bytes ever leave the client.
+function loadPdfJs() {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result.split(',')[1]); // strip data URI prefix
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    if (window.pdfjsLib) { resolve(window.pdfjsLib); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    script.onerror = () => reject(new Error('Failed to load PDF.js'));
+    document.head.appendChild(script);
   });
+}
+
+// ─── Client-side PDF Text Extraction ─────────────────────────────────────────
+// Reads the file in the browser, extracts all text — only the resulting string
+// is ever sent to the backend. Zero file bytes leave the client.
+async function extractPdfText(file) {
+  const pdfjsLib = await loadPdfJs();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return fullText.trim();
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -132,6 +152,7 @@ export default function LinkedInScorecard({ onBack }) {
     }
 
     setIsAnalyzing(true);
+    setErrorMsg('');
 
     // Deterministic baseline for consistent display pre-AI
     const inputContent = inputMode === 'pdf' ? (pdfFileName || 'pdf') : `${headline} ${about}`;
@@ -142,12 +163,26 @@ export default function LinkedInScorecard({ onBack }) {
       let payload;
 
       if (inputMode === 'pdf') {
-        // Convert PDF to base64 and send to backend for text extraction + analysis
-        const base64Pdf = await readFileAsBase64(pdfFile);
+        // ── CLIENT-SIDE PDF EXTRACTION ────────────────────────────────────────
+        // PDF.js runs entirely in the browser. Only the extracted text string
+        // is sent to the server — zero file bytes leave the client.
+        let pdfText = '';
+        try {
+          pdfText = await extractPdfText(pdfFile);
+        } catch (pdfErr) {
+          console.warn('[LinkedIn Scorecard] Client-side PDF extraction failed:', pdfErr.message);
+          setErrorMsg('Could not read this PDF. Please try Option B (paste your text manually).');
+          setIsAnalyzing(false);
+          return;
+        }
+        if (!pdfText || pdfText.length < 80) {
+          setErrorMsg('The PDF appears to be empty or image-only. Please use Option B to paste your text manually.');
+          setIsAnalyzing(false);
+          return;
+        }
         payload = {
           targetTitle: targetTitle.trim(),
-          pdfBase64: base64Pdf,
-          pdfFileName: pdfFileName
+          pdfText: pdfText.slice(0, 6000) // only text — no binary, no base64
         };
       } else {
         payload = {
