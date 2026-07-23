@@ -617,6 +617,10 @@ CREATE POLICY "Mentors can manage templates in storage" ON storage.objects
   FOR ALL USING (
     bucket_id = 'resume-templates' AND
     EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'mentor'
+    )
+  );
 
 -- ── 15. Create LinkedIn Scorecard Leads Table ─────────────────────────────
 create table if not exists public.linkedin_leads (

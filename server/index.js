@@ -10,6 +10,7 @@ import academyRouter from './academy.js';
 import workshopRouter, { sendConfirmationEmail } from './workshop.js';
 import riderRouter from './rider.js';
 import { supabase } from './supabase.js';
+import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 
 dotenv.config();
 
@@ -1264,33 +1265,51 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
 // (handled inside initialize-payment — see existing pricing block)
 
 // ─── LinkedIn Recruiter Scorecard Endpoints ─────────────────────────────────────
-const LINKEDIN_SCORECARD_SYSTEM_PROMPT = `You are an elite Executive Recruiter and Headhunter evaluating a candidate's LinkedIn profile presence against recruiter search filters for their target job title.
+const LINKEDIN_SCORECARD_SYSTEM_PROMPT = `You are an elite Executive Recruiter and Headhunter who uses LinkedIn Recruiter's Boolean search engine to source candidates. Your task is to evaluate how discoverable a candidate's LinkedIn profile is when a recruiter runs a Boolean search for their target job title.
+
+HOW RECRUITERS ACTUALLY FIND CANDIDATES (your lens):
+Recruiters type Boolean queries like: "Senior Relationship Manager" AND ("portfolio management" OR "credit analysis") AND ("KCB" OR "Equity Bank"). LinkedIn's algorithm ranks profiles based on keyword density in Headline, About, Skills, Experience titles, and Education. Profiles missing these exact terms are invisible even if the candidate is qualified.
 
 CRITICAL RULES FOR TRUTHFULNESS & VALUE:
-1. Be 100% TRUTHFUL, ACCURATE, and CONSTRUCTIVE.
-2. DO NOT invent false gaps, fake problems, or artificial errors to force sales.
-3. If the profile inputs are strong, clear, and keyword-rich for the target role, award a HIGH score (78-96%) and praise the user.
-4. If real recruiter search gaps exist (e.g. missing skills keywords, unclear title, missing measurable achievements), accurately outline them.
-5. Never mention "Gemini", "Google", "AI", "LLM", or "machine learning". Act as the "LinkedIn Recruiter POV Diagnostic Engine".
-6. Return output strictly in valid JSON format matching the schema below.
+1. Be 100% TRUTHFUL, ACCURATE, and CONSTRUCTIVE. Diagnose only real gaps.
+2. DO NOT invent false problems or manufacture issues to push sales. If a profile is strong, say so clearly and give a high score.
+3. If the profile inputs are clear, keyword-rich, and well-structured for the target role, award a HIGH score (78-96%) and affirm the candidate.
+4. If genuine recruiter search gaps exist (missing exact-match keywords, vague headline, absent metrics), accurately outline them.
+5. Award scores in the 35-55 range ONLY if the profile is genuinely sparse, incoherent, or completely misaligned with the target role.
+6. Never mention "Gemini", "Google", "AI", "LLM", or "machine learning". Identify yourself only as the "LinkedIn Recruiter POV Diagnostic Engine".
+7. Respond ONLY in valid JSON. No markdown, no commentary outside JSON.
 
-JSON SCHEMA:
+SCORING METHODOLOGY:
+- Headline Keyword Match (0-30 pts): Does the headline contain the exact target title or close synonyms?
+- About Section Depth (0-25 pts): Does the summary mention measurable outcomes, industry terms, seniority signals?
+- Implied Skills & Experience Depth (0-25 pts): Based on roles and terminology used, do the skills align with the target title's typical Boolean search terms?
+- Profile Completeness Signals (0-20 pts): Are there quantifiable achievements, named employers, clear career trajectory?
+
+JSON SCHEMA (return exactly this structure, all fields required):
 {
-  "visibilityScore": 75,
-  "percentileRank": 65,
-  "verdictTitle": "Recruiter Ready / Moderate Visibility / High Search Risk",
-  "verdictSummary": "Detailed truthful overview of recruiter visibility for target title",
-  "missingKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
-  "recruiterSearchGaps": ["gap1", "gap2", "gap3"],
-  "headlineFix": "High-converting professional headline rewrite",
+  "visibilityScore": 72,
+  "percentileRank": 58,
+  "verdictTitle": "Moderate Visibility — Detectable But Outranked",
+  "verdictSummary": "Concise, truthful 2-3 sentence diagnosis of the recruiter search visibility situation for this candidate and target role.",
+  "missingKeywords": ["exact keyword 1", "exact keyword 2", "exact keyword 3", "exact keyword 4", "exact keyword 5"],
+  "recruiterSearchGaps": [
+    "Specific, actionable gap #1 based on actual profile content",
+    "Specific, actionable gap #2 based on actual profile content",
+    "Specific, actionable gap #3 based on actual profile content"
+  ],
+  "headlineFix": "High-converting professional headline rewrite using the exact target title and relevant industry keywords",
   "isStrongProfile": false
 }`;
 
 app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
   try {
-    const { targetTitle, linkedinUrl, headline, about } = req.body;
-    if (!targetTitle || (!linkedinUrl && !headline && !about)) {
-      return res.status(400).json({ error: 'Please provide a target job title and your LinkedIn profile details.' });
+    // pdfBase64: raw PDF bytes encoded as base64 (from frontend FileReader)
+    // pdfText: plain text already extracted (legacy / direct text path)
+    // headline + about: manual text entry path
+    const { targetTitle, pdfBase64, pdfFileName, pdfText, headline, about } = req.body;
+
+    if (!targetTitle || (!pdfBase64 && !pdfText && !headline && !about)) {
+      return res.status(400).json({ error: 'Please provide a target job title and your LinkedIn profile content.' });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -1299,7 +1318,26 @@ app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Scorecard engine is temporarily unavailable.' });
     }
 
-    const promptText = `Target Job Title: ${targetTitle}\nLinkedIn URL: ${linkedinUrl || 'N/A'}\nHeadline: ${headline || 'N/A'}\nAbout Section: ${about || 'N/A'}\n\nPlease analyze this profile against recruiter search parameters for the target job title.`;
+    // ─── Extract text from PDF if base64 was provided ──────────────────────
+    let resolvedProfileText = pdfText || null;
+    if (pdfBase64 && !resolvedProfileText) {
+      try {
+        const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+        const parsed = await pdfParse(pdfBuffer);
+        resolvedProfileText = parsed.text?.trim();
+        console.log(`[LinkedIn Scorecard] PDF parsed: ${pdfFileName || 'unknown'}, chars: ${resolvedProfileText?.length || 0}`);
+      } catch (pdfErr) {
+        console.warn('[LinkedIn Scorecard] PDF parse failed, falling back to empty text:', pdfErr.message);
+        resolvedProfileText = '';
+      }
+    }
+
+    // Build the candidate profile block for the AI
+    const profileBlock = resolvedProfileText
+      ? `LINKEDIN PROFILE CONTENT (Extracted from PDF Export):\n${resolvedProfileText.slice(0, 6000)}`
+      : `Headline: ${headline || 'Not provided'}\nAbout Section: ${about || 'Not provided'}`;
+
+    const promptText = `TARGET JOB TITLE THE CANDIDATE IS PURSUING: ${targetTitle}\n\n${profileBlock}\n\nUsing your Boolean recruiter search engine lens, evaluate this candidate's LinkedIn search visibility for the target role. Return strictly valid JSON per your schema.`;
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
@@ -1317,12 +1355,12 @@ app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
       },
       {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 25000
+        timeout: 30000
       }
     );
 
-    const candidate = response.data?.candidates?.[0];
-    const responseText = candidate?.content?.parts?.[0]?.text;
+    const aiCandidate = response.data?.candidates?.[0];
+    const responseText = aiCandidate?.content?.parts?.[0]?.text;
     if (!responseText) {
       throw new Error('Empty response from AI engine');
     }
@@ -1337,7 +1375,7 @@ app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
 
 app.post('/api/linkedin/lead', async (req, res) => {
   try {
-    const { name, email, phone, timeline, targetTitle, linkedinUrl, visibilityScore, missingKeywords, headlineFix } = req.body;
+    const { name, email, phone, timeline, targetTitle, visibilityScore, missingKeywords, headlineFix } = req.body;
 
     if (!name || !email || !targetTitle) {
       return res.status(400).json({ error: 'Name, email, and target title are required.' });
@@ -1351,7 +1389,6 @@ app.post('/api/linkedin/lead', async (req, res) => {
           email: email.trim().toLowerCase(),
           phone: phone || null,
           target_job_title: targetTitle,
-          linkedin_url: linkedinUrl || null,
           visibility_score: visibilityScore || 0,
           timeline_urgency: timeline || 'Immediate',
           missing_keywords: missingKeywords || [],
@@ -1367,7 +1404,7 @@ app.post('/api/linkedin/lead', async (req, res) => {
     const ownerEmailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #F4F4EE; color: #111111;">
         <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 2px solid #111111; padding: 24px;">
-          <h2 style="color: #D61A3C; margin-top: 0; text-transform: uppercase;">🔥 NEW LINKEDIN SCORECARD LEAD!</h2>
+          <h2 style="color: #D61A3C; margin-top: 0; text-transform: uppercase; letter-spacing: 0.08em;">NEW LINKEDIN SCORECARD LEAD</h2>
           <p style="font-size: 1rem; line-height: 1.5;">A new prospect just completed the LinkedIn Recruiter POV Audit on your website.</p>
           
           <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #111111;">
@@ -1376,7 +1413,7 @@ app.post('/api/linkedin/lead', async (req, res) => {
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;"><a href="mailto:${email}">${email}</a></td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Phone / WhatsApp:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${phone || 'N/A'}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Target Role:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${targetTitle}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>LinkedIn URL:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${linkedinUrl || 'Manual Input'}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Input Method:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">PDF Extract / Manual Text</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Visibility Score:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; color: #D61A3C;">${visibilityScore}/100</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Hiring Timeline:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${timeline || 'Not specified'}</td></tr>
           </table>
@@ -1404,7 +1441,7 @@ app.post('/api/linkedin/lead', async (req, res) => {
           {
             from: `Duncan Makoyo Web <duncan@duncanmakoyo.com>`,
             to: ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'],
-            subject: `🔥 [LinkedIn Lead] ${name} — ${targetTitle} (${visibilityScore}/100)`,
+            subject: `[LinkedIn Lead] ${name} — ${targetTitle} | Score: ${visibilityScore}/100`,
             html: ownerEmailHtml
           },
           { headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' } }
