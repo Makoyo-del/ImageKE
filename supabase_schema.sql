@@ -617,8 +617,41 @@ CREATE POLICY "Mentors can manage templates in storage" ON storage.objects
   FOR ALL USING (
     bucket_id = 'resume-templates' AND
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'mentor'
+
+-- ── 15. Create LinkedIn Scorecard Leads Table ─────────────────────────────
+create table if not exists public.linkedin_leads (
+    id uuid default gen_random_uuid() primary key,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    name text not null,
+    email text not null,
+    phone text,
+    target_job_title text not null,
+    linkedin_url text,
+    visibility_score integer not null,
+    timeline_urgency text default 'Immediate' not null,
+    missing_keywords jsonb default '[]'::jsonb,
+    headline_fix text,
+    status text default 'NEW_LEAD' not null
+);
+
+-- Enable RLS
+alter table public.linkedin_leads enable row level security;
+
+-- Policies for public.linkedin_leads
+drop policy if exists "Anyone can insert linkedin leads" on public.linkedin_leads;
+create policy "Anyone can insert linkedin leads" on public.linkedin_leads
+  for insert with check (true);
+
+drop policy if exists "Only mentors/admin can select linkedin leads" on public.linkedin_leads;
+create policy "Only mentors/admin can select linkedin leads" on public.linkedin_leads
+  for select using (
+    exists (
+      select 1 from public.profiles
+      where profiles.id = auth.uid() and profiles.role = 'mentor'
     )
   );
+
+create index if not exists idx_linkedin_leads_email on public.linkedin_leads(email);
+create index if not exists idx_linkedin_leads_created on public.linkedin_leads(created_at desc);
+
 

@@ -2181,6 +2181,48 @@ export default function ATSSimulator({ onBack }) {
               </button>
             </div>
 
+            {/* ── Cross-Promotion to LinkedIn Recruiter Scorecard ── */}
+            <div style={{
+              marginTop: '1.5rem',
+              background: '#F4F4EE',
+              border: '2px solid #111111',
+              borderRadius: '20px',
+              padding: '1.75rem 2rem',
+              display: 'flex',
+              justify: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              textAlign: 'left'
+            }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#D61A3C', letterSpacing: '0.05em' }}>
+                  RECOMMENDED NEXT STEP // LINKEDIN AUDIT
+                </span>
+                <h3 style={{ fontFamily: 'Playfair Display, serif', color: '#111111', fontSize: '1.25rem', fontWeight: 800, margin: '0.25rem 0' }}>
+                  Will Headhunters &amp; Recruiters Find You on LinkedIn?
+                </h3>
+                <p style={{ color: '#555555', fontSize: '0.875rem', lineHeight: 1.5, margin: 0, maxWidth: '580px' }}>
+                  Over 85% of corporate recruiters cross-check LinkedIn profiles before shortlisting. Run your free LinkedIn Recruiter POV Audit to simulate search rankings &amp; missing keywords.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.hash = '#/linkedin'}
+                style={{
+                  background: '#111111',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.85rem 1.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}>
+                RUN LINKEDIN SCORECARD →
+              </button>
+            </div>
+
           </div>
         </div>
       )}

@@ -1263,6 +1263,164 @@ app.post('/api/notify-service-order', apiLimiter, async (req, res) => {
 // ─── Pricing update for career service payments ─────────────────────────────────────
 // (handled inside initialize-payment — see existing pricing block)
 
+// ─── LinkedIn Recruiter Scorecard Endpoints ─────────────────────────────────────
+const LINKEDIN_SCORECARD_SYSTEM_PROMPT = `You are an elite Executive Recruiter and Headhunter evaluating a candidate's LinkedIn profile presence against recruiter search filters for their target job title.
+
+CRITICAL RULES FOR TRUTHFULNESS & VALUE:
+1. Be 100% TRUTHFUL, ACCURATE, and CONSTRUCTIVE.
+2. DO NOT invent false gaps, fake problems, or artificial errors to force sales.
+3. If the profile inputs are strong, clear, and keyword-rich for the target role, award a HIGH score (78-96%) and praise the user.
+4. If real recruiter search gaps exist (e.g. missing skills keywords, unclear title, missing measurable achievements), accurately outline them.
+5. Never mention "Gemini", "Google", "AI", "LLM", or "machine learning". Act as the "LinkedIn Recruiter POV Diagnostic Engine".
+6. Return output strictly in valid JSON format matching the schema below.
+
+JSON SCHEMA:
+{
+  "visibilityScore": 75,
+  "percentileRank": 65,
+  "verdictTitle": "Recruiter Ready / Moderate Visibility / High Search Risk",
+  "verdictSummary": "Detailed truthful overview of recruiter visibility for target title",
+  "missingKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "recruiterSearchGaps": ["gap1", "gap2", "gap3"],
+  "headlineFix": "High-converting professional headline rewrite",
+  "isStrongProfile": false
+}`;
+
+app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
+  try {
+    const { targetTitle, linkedinUrl, headline, about } = req.body;
+    if (!targetTitle || (!linkedinUrl && !headline && !about)) {
+      return res.status(400).json({ error: 'Please provide a target job title and your LinkedIn profile details.' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('[LinkedIn Scorecard] GEMINI_API_KEY is missing on server.');
+      return res.status(500).json({ error: 'Scorecard engine is temporarily unavailable.' });
+    }
+
+    const promptText = `Target Job Title: ${targetTitle}\nLinkedIn URL: ${linkedinUrl || 'N/A'}\nHeadline: ${headline || 'N/A'}\nAbout Section: ${about || 'N/A'}\n\nPlease analyze this profile against recruiter search parameters for the target job title.`;
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
+      {
+        contents: [{
+          parts: [
+            { text: LINKEDIN_SCORECARD_SYSTEM_PROMPT },
+            { text: promptText }
+          ]
+        }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.1
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 25000
+      }
+    );
+
+    const candidate = response.data?.candidates?.[0];
+    const responseText = candidate?.content?.parts?.[0]?.text;
+    if (!responseText) {
+      throw new Error('Empty response from AI engine');
+    }
+
+    const parsed = JSON.parse(responseText);
+    res.json({ success: true, ...parsed });
+  } catch (err) {
+    console.error('[LinkedIn Scorecard Error]', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to analyze LinkedIn profile. Please check inputs and try again.' });
+  }
+});
+
+app.post('/api/linkedin/lead', async (req, res) => {
+  try {
+    const { name, email, phone, timeline, targetTitle, linkedinUrl, visibilityScore, missingKeywords, headlineFix } = req.body;
+
+    if (!name || !email || !targetTitle) {
+      return res.status(400).json({ error: 'Name, email, and target title are required.' });
+    }
+
+    // 1. Persist to Supabase if configured
+    if (supabase) {
+      try {
+        await supabase.from('linkedin_leads').insert([{
+          name,
+          email: email.trim().toLowerCase(),
+          phone: phone || null,
+          target_job_title: targetTitle,
+          linkedin_url: linkedinUrl || null,
+          visibility_score: visibilityScore || 0,
+          timeline_urgency: timeline || 'Immediate',
+          missing_keywords: missingKeywords || [],
+          headline_fix: headlineFix || null,
+          status: 'NEW_LEAD'
+        }]);
+      } catch (dbErr) {
+        console.warn('[LinkedIn Lead DB Insert Warning]', dbErr.message);
+      }
+    }
+
+    // 2. Dispatch notification email to owner (duncanmakoyo@gmail.com)
+    const ownerEmailHtml = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; background: #F4F4EE; color: #111111;">
+        <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 2px solid #111111; padding: 24px;">
+          <h2 style="color: #D61A3C; margin-top: 0; text-transform: uppercase;">🔥 NEW LINKEDIN SCORECARD LEAD!</h2>
+          <p style="font-size: 1rem; line-height: 1.5;">A new prospect just completed the LinkedIn Recruiter POV Audit on your website.</p>
+          
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #111111;">
+            <tr style="background: #111111; color: #FFFFFF;"><th style="padding: 10px; text-align: left;">Field</th><th style="padding: 10px; text-align: left;">Details</th></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${name}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;"><a href="mailto:${email}">${email}</a></td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Phone / WhatsApp:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${phone || 'N/A'}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Target Role:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${targetTitle}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>LinkedIn URL:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${linkedinUrl || 'Manual Input'}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Visibility Score:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold; color: #D61A3C;">${visibilityScore}/100</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Hiring Timeline:</strong></td><td style="padding: 8px; border-bottom: 1px solid #ddd;">${timeline || 'Not specified'}</td></tr>
+          </table>
+
+          <div style="background: #F4F4EE; padding: 15px; border-left: 4px solid #D61A3C; margin-top: 15px;">
+            <p style="margin: 0; font-weight: bold; font-size: 0.85rem;">Generated Headline Rewrite:</p>
+            <p style="margin: 5px 0 0; font-style: italic;">"${headlineFix || 'N/A'}"</p>
+          </div>
+
+          <div style="margin-top: 25px; text-align: center;">
+            <a href="https://wa.me/${(phone || '').replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(name)},%20I%20saw%20your%20LinkedIn%20Scorecard%20audit%20for%20${encodeURIComponent(targetTitle)}..." 
+               style="display: inline-block; background: #25D366; color: #FFFFFF; padding: 12px 24px; font-weight: bold; text-decoration: none; border: 2px solid #111111;">
+               Contact Lead on WhatsApp →
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      try {
+        await axios.post(
+          'https://api.resend.com/emails',
+          {
+            from: `Duncan Makoyo Web <duncan@duncanmakoyo.com>`,
+            to: ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'],
+            subject: `🔥 [LinkedIn Lead] ${name} — ${targetTitle} (${visibilityScore}/100)`,
+            html: ownerEmailHtml
+          },
+          { headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' } }
+        );
+      } catch (emailErr) {
+        console.error('[LinkedIn Lead Email Error]', emailErr.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Lead captured successfully.' });
+  } catch (err) {
+    console.error('[LinkedIn Lead Error]', err.message);
+    res.status(500).json({ error: 'Failed to record lead.' });
+  }
+});
+
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found.' });

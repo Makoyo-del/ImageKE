@@ -394,9 +394,13 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('ats')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Brain size={14} className="text-blue-500" /> ATS Simulator
                       </button>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('linkedin')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Briefcase size={14} style={{ color: '#D61A3C' }} /> LinkedIn Recruiter Scorecard
+                      </button>
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('hookbunker')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Shield size={14} className="text-emerald-500" /> HookBunker Proxy
                       </button>
+
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('academy')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <GraduationCap size={14} className="text-teal-500" /> Career Academy
                       </button>
@@ -465,9 +469,13 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   <button className="dm-mobile-link" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Brain size={16} /> ATS Simulator
                   </button>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('linkedin'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D61A3C' }}>
+                    <Briefcase size={16} /> LinkedIn Recruiter Scorecard
+                  </button>
                   <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hookbunker'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981' }}>
                     <Shield size={16} /> HookBunker Proxy
                   </button>
+
                   <button className="dm-mobile-link" onClick={() => { onNavigateToPath('academy'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#14B8A6' }}>
                     <GraduationCap size={16} /> Career Academy
                   </button>
@@ -631,6 +639,93 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          FREE CAREER DIAGNOSTIC LEAD MAGNETS
+      ══════════════════════════════════════════════════════════════════════ */}
+      <section className="dm-section" style={{ background: '#FFFFFF', borderTop: '2px solid #111111', borderBottom: '2px solid #111111', padding: '4.5rem 0' }}>
+        <div className="dm-container">
+          <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 3rem' }}>
+            <span className="dm-section-label" style={{ color: '#D61A3C' }}>FREE DIAGNOSTIC TOOLS</span>
+            <h2 className="dm-section-title" style={{ fontSize: '2.2rem' }}>
+              Test Your Job Search Ready Score <em style={{ color: '#D61A3C', fontStyle: 'italic' }}>In 30 Seconds</em>
+            </h2>
+            <p style={{ color: '#555555', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+              Use our proprietary recruitment simulation tools to test if your resume passes corporate ATS filters and evaluate how recruiters rank your profile on LinkedIn.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+            
+            {/* Tool 1: ATS Simulator */}
+            <div style={{ border: '2px solid #111111', background: '#F4F4EE', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <span style={{ background: '#111111', color: '#FFFFFF', fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.5rem', textTransform: 'uppercase' }}>
+                    TOOL #1 // RESUME PARSER
+                  </span>
+                  <Brain size={24} color="#111111" />
+                </div>
+                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.5rem' }}>
+                  ATS Resume Simulator
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#555555', lineHeight: 1.6, margin: '0 0 1.5rem' }}>
+                  Upload your CV to test formatting, multi-column risks, keyword extraction, and overall ATS compliance before applying for corporate roles.
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigateToPath && onNavigateToPath('ats')}
+                style={{
+                  width: '100%',
+                  background: '#111111',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '0.85rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  cursor: 'pointer'
+                }}>
+                TEST YOUR RESUME NOW →
+              </button>
+            </div>
+
+            {/* Tool 2: LinkedIn Scorecard */}
+            <div style={{ border: '2px solid #111111', background: '#FFFFFF', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <span style={{ background: '#D61A3C', color: '#FFFFFF', fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.5rem', textTransform: 'uppercase' }}>
+                    TOOL #2 // RECRUITER POV
+                  </span>
+                  <Briefcase size={24} color="#D61A3C" />
+                </div>
+                <h3 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.5rem' }}>
+                  LinkedIn Recruiter Scorecard
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#555555', lineHeight: 1.6, margin: '0 0 1.5rem' }}>
+                  Simulate what HR &amp; headhunters see when searching for your target job title. Discover missing search terms &amp; get a free headline rewrite.
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigateToPath && onNavigateToPath('linkedin')}
+                style={{
+                  width: '100%',
+                  background: '#D61A3C',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '0.85rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  cursor: 'pointer'
+                }}>
+                RUN LINKEDIN AUDIT →
+              </button>
+            </div>
+
           </div>
         </div>
       </section>

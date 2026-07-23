@@ -18,6 +18,8 @@ const WorkshopJoin = lazy(() => import('./components/workshop/WorkshopJoin'));
 const RiderLogin = lazy(() => import('./components/rider/RiderLogin'));
 const RiderDashboard = lazy(() => import('./components/rider/RiderDashboard'));
 const ATSResumeVault = lazy(() => import('./components/vault/ATSResumeVault'));
+const LinkedInScorecard = lazy(() => import('./LinkedInScorecard'));
+
 
 // ─── Environment Config ────────────────────────────────────────────────────────
 // Frontend is hosted on Hostinger, backend API is on Render (cross-origin).
@@ -103,6 +105,8 @@ const getPathFromHash = () => {
   }
 
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
+  if (hash === '#/linkedin' || hash === '#/linkedin-scorecard' || hash === '#/linkedin-audit') return 'linkedin';
+
   if (hash === '#/batch') return 'batch';
   if (hash === '#/custom') return 'custom';
   if (hash === '#/processor') return 'processor';
@@ -2359,6 +2363,12 @@ function App() {
         <ATSSimulator onBack={() => window.location.hash = '#/'} />
       )}
 
+      {/* ── LinkedIn Recruiter POV Scorecard (standalone page) ── */}
+      {currentPath === 'linkedin' && (
+        <LinkedInScorecard onBack={() => window.location.hash = '#/'} />
+      )}
+
+
       {/* ── HookBunker Landing Page ── */}
       {currentPath === 'hookbunker-landing' && (
         <HookBunkerLanding onNavigate={navigateToPath} />
@@ -2428,7 +2438,9 @@ function App() {
        currentPath !== 'terms' && 
        currentPath !== 'privacy' && 
        currentPath !== 'ats' && 
+       currentPath !== 'linkedin' && 
        currentPath !== 'vault' && 
+
        currentPath !== 'workshop' && 
        currentPath !== 'workshop-join' && 
        !currentPath.startsWith('hookbunker') && 
