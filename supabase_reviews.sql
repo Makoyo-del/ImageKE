@@ -25,9 +25,3 @@ CREATE POLICY "Allow public insert access to submit reviews"
 ON public.reviews FOR INSERT 
 WITH CHECK (true);
 
--- Insert sample initial reviews for immediate credibility
-INSERT INTO public.reviews (name, role, rating, review_text, app_source) VALUES
-('Mercy Wanjiku', 'Senior Talent Acquisition Lead', 5, 'The ATS Simulator pinpointed exactly why my CV was being filtered out by Workday. After applying the keyword suggestions, I got 3 interview calls in one week!', 'ats_simulator'),
-('David Ochieng', 'Software Engineer', 5, 'Extremely accurate! The formatting issues & missing tech skills analysis saved me hours of guessing. Essential tool for anyone serious about tech roles.', 'ats_simulator'),
-('Kevine Kiprop', 'Financial Analyst', 5, 'The LinkedIn Recruiter POV score gave me actionable steps to revamp my headline and summary. Recruiters are now reaching out directly.', 'linkedin_scorecard')
-ON CONFLICT DO NOTHING;

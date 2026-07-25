@@ -2,38 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Star, CheckCircle, Send, MessageSquare, User, Briefcase, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../../supabase';
 
-const INITIAL_FALLBACK_REVIEWS = [
-  {
-    id: 'f1',
-    name: 'Mercy Wanjiku',
-    role: 'Senior Talent Acquisition Lead',
-    rating: 5,
-    review_text: 'The ATS Simulator pinpointed exactly why my CV was being filtered out by Workday. After applying the keyword & formatting suggestions, I received 3 shortlists in one week!',
-    app_source: 'ats_simulator',
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'f2',
-    name: 'David Ochieng',
-    role: 'Software Engineer',
-    rating: 5,
-    review_text: 'Extremely accurate scoring! The breakdown of hard skills versus soft skills and multi-column parsing risk saved me days of fruitless applications.',
-    app_source: 'ats_simulator',
-    created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-  },
-  {
-    id: 'f3',
-    name: 'Kevine Kiprop',
-    role: 'Financial Analyst',
-    rating: 5,
-    review_text: 'The LinkedIn audit and ATS tool gave me crystal clear steps to optimize my profile summary and job experience keywords. Highly recommended for professionals!',
-    app_source: 'linkedin_scorecard',
-    created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-  }
-];
-
 export default function ReviewsSection({ appSource = 'ats_simulator', sectionId = 'user-reviews-section' }) {
-  const [reviews, setReviews] = useState(INITIAL_FALLBACK_REVIEWS);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -61,12 +31,14 @@ export default function ReviewsSection({ appSource = 'ats_simulator', sectionId 
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.warn('Supabase fetch notice (using fallbacks if table not ready):', error.message);
-      } else if (data && data.length > 0) {
+        console.warn('Supabase fetch error:', error.message);
+        setReviews([]);
+      } else if (data) {
         setReviews(data);
       }
     } catch (err) {
-      console.warn('Could not load remote reviews, displaying local initial reviews.', err);
+      console.warn('Could not load remote reviews:', err);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -436,7 +408,24 @@ export default function ReviewsSection({ appSource = 'ats_simulator', sectionId 
 
             {/* List of Reviews Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '580px', overflowY: 'auto', paddingRight: '4px' }}>
-              {reviews.map((rev) => (
+              {reviews.length === 0 ? (
+                <div style={{
+                  background: '#FFFFFF',
+                  border: '1.5px dashed #111111',
+                  padding: '2.5rem 1.5rem',
+                  textAlign: 'center',
+                  color: '#555555'
+                }}>
+                  <MessageSquare size={32} style={{ color: '#D61A3C', marginBottom: '0.75rem' }} />
+                  <h4 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.1rem', color: '#111111', margin: '0 0 0.5rem 0', fontWeight: 800 }}>
+                    No User Reviews Yet
+                  </h4>
+                  <p style={{ fontSize: '0.85rem', margin: 0, lineHeight: 1.4 }}>
+                    Be the first candidate to analyze your CV or LinkedIn profile and share your experience using the form on the left!
+                  </p>
+                </div>
+              ) : (
+                reviews.map((rev) => (
                 <div
                   key={rev.id || Math.random()}
                   style={{
@@ -505,7 +494,8 @@ export default function ReviewsSection({ appSource = 'ats_simulator', sectionId 
                     </span>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
 
           </div>
