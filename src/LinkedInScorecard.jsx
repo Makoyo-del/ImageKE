@@ -4,6 +4,8 @@ import {
   Briefcase, Search, CheckCircle, AlertCircle, ArrowLeft, Lock,
   TrendingUp, Upload, FileText, ArrowRight, ChevronRight, X
 } from 'lucide-react';
+import FeedbackToast from './components/reviews/FeedbackToast';
+import ReviewsSection from './components/reviews/ReviewsSection';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -76,6 +78,25 @@ export default function LinkedInScorecard({ onBack }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [result, setResult] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    if (result) {
+      const timer = setTimeout(() => {
+        setShowToast(true);
+      }, 2500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowToast(false);
+    }
+  }, [result]);
+
+  const scrollToReviewsForm = () => {
+    const el = document.getElementById('user-reviews-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   // Lead modal
   const [showModal, setShowModal] = useState(false);
@@ -878,6 +899,17 @@ export default function LinkedInScorecard({ onBack }) {
         </div>
       )}
 
+      {/* Public Social Proof / Reviews Section */}
+      <div style={{ maxWidth: '1200px', margin: '4rem auto 0 auto' }}>
+        <ReviewsSection appSource="linkedin_scorecard" sectionId="user-reviews-section" />
+      </div>
+
+      {/* Feedback Toast Trigger */}
+      <FeedbackToast
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        onScrollToForm={scrollToReviewsForm}
+      />
     </div>
   );
 }

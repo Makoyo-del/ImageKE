@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
 import axios from 'axios';
 import { FileText, Search, User, Briefcase, GraduationCap, Wrench, Layout, BarChart, Lock, UploadCloud, CheckCircle } from 'lucide-react';
+import FeedbackToast from './components/reviews/FeedbackToast';
+import ReviewsSection from './components/reviews/ReviewsSection';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -574,10 +576,28 @@ export default function ATSSimulator({ onBack }) {
   const [exportError, setExportError] = useState('');
   const [exportStatus, setExportStatus] = useState(''); // '', 'loading_pdf', 'loading_paystack', 'paying', 'verifying', 'generating', 'done'
 
-  // Reset window scroll to top when view changes (e.g. upload -> parsing -> results)
+  // Feedback toast state
+  const [showToast, setShowToast] = useState(false);
+
+  // Reset window scroll to top when view changes & trigger toast on results
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (view === 'results') {
+      const timer = setTimeout(() => {
+        setShowToast(true);
+      }, 2500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowToast(false);
+    }
   }, [view]);
+
+  const scrollToReviewsForm = () => {
+    const el = document.getElementById('user-reviews-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   // ── File selection ────────────────────────────────────────────────────────
   const handleFileSelect = useCallback((selectedFile) => {
@@ -1684,6 +1704,11 @@ export default function ATSSimulator({ onBack }) {
                 </div>
               ))}
             </div>
+
+            {/* Public Social Proof / Reviews Section */}
+            <div style={{ marginTop: '4rem' }}>
+              <ReviewsSection appSource="ats_simulator" sectionId="user-reviews-section" />
+            </div>
           </div>
         </div>
       )}
@@ -2223,6 +2248,11 @@ export default function ATSSimulator({ onBack }) {
               </button>
             </div>
 
+            {/* Public Reviews & Rating Form Section */}
+            <div style={{ marginTop: '3rem' }}>
+              <ReviewsSection appSource="ats_simulator" sectionId="user-reviews-section" />
+            </div>
+
           </div>
         </div>
       )}
@@ -2338,6 +2368,13 @@ export default function ATSSimulator({ onBack }) {
           </div>
         </div>
       )}
+
+      {/* ── Feedback Toast Trigger ── */}
+      <FeedbackToast
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        onScrollToForm={scrollToReviewsForm}
+      />
     </>
   );
 }
