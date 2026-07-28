@@ -199,6 +199,40 @@ export default function AcademyDashboard({ onNavigate }) {
     }
   }, []);
 
+  // ── Mentor Hot Seat Handlers ──
+  const fetchHotseatSubmissions = useCallback(async () => {
+    if (!session?.access_token) return;
+    setLoadingHotseat(true);
+    setHotseatError('');
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/submissions`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setHotseatSubmissions(data.submissions || []);
+      } else {
+        setHotseatError(data.error || 'Failed to fetch Hot Seat submissions.');
+      }
+    } catch (err) {
+      setHotseatError('Connection error fetching Hot Seat submissions.');
+    } finally {
+      setLoadingHotseat(false);
+    }
+  }, [session]);
+
+  // Fetch all live sessions (history)
+  const fetchLiveSessions = useCallback(async () => {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/live-sessions`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) setLiveSessions(data.sessions || []);
+    } catch (err) { console.warn('[Live Sessions Fetch]', err); }
+  }, [session]);
+
   const handleSaveTemplate = async (e) => {
     e.preventDefault();
     if (!templateForm.name.trim()) {
@@ -533,39 +567,7 @@ export default function AcademyDashboard({ onNavigate }) {
     }
   };
 
-  // â”€â”€ Mentor Hot Seat Handlers â”€â”€
-  const fetchHotseatSubmissions = useCallback(async () => {
-    if (!session?.access_token) return;
-    setLoadingHotseat(true);
-    setHotseatError('');
-    try {
-      const res = await fetch(`${API_URL}/api/hotseat/submissions`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setHotseatSubmissions(data.submissions || []);
-      } else {
-        setHotseatError(data.error || 'Failed to fetch Hot Seat submissions.');
-      }
-    } catch (err) {
-      setHotseatError('Connection error fetching Hot Seat submissions.');
-    } finally {
-      setLoadingHotseat(false);
-    }
-  }, [session]);
 
-  // Fetch all live sessions (history)
-  const fetchLiveSessions = useCallback(async () => {
-    if (!session?.access_token) return;
-    try {
-      const res = await fetch(`${API_URL}/api/hotseat/live-sessions`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) setLiveSessions(data.sessions || []);
-    } catch (err) { console.warn('[Live Sessions Fetch]', err); }
-  }, [session]);
 
   // Save a new live session + auto-schedule reminders
   const handleSaveLiveSession = async (e) => {
