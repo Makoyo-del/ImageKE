@@ -4,7 +4,7 @@ import {
   Menu, X, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Brain, Shield, GraduationCap, Zap, 
   Wrench, Check, Mail, Phone, Clock, Globe, Settings, TrendingUp, Target, 
   MessageCircle, MessageSquare, FileText, Briefcase, BarChart, DollarSign,
-  Lock, Star
+  Lock, Star, Video
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
