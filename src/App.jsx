@@ -106,7 +106,16 @@ const getPathFromHash = () => {
   }
 
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
-  if (hash === '#/products/resume-hotseat' || hash === '#/hotseat' || hash === '#/resume-hotseat' || hash === '#/hot-seat') return 'hotseat';
+  if (
+    hash === '#/products/resume-hotseat' || 
+    hash === '#/hotseat' || 
+    hash === '#/resume-hotseat' || 
+    hash === '#/hot-seat' ||
+    hash === '#reserve-spot' ||
+    hash.startsWith('#/products/resume-hotseat') ||
+    hash.startsWith('#/hotseat') ||
+    hash.includes('reserve-spot')
+  ) return 'hotseat';
   if (hash === '#/linkedin' || hash === '#/linkedin-scorecard' || hash === '#/linkedin-audit') return 'linkedin';
 
   if (hash === '#/batch') return 'batch';

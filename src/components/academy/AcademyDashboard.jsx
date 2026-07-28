@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
 import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import './AcademyDashboard.css';
@@ -422,7 +422,12 @@ export default function AcademyDashboard({ onNavigate }) {
     if (session && activeTab === 'templates' && state?.role === 'mentor') {
       fetchVaultTemplates();
     }
-  }, [session, activeTab, state, fetchVaultTemplates]);
+
+    if (session && activeTab === 'hotseat' && state?.role === 'mentor') {
+      fetchHotseatSubmissions();
+      fetchLiveSessions();
+    }
+  }, [session, activeTab, state, fetchVaultTemplates, fetchHotseatSubmissions, fetchLiveSessions]);
 
   // Load Paystack script
   useEffect(() => {
@@ -2078,68 +2083,263 @@ export default function AcademyDashboard({ onNavigate }) {
             </div>
           )}
 
-          {/* MENTOR HOT SEAT LIVE SUBMISSIONS TAB */}
+          {/* MENTOR HOT SEAT LIVE SUBMISSIONS & SESSIONS MANAGEMENT TAB */}
           {state?.role === 'mentor' && activeTab === 'hotseat' && (
-            <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="ac-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem 2rem' }}>
-                <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    Hot Seat Live Submissions ðŸ”´
+            <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              
+              {/* ── 1. SCHEDULE NEW LIVE SESSION CARD ── */}
+              <div className="ac-card" style={{ padding: '1.75rem 2rem', background: '#FFFFFF' }}>
+                <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '1rem' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    🔴 Schedule New Live Broadcast Session
                   </h2>
                   <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                    Select candidate resumes to launch directly into live ATS simulation during broadcasts.
+                    Create a live stream broadcast date. Automated 24-hour & 1-hour email reminders will be scheduled for candidates in the queue.
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
-                  {['all', 'pending', 'selected', 'reviewed'].map(f => (
+                {liveSessionSuccess && (
+                  <div style={{ padding: '0.9rem 1.1rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#166534', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1.25rem' }}>
+                    ✓ {liveSessionSuccess}
+                  </div>
+                )}
+                {liveSessionError && (
+                  <div style={{ padding: '0.9rem 1.1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '0.875rem', fontWeight: 600, marginBottom: '1.25rem' }}>
+                    ⚠️ {liveSessionError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveLiveSession} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>SESSION TITLE *</label>
+                    <input
+                      type="text"
+                      required
+                      value={liveSessionForm.title}
+                      onChange={(e) => setLiveSessionForm({ ...liveSessionForm, title: e.target.value })}
+                      placeholder="e.g. Resume Hot Seat Live #4"
+                      style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>DATE & TIME (EAT) *</label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={liveSessionForm.live_datetime}
+                      onChange={(e) => setLiveSessionForm({ ...liveSessionForm, live_datetime: e.target.value })}
+                      style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>STREAM / MEETING LINK</label>
+                    <input
+                      type="url"
+                      value={liveSessionForm.stream_link}
+                      onChange={(e) => setLiveSessionForm({ ...liveSessionForm, stream_link: e.target.value })}
+                      placeholder="e.g. https://youtube.com/live/... or Meet link"
+                      style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>MAX CANDIDATE SPOTS</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={liveSessionForm.max_spots}
+                      onChange={(e) => setLiveSessionForm({ ...liveSessionForm, max_spots: parseInt(e.target.value, 10) || 3 })}
+                      style={{ width: '100%', padding: '0.7rem 0.9rem', borderRadius: '6px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                    />
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>
+                      <input
+                        type="checkbox"
+                        checked={liveSessionForm.deactivate_others}
+                        onChange={(e) => setLiveSessionForm({ ...liveSessionForm, deactivate_others: e.target.checked })}
+                        style={{ accentColor: '#D61A3C', width: '16px', height: '16px' }}
+                      />
+                      Set as primary active session (activates countdown timer on landing page)
+                    </label>
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
                     <button
-                      key={f}
-                      onClick={() => setHotseatFilter(f)}
+                      type="submit"
+                      disabled={savingLiveSession}
                       style={{
-                        padding: '0.4rem 0.8rem',
+                        background: '#D61A3C',
+                        color: '#FFFFFF',
+                        border: 'none',
                         borderRadius: '6px',
-                        border: '1px solid #cbd5e1',
-                        background: hotseatFilter === f ? '#0f172a' : '#ffffff',
-                        color: hotseatFilter === f ? '#ffffff' : '#475569',
-                        fontWeight: 600,
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        textTransform: 'capitalize'
+                        padding: '0.75rem 1.75rem',
+                        fontWeight: 800,
+                        fontSize: '0.875rem',
+                        cursor: savingLiveSession ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
                       }}
                     >
-                      {f} ({f === 'all' ? hotseatSubmissions.length : hotseatSubmissions.filter(s => s.status === f).length})
+                      {savingLiveSession ? 'Saving Session...' : '+ Schedule Live Session & Auto-Set Reminders'}
                     </button>
-                  ))}
+                  </div>
+                </form>
+              </div>
+
+              {/* ── 2. SCHEDULED & PAST LIVE BROADCAST SESSIONS TABLE ── */}
+              <div className="ac-card" style={{ padding: '1.5rem 2rem', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    Scheduled Broadcast Sessions ({liveSessions.length})
+                  </h3>
                   <button
-                    onClick={fetchHotseatSubmissions}
-                    style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                    onClick={fetchLiveSessions}
+                    style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
                   >
-                    ðŸ”„ Refresh
+                    🔄 Refresh Sessions
                   </button>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
+                        <th style={{ padding: '12px' }}>Session Title</th>
+                        <th style={{ padding: '12px' }}>Live Date & Time (EAT)</th>
+                        <th style={{ padding: '12px' }}>Stream Link</th>
+                        <th style={{ padding: '12px' }}>Max Spots</th>
+                        <th style={{ padding: '12px' }}>Status</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {liveSessions.map((sess) => (
+                        <tr key={sess.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{sess.title}</td>
+                          <td style={{ padding: '12px', color: '#334155' }}>
+                            {new Date(sess.live_datetime).toLocaleString('en-KE', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' })} EAT
+                          </td>
+                          <td style={{ padding: '12px', color: '#3b82f6' }}>
+                            {sess.stream_link ? (
+                              <a href={sess.stream_link} target="_blank" rel="noopener noreferrer" style={{ color: '#D61A3C', fontWeight: 600, textDecoration: 'underline' }}>
+                                Open Link ↗
+                              </a>
+                            ) : (
+                              <span style={{ color: '#94a3b8' }}>None</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px', fontWeight: 600 }}>{sess.max_spots || 3}</td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              background: sess.is_active ? '#DCFCE7' : '#F1F5F9',
+                              color: sess.is_active ? '#166534' : '#64748B',
+                              border: `1px solid ${sess.is_active ? '#166534' : '#CBD5E1'}`
+                            }}>
+                              {sess.is_active ? '🔴 ACTIVE LIVE' : 'INACTIVE'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleToggleLiveSession(sess.id, sess.is_active)}
+                              style={{
+                                background: sess.is_active ? '#f8fafc' : '#0f172a',
+                                color: sess.is_active ? '#475569' : '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontWeight: 600,
+                                fontSize: '0.775rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {sess.is_active ? 'Deactivate' : 'Set Active'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {liveSessions.length === 0 && (
+                        <tr>
+                          <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+                            No live sessions scheduled yet. Use the form above to schedule your first stream!
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              {hotseatError && (
-                <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '0.875rem' }}>
-                  {hotseatError}
-                </div>
-              )}
+              {/* ── 3. CANDIDATE SUBMISSIONS QUEUE TABLE ── */}
+              <div className="ac-card" style={{ padding: '1.5rem 2rem', background: '#FFFFFF' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      Candidate Submissions Queue 📄
+                    </h2>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                      Select candidate resumes to automatically send selection notifications and launch live ATS simulation.
+                    </p>
+                  </div>
 
-              <div className="ac-card" style={{ padding: '1.5rem 2rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                    {['all', 'pending', 'selected', 'reviewed'].map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setHotseatFilter(f)}
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: hotseatFilter === f ? '#0f172a' : '#ffffff',
+                          color: hotseatFilter === f ? '#ffffff' : '#475569',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          textTransform: 'capitalize'
+                        }}
+                      >
+                        {f} ({f === 'all' ? hotseatSubmissions.length : hotseatSubmissions.filter(s => s.status === f).length})
+                      </button>
+                    ))}
+                    <button
+                      onClick={fetchHotseatSubmissions}
+                      style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      🔄 Refresh Queue
+                    </button>
+                  </div>
+                </div>
+
+                {hotseatError && (
+                  <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                    {hotseatError}
+                  </div>
+                )}
+
                 {loadingHotseat ? (
                   <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading Hot Seat submissions...</div>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                       <thead>
                         <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Candidate Name</th>
-                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Target Role</th>
-                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Email Address</th>
-                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Submitted At</th>
-                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Status</th>
-                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem', textAlign: 'right' }}>Actions</th>
+                          <th style={{ padding: '12px', color: '#64748b' }}>Candidate Name</th>
+                          <th style={{ padding: '12px', color: '#64748b' }}>Target Role</th>
+                          <th style={{ padding: '12px', color: '#64748b' }}>Email Address</th>
+                          <th style={{ padding: '12px', color: '#64748b' }}>Submitted At</th>
+                          <th style={{ padding: '12px', color: '#64748b' }}>Status</th>
+                          <th style={{ padding: '12px', color: '#64748b', textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2148,9 +2348,9 @@ export default function AcademyDashboard({ onNavigate }) {
                           .map(sub => (
                             <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{sub.full_name}</td>
-                              <td style={{ padding: '12px', color: '#475569', fontSize: '0.875rem' }}>{sub.target_role || 'General Application'}</td>
-                              <td style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>{sub.email}</td>
-                              <td style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>
+                              <td style={{ padding: '12px', color: '#475569' }}>{sub.target_role || 'General Application'}</td>
+                              <td style={{ padding: '12px', color: '#64748b' }}>{sub.email}</td>
+                              <td style={{ padding: '12px', color: '#64748b' }}>
                                 {new Date(sub.created_at).toLocaleDateString()}
                               </td>
                               <td style={{ padding: '12px' }}>
@@ -2164,13 +2364,14 @@ export default function AcademyDashboard({ onNavigate }) {
                                   color: sub.status === 'selected' ? '#D61A3C' : sub.status === 'reviewed' ? '#166534' : '#475569',
                                   border: `1px solid ${sub.status === 'selected' ? '#D61A3C' : sub.status === 'reviewed' ? '#bbf7d0' : '#cbd5e1'}`
                                 }}>
-                                  {sub.status === 'selected' ? 'ðŸ”´ Live Selected' : sub.status === 'reviewed' ? 'âœ“ Reviewed' : 'Pending'}
+                                  {sub.status === 'selected' ? '🔴 Live Selected' : sub.status === 'reviewed' ? '✓ Reviewed' : 'Pending'}
                                 </span>
                               </td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                   <button
                                     onClick={() => handleAnalyzeHotseatLive(sub)}
+                                    title="Select candidate, send selection email notification, and open in ATS simulator"
                                     style={{
                                       background: '#D61A3C',
                                       color: '#ffffff',
@@ -2185,8 +2386,26 @@ export default function AcademyDashboard({ onNavigate }) {
                                       gap: '4px'
                                     }}
                                   >
-                                    Analyze Live ðŸ”´
+                                    Analyze Live 🔴
                                   </button>
+                                  {sub.status !== 'selected' && (
+                                    <button
+                                      onClick={() => handleUpdateHotseatStatus(sub.id, 'selected')}
+                                      title="Select candidate and send selection email notification"
+                                      style={{
+                                        background: '#fff',
+                                        color: '#D61A3C',
+                                        border: '1px solid #D61A3C',
+                                        borderRadius: '6px',
+                                        padding: '6px 10px',
+                                        fontWeight: 700,
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Select & Notify 📧
+                                    </button>
+                                  )}
                                   {sub.status !== 'reviewed' && (
                                     <button
                                       onClick={() => handleUpdateHotseatStatus(sub.id, 'reviewed')}
@@ -2220,6 +2439,7 @@ export default function AcademyDashboard({ onNavigate }) {
                   </div>
                 )}
               </div>
+
             </div>
           )}
 

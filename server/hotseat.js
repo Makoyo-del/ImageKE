@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import axios from 'axios';
 import rateLimit from 'express-rate-limit';
 import { supabase } from './supabase.js';
@@ -157,6 +157,42 @@ function buildCandidateEmail({ fullName, targetRole, liveSession }) {
 </div>`;
 }
 
+function buildSelectedEmail({ fullName, targetRole, liveSession }) {
+  const sessionBlock = liveSession
+    ? `<div style="background:#F4F4EE;border-left:4px solid #D61A3C;padding:16px 20px;margin:24px 0;">
+        <p style="margin:0 0 4px;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#D61A3C;">UPCOMING LIVE TEARDOWN</p>
+        <p style="margin:4px 0 0;font-size:1rem;font-weight:700;color:#111111;">${liveSession.title || 'Resume Hot Seat Live'}</p>
+        <p style="margin:4px 0 0;font-size:0.9rem;color:#555;">${new Date(liveSession.live_datetime).toLocaleString('en-KE', { weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Africa/Nairobi' })} EAT</p>
+        ${liveSession.stream_link ? `<p style="margin:12px 0 0;"><a href="${liveSession.stream_link}" style="color:#D61A3C;font-weight:700;">Watch Live Stream →</a></p>` : ''}
+       </div>`
+    : `<p style="color:#555;font-size:0.9rem;margin:16px 0;">The broadcast date will be announced shortly. Watch your inbox for live stream details.</p>`;
+
+  return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;background:#F4F4EE;padding:32px 16px;color:#111111;">
+  <div style="max-width:600px;margin:0 auto;background:#FFFFFF;border:2px solid #111111;">
+    <div style="background:#D61A3C;padding:20px 32px;">
+      <span style="color:#FFFFFF;font-size:1rem;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;">🔥 YOUR RESUME WAS SELECTED FOR THE HOT SEAT!</span>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="font-family:Georgia,serif;font-size:1.8rem;font-weight:900;margin:0 0 16px;">Congratulations, <em style="color:#D61A3C;">${fullName}!</em></h2>
+      <p style="font-size:1rem;line-height:1.65;color:#333;margin:0 0 20px;">Your resume for <strong>"${targetRole || 'General Application'}"</strong> has been selected by Duncan Makoyo for a live ATS teardown & rewrite broadcast.</p>
+      
+      <div style="border:1.5px solid #E5E5E5;padding:20px;margin:20px 0;">
+        <span style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:#D61A3C;">WHAT HAPPENS LIVE</span>
+        <ul style="margin:12px 0 0;padding-left:20px;color:#555;font-size:0.9rem;line-height:1.6;">
+          <li>Your contact details (phone, email, street address) are <strong>100% redacted</strong> prior to stream.</li>
+          <li>We will parse your CV live in front of the audience to reveal why ATS software rejects it.</li>
+          <li>You'll get an exact rewrite roadmap to transform your score to a 100% ATS pass rate.</li>
+        </ul>
+      </div>
+
+      ${sessionBlock}
+
+      <p style="margin:24px 0 0;font-size:0.85rem;color:#888;">Questions? Email <a href="mailto:info@duncanmakoyo.com" style="color:#D61A3C;">info@duncanmakoyo.com</a></p>
+    </div>
+  </div>
+</div>`;
+}
+
 function buildMentorAlertEmail({ fullName, candidateEmail, targetRole, resumeUrl, fileName, submittedAt }) {
   return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;background:#F4F4EE;padding:32px 16px;color:#111111;">
   <div style="max-width:600px;margin:0 auto;background:#FFFFFF;border:2px solid #111111;">
@@ -211,7 +247,7 @@ async function scheduleRemindersForSession(session) {
     const { data: submissions, error } = await supabase
       .from('hotseat_submissions')
       .select('full_name, email')
-      .eq('status', 'pending');
+      .in('status', ['pending', 'selected']);
     if (error || !submissions?.length) {
       console.log('[HotSeat Reminders] No pending submissions to remind.');
       return;
@@ -334,7 +370,29 @@ router.patch('/submissions/:id/status', authenticateMentor, async (req, res) => 
     if (notes !== undefined) payload.notes = sanitizeString(notes, 500);
     const { data, error } = await supabase.from('hotseat_submissions').update(payload).eq('id', id).select();
     if (error) { console.error('[HotSeat Update Error]', error.message); return res.status(500).json({ error: 'Failed to update.' }); }
-    return res.json({ success: true, submission: data[0] });
+    
+    const updatedSub = data?.[0];
+    if (updatedSub && status === 'selected') {
+      const { data: liveSessions } = await supabase
+        .from('hotseat_live_sessions')
+        .select('title, live_datetime, stream_link')
+        .eq('is_active', true)
+        .order('live_datetime', { ascending: true })
+        .limit(1);
+      const activeSession = liveSessions?.[0] || null;
+
+      sendHotseatEmail({
+        to: updatedSub.email,
+        subject: `🔥 Your Resume Was Selected for "The Resume Hot Seat" Live Teardown!`,
+        html: buildSelectedEmail({
+          fullName: updatedSub.full_name,
+          targetRole: updatedSub.target_role,
+          liveSession: activeSession
+        }),
+      }).catch(err => console.error('[HotSeat Selected Notification Email Error]', err.message));
+    }
+
+    return res.json({ success: true, submission: updatedSub });
   } catch (err) { return res.status(500).json({ error: 'Internal server error.' }); }
 });
 
@@ -367,7 +425,7 @@ router.post('/live-session', authenticateMentor, async (req, res) => {
     const { title, live_datetime, stream_link, max_spots, notes, deactivate_others } = req.body;
     if (!live_datetime) return res.status(400).json({ error: 'live_datetime is required.' });
     const liveDate = new Date(live_datetime);
-    if (isNaN(liveDate.getTime()) || liveDate <= new Date()) return res.status(400).json({ error: 'live_datetime must be a valid future date.' });
+    if (isNaN(liveDate.getTime())) return res.status(400).json({ error: 'live_datetime must be a valid date/time.' });
 
     if (deactivate_others) {
       await supabase.from('hotseat_live_sessions').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');

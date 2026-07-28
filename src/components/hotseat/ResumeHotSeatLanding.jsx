@@ -264,6 +264,25 @@ export function ResumeHotSeatLanding({ onNavigate }) {
     }
   };
 
+  const scrollToForm = (e) => {
+    if (e) e.preventDefault();
+    const formElement = document.getElementById('reserve-spot');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (window.location.hash.includes('reserve-spot')) {
+      const formElement = document.getElementById('reserve-spot');
+      if (formElement) {
+        setTimeout(() => {
+          formElement.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+      }
+    }
+  }, []);
+
   // Emmanuel Mbeeli featured hero item
   const emmanuelProof = PROOF_SCREENSHOTS.find(p => p.id === 'emmanuel') || PROOF_SCREENSHOTS[0];
 
@@ -351,7 +370,7 @@ export function ResumeHotSeatLanding({ onNavigate }) {
               )}
 
               <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <a href="#reserve-spot" className="hotseat-btn-crimson" style={{ textDecoration: 'none' }}>
+                <a href="#reserve-spot" onClick={scrollToForm} className="hotseat-btn-crimson" style={{ textDecoration: 'none', cursor: 'pointer' }}>
                   SUBMIT MY RESUME FOR TEARDOWN →
                 </a>
                 {liveSession?.stream_link && (
@@ -696,7 +715,7 @@ export function ResumeHotSeatLanding({ onNavigate }) {
               <span style={{ fontSize: '0.85rem', color: 'var(--hs-muted)', fontWeight: 600 }}>
                 {selectedProof.quote}
               </span>
-              <a href="#reserve-spot" onClick={() => setSelectedProof(null)} className="hotseat-btn-crimson" style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem', textDecoration: 'none' }}>
+              <a href="#reserve-spot" onClick={(e) => { setSelectedProof(null); scrollToForm(e); }} className="hotseat-btn-crimson" style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem', textDecoration: 'none', cursor: 'pointer' }}>
                 SUBMIT YOUR CV NOW →
               </a>
             </div>

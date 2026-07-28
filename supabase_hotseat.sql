@@ -64,3 +64,34 @@ CREATE POLICY "Mentors can manage resumes" ON storage.objects
       WHERE profiles.id = auth.uid() AND profiles.role = 'mentor'
     )
   );
+
+-- =============================================================================
+-- 3. LIVE SESSIONS TABLE & POLICIES
+-- =============================================================================
+create table if not exists public.hotseat_live_sessions (
+  id uuid default gen_random_uuid() primary key,
+  title text not null default 'Resume Hot Seat Live',
+  live_datetime timestamp with time zone not null,
+  stream_link text,
+  max_spots integer default 3 not null,
+  notes text,
+  is_active boolean default true not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.hotseat_live_sessions enable row level security;
+
+drop policy if exists "Anyone can read live sessions" on public.hotseat_live_sessions;
+create policy "Anyone can read live sessions"
+  on public.hotseat_live_sessions for select
+  using (true);
+
+drop policy if exists "Authenticated users can insert live sessions" on public.hotseat_live_sessions;
+create policy "Authenticated users can insert live sessions"
+  on public.hotseat_live_sessions for insert
+  with check (true);
+
+drop policy if exists "Authenticated users can update live sessions" on public.hotseat_live_sessions;
+create policy "Authenticated users can update live sessions"
+  on public.hotseat_live_sessions for update
+  using (true);
