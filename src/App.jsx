@@ -19,6 +19,7 @@ const RiderLogin = lazy(() => import('./components/rider/RiderLogin'));
 const RiderDashboard = lazy(() => import('./components/rider/RiderDashboard'));
 const ATSResumeVault = lazy(() => import('./components/vault/ATSResumeVault'));
 const LinkedInScorecard = lazy(() => import('./LinkedInScorecard'));
+const ResumeHotSeatLanding = lazy(() => import('./components/hotseat/ResumeHotSeatLanding'));
 
 
 // ─── Environment Config ────────────────────────────────────────────────────────
@@ -105,6 +106,7 @@ const getPathFromHash = () => {
   }
 
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
+  if (hash === '#/products/resume-hotseat' || hash === '#/hotseat' || hash === '#/resume-hotseat' || hash === '#/hot-seat') return 'hotseat';
   if (hash === '#/linkedin' || hash === '#/linkedin-scorecard' || hash === '#/linkedin-audit') return 'linkedin';
 
   if (hash === '#/batch') return 'batch';
@@ -150,6 +152,7 @@ function App() {
   // 'services' | 'home' | 'processor' | 'custom' | 'batch' | 'terms' | 'privacy'
   const [currentPath, setCurrentPath] = useState(getPathFromHash);
   const [currentTab, setCurrentTab] = useState(getTabFromHash);
+  const [atsHandoffState, setAtsHandoffState] = useState(null); // { resumeUrl, candidateName, filename }
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [customSize, setCustomSize] = useState({
     name: 'Custom Size',
@@ -1398,7 +1401,7 @@ function App() {
   // RENDER: LEGAL PAGES
   // ─────────────────────────────────────────────────────────────────────────────
   const renderTerms = () => (
-    <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '800px' }}>
+    <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '850px' }}>
       <button
         onClick={() => setCurrentPath('services')}
         className="btn"
@@ -1406,48 +1409,57 @@ function App() {
       >
         <ArrowLeft size={18} /> Back to Home
       </button>
-      <h1>Terms of Use</h1>
-      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
+      <h1>Terms of Use &amp; Service Disclaimers</h1>
+      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: July 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
         <h3 style={{ color: 'var(--text)', marginBottom: '0.5rem' }}>1. Acceptance of Terms</h3>
-        <p>By accessing or using the website at duncanmakoyo.com ("the Site"), and any associated media utilities (ImageKE Photo & Video Studio), career development services, ATS resume auditing simulator, custom web development packages, or digital presence consulting (collectively, "the Services"), you confirm that you are at least 18 years of age (or have parental/guardian consent) and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Services immediately.</p>
+        <p>By accessing or using the website at duncanmakoyo.com ("the Site"), and any associated media utilities (ImageKE Photo &amp; Video Studio), career development services, ATS resume auditing simulator, The Resume Hot Seat live teardowns, LinkedIn Scorecard, HookBunker proxy, Career Academy, AI Masterclasses, Resume Vault, or digital presence consulting (collectively, "the Services"), you confirm that you are at least 18 years of age (or have parental/guardian consent) and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Services immediately.</p>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Scope and Description of Services</h3>
-        <p>We provide a comprehensive suite of digital, media, and career solutions, including:</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Scope and Description of All Products &amp; Services</h3>
+        <p>We provide a comprehensive suite of digital, media, developer, and career solutions, including:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>ImageKE Photo Utilities:</b> Automated image resizing and cropping for specific portal requirements (e.g. eCitizen, KRA iTax, HELB, US/Schengen Visa), custom dimensional resizing, and a Batch Document Compressor to optimize scanned page uploads for low-bandwidth connections.</li>
+          <li><b>ImageKE Photo Utilities:</b> Automated image resizing and cropping for specific portal requirements (e.g. eCitizen, KRA iTax, HELB, US/Schengen Visa), custom dimensional resizing, and a Batch Document Compressor to optimize scanned page uploads.</li>
           <li><b>ImageKE Video Studio:</b> Client-side aspect ratio cropping (portrait 9:16, square 1:1, widescreen 16:9), size compressors (WhatsApp under 16MB, email under 25MB), text/image branding watermarkers, MP3 audio extractors, and video frame extraction tools.</li>
           <li><b>ATS Simulator (V2):</b> A secure resume parsing utility utilizing artificial intelligence to analyze formatting safety, structural ordering, privacy markers (e.g. photos, DOB, National ID risks), STAR methodology metrics, and keyword coverage.</li>
-          <li><b>HookBunker Webhook Proxy & Gateway:</b> A resilient developer-first webhook forwarding proxy designed to ingest callback events from payment gateways (Safaricom M-Pesa, Paystack, Payhero) and reliably dispatch them to configured application targets, complete with status logging, payload inspection, and auto-retry dispatching.</li>
-          <li><b>Professional Career & Web Services:</b> Elite CV/resume copywriting, cover letter design, LinkedIn profile optimization, corporate web development, search engine optimization (SEO), and digital presence setup.</li>
-          <li><b>Career Academy & Mentorship Program:</b> A structured learning platform offering outcomes-focused training on personal branding, LinkedIn positioning, resume writing, job search sprints, interview preparation, digital tools (e.g. Google Business Profile setup), and guest expert webinars.</li>
+          <li><b>The Resume Hot Seat (Live Teardown Broadcasts):</b> An interactive live teardown event where candidates submit their CVs for real-time ATS scanning, public document analysis, and live career strategy reviews streamed across platforms including LinkedIn, TikTok, and YouTube.</li>
+          <li><b>LinkedIn Recruiter POV Scorecard:</b> A specialized diagnostic tool auditing LinkedIn profiles against recruiter search parameters, headline density, about section formatting, and keywords.</li>
+          <li><b>HookBunker Webhook Proxy &amp; Gateway:</b> A resilient developer forwarding proxy designed to ingest callback events from payment gateways (Safaricom M-Pesa, Paystack, Payhero) and reliably dispatch them to target applications with status logging and retry dispatching.</li>
+          <li><b>Career Academy &amp; Mentorship Program:</b> A structured learning platform offering outcomes-focused training on personal branding, LinkedIn positioning, resume writing, job search sprints, interview preparation, and digital tools.</li>
+          <li><b>AI Jobseeker Masterclasses &amp; Workshops:</b> Live and recorded training sessions covering AI prompt engineering for job seekers, cover letter automation, and job application strategies.</li>
+          <li><b>ATS Resume Vault:</b> A curated repository of battle-tested, ATS-friendly resume templates tailored for competitive industries.</li>
+          <li><b>Rider Logistics &amp; Operations Portal:</b> An internal dispatch and driver management interface for logistics coordination.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. Payments, Billing, and Refunds</h3>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. Specific Terms for "The Resume Hot Seat" Live Streams</h3>
+        <p>By submitting your resume to "The Resume Hot Seat" platform, you explicitly acknowledge and agree to the following terms:</p>
+        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
+          <li><b>Voluntary Public Broadcast Consent:</b> You grant Duncan Makoyo and the Site operators an irrevocable, worldwide license to display, analyze, critique, and broadcast your submitted resume, full name, target role, and career history during live streaming sessions and recorded re-broadcasts across public platforms (including LinkedIn, TikTok, YouTube, X, and Instagram).</li>
+          <li><b>Best-Effort Sensitive Data Redaction:</b> While our automated systems and live workflow redact phone numbers, email addresses, and exact physical street addresses prior to broadcast, you acknowledge that redaction is performed on a best-effort basis. You assume all inherent risks associated with live public broadcasting.</li>
+          <li><b>Public Critique &amp; Feedback:</b> You acknowledge that live teardowns involve candid, professional critiques of your resume formatting, syntax, and metrics. You agree not to hold the host or Site operators liable for constructive feedback rendered during live streams.</li>
+        </ul>
+
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Payments, Billing, and Refunds</h3>
         <p>You agree to adhere to the payment terms associated with each category of Services:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>Pay-Per-Download Tools:</b> Single media fixes or batch document compression downloads require a fixed payment (e.g. KSh 49 or KSh 4) processed via Paystack. Because watermarked previews are displayed prior to purchase, all sales are final and non-refundable.</li>
-          <li><b>Creator Subscription Plan:</b> A monthly subscription (KSh 499/month) granting unlimited downloads for video and photo tools. Subscriptions are billed automatically until canceled by the user via the local dashboard. Canceled subscriptions remain active until the end of the billing period and are non-refundable.</li>
-          <li><b>HookBunker Developer Subscription Plans:</b> Optional upgrade tiers (Team plan at KSh 3,400/month or $26/month; Business plan at KSh 11,500/month or $89/month) processed and auto-renewed securely via Paystack. Subscription renewals that fail or fail to clear will result in immediate down-grading to the Free Tier. When downgraded, active workspace slots are capped at 1; any excess projects are automatically suspended or deactivated in the developer dashboard. Suspended projects do not process callbacks, and we hold no responsibility or liability for missed gateway callbacks.</li>
-          <li><b>Academy Cohort and Membership Fees:</b> Accelerator cohort registrations (one-time fee of KSh 10,000) and monthly membership subscriptions (KSh 1,500/month) are processed securely via Paystack. Membership access is billed automatically until canceled. Active memberships that fail to renew successfully will result in immediate suspension of portal access and revocation of membership privileges. Once paid, cohort fees and subscription charges are non-refundable.</li>
-          <li><b>Professional Consulting packages:</b> Custom branding, web development, and resume copywriting packages are subject to project-specific proposal pricing. Payments are due prior to commencement or at agreed milestones. Once project discovery or draft composition has started, fees are non-refundable.</li>
+          <li><b>Pay-Per-Download Tools:</b> Single media fixes or batch document compression downloads require a fixed payment processed via Paystack. Because watermarked previews are displayed prior to purchase, all sales are final and non-refundable.</li>
+          <li><b>Creator Subscription Plan:</b> A monthly subscription granting unlimited downloads for video and photo tools. Subscriptions are billed automatically until canceled. Canceled subscriptions remain active until the end of the billing period and are non-refundable.</li>
+          <li><b>HookBunker Developer Subscription Plans:</b> Optional upgrade tiers processed and auto-renewed securely via Paystack. Failed renewals result in immediate downgrade to the Free Tier. When downgraded, active workspace slots are capped at 1; excess projects are deactivated. Suspended projects do not process callbacks, and we hold zero liability for missed gateway callbacks.</li>
+          <li><b>Academy Cohort &amp; Membership Fees:</b> Accelerator cohort registrations and monthly membership subscriptions are processed via Paystack. Once paid, cohort fees and subscription charges are non-refundable.</li>
+          <li><b>Professional Consulting Packages:</b> Custom branding, web development, and resume copywriting packages are subject to project-specific pricing. Once project discovery or draft composition has started, fees are non-refundable.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Intellectual Property and Content Submissions</h3>
-        <p>You retain ownership of any media, text, CV drafts, or project information you upload. You warrant that you hold full legal rights and licensing to any materials submitted. All proprietary code, software architectures, website copy, algorithms, and design tokens of the Site and the ImageKE tools are the sole intellectual property of Duncan Makoyo. Completed custom website builds, final CV drafts, and branding assets become your property only upon full payment settlement.</p>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Disclaimer of Warranties and Guarantees</h3>
-        <p>THE SERVICES ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS. DUNCAN MAKOYO AND THE SITE OPERATORS MAKE NO WARRANTIES, EXPRESS OR IMPLIED, AND EXPRESSLY DISCLAIM ALL WARRANTIES INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT GUARANTEE, WARRANT, OR PROMISE ANY SPECIFIC CAREER, BUSINESS, OR TECHNICAL OUTCOME, INCLUDING BUT NOT LIMITED TO:</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Zero-Guarantees Disclaimer (Absolute Disclaimer of Warranties)</h3>
+        <p>THE SERVICES, TOOLS, TEMPLATES, ANALYSIS REPORTS, AND LIVE BROADCASTS ARE PROVIDED STRICTLY ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF ANY KIND. DUNCAN MAKOYO AND THE SITE OPERATORS EXPRESSLY DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, AND NON-INFRINGEMENT.</p>
+        <p><b>WE OFFER ZERO GUARANTEES REGARDING CAREER OR BUSINESS OUTCOMES, INCLUDING BUT NOT LIMITED TO:</b></p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li>Securing job interviews, callbacks, employment offers, salary raises, career placements, or business growth from using the ATS Simulator, professional CV services, or joining the Career Academy. We prepare candidates but do not guarantee success or employment.</li>
-          <li>Increases in web traffic, business leads, sales conversions, search engine rankings, or digital revenue from custom web development and SEO packages.</li>
-          <li>Acceptance of processed photos, videos, or documents by any third-party government portal (eCitizen, KRA), visa office, school portal, or corporate Applicant Tracking System.</li>
-          <li>Continuous callback deliveries, 100% gateway uptime, or immediate forwarding of payment hooks through HookBunker; system maintenance, API timeouts, or third-party outages may disrupt log captures.</li>
+          <li><b>NO JOB OR INTERVIEW GUARANTEE:</b> We do NOT guarantee, warrant, or promise that using the ATS Simulator, participating in The Resume Hot Seat, downloading Resume Vault templates, or enrolling in Career Academy will result in job interviews, callback calls, employment offers, salary increases, or career advancements. All tools provide educational analysis only.</li>
+          <li><b>NO BUSINESS OR REVENUE GUARANTEE:</b> We do NOT guarantee increases in web traffic, business leads, sales conversions, search engine rankings, or digital revenue from custom web development, HookBunker proxy usage, or SEO packages.</li>
+          <li><b>NO THIRD-PARTY ACCEPTANCE GUARANTEE:</b> We do NOT guarantee acceptance of processed photos, videos, or documents by any government portal (eCitizen, KRA), visa office, school portal, or corporate Applicant Tracking System.</li>
         </ul>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Limitation of Liability and Full Indemnification</h3>
-        <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL DUNCAN MAKOYO, THE SITE OPERATORS, ITS AGENTS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, EMPLOYMENT OPPORTUNITIES, BUSINESS DOWNTIME, TRANSACTION FAILURES, REVENUE LOSSES, OR SYSTEM FAILURES.</p>
-        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site, HookBunker proxy gateways, Career Academy portals, or delivered assets; (ii) any career, financial, or business outcomes resulting from our consulting, training, or mentorship; (iii) any third-party claims regarding intellectual property infringement in materials you submitted; or (iv) any service interruptions, webhook delivery failures, callback queues delays, database data pruning, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Limitation of Liability &amp; Full Legal Indemnification</h3>
+        <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL DUNCAN MAKOYO, THE SITE OPERATORS, ITS AGENTS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, EMPLOYMENT OPPORTUNITIES, REJECTION BY EMPLOYERS, BUSINESS DOWNTIME, TRANSACTION FAILURES, REVENUE LOSSES, OR SYSTEM FAILURES.</p>
+        <p><b>YOU AGREE TO FULLY INDEMNIFY, DEFEND, AND HOLD HARMLESS DUNCAN MAKOYO AND THE OPERATORS</b> from and against any and all claims, damages, liabilities, losses, costs, or expenses (including legal fees) arising from: (i) your use or misuse of the Site, ATS tools, Resume Hot Seat live streams, HookBunker proxy gateways, or Career Academy portals; (ii) any career, employment, financial, or business outcomes resulting from our consulting, teardowns, or mentorship; (iii) your voluntary participation and document submission for live broadcast sessions; (iv) any third-party claims regarding intellectual property infringement in materials you submitted; or (v) any service interruptions, gateway callback delays, or browser-processing crashes. Under no circumstances shall our cumulative liability exceed the exact amount paid by you for the specific service transaction in dispute.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>7. Governing Law and Disputes</h3>
         <p>These Terms of Use shall be governed by, construed, and enforced in accordance with the laws of the Republic of Kenya. Any legal actions or disputes arising from these Terms or the Services shall be submitted to the exclusive jurisdiction of the courts of Nairobi, Kenya.</p>
@@ -1456,7 +1468,7 @@ function App() {
   );
 
   const renderPrivacy = () => (
-    <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '800px' }}>
+    <div className="container" style={{ paddingTop: '4rem', paddingBottom: '4rem', maxWidth: '850px' }}>
       <button
         onClick={() => setCurrentPath('services')}
         className="btn"
@@ -1465,39 +1477,31 @@ function App() {
         <ArrowLeft size={18} /> Back to Home
       </button>
       <h1>Privacy Policy</h1>
-      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: June 2026</p>
+      <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: July 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
-        <p>This Privacy Policy describes how we collect, process, and protect your personal information when you use duncanmakoyo.com ("the Site"), our browser-native media tools (ImageKE), our developer console (HookBunker), or our consulting services.</p>
+        <p>This Privacy Policy describes how we collect, process, and protect your personal information across all products offered on duncanmakoyo.com ("the Site"), including ImageKE media tools, ATS Simulator, The Resume Hot Seat live streams, LinkedIn Scorecard, HookBunker developer proxy, and Career Academy programs.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>1. Browser-Native Processing (Zero Server Transmission)</h3>
-        <p>For the ImageKE Photo and Video editing tools (including compressor, aspect cropper, watermarker, and extractors), **all rendering is conducted locally in your web browser using WebAssembly and canvas technologies**. Your uploaded photos, logo overlays, and video streams never leave your device and are never sent to our servers.</p>
+        <p>For the ImageKE Photo and Video editing tools (including compressor, aspect cropper, watermarker, and frame extractors), **all rendering is conducted locally in your web browser using WebAssembly and canvas technologies**. Your uploaded photos, logo overlays, and video streams never leave your device and are never sent to our servers.</p>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Data We Collect and Process</h3>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Data We Collect Across All Products</h3>
         <p>We collect personal and professional information under the following conditions:</p>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>Career Forms & Consultation:</b> When you submit service requests or sign up for CV audits, we collect your name, email, phone number, LinkedIn URL, target job fields, and uploaded CV files.</li>
-          <li><b>ATS Simulator V2:</b> When you use the simulator, we temporarily process your resume data. If you upload a PDF, the file is converted to text/base64 and sent to our secure backend proxy route to be analyzed using artificial intelligence. **No resume files or personal text parsed by the simulator are ever stored on our servers.** They are held in memory solely to compile your score card and are immediately discarded.</li>
-          <li><b>HookBunker Transaction Logs:</b> We temporarily collect and store transactional payload information received from payment gateways (Safaricom M-Pesa, Paystack, and Payhero) on your behalf. This parsed metadata contains payment references, transaction amounts, customer emails, and phone numbers in order to populate your developer log console. All webhook database records are stored in secure Supabase PostgreSQL database tables with strict Row-Level Security (RLS) policies to ensure absolute tenant isolation. Logs and payloads are automatically pruned from active tables based on your active plan tier (3 days for Free, 14 days for Team, 30 days for Business).</li>
-          <li><b>Billing Data:</b> Email addresses and transaction references collected during Paystack checkout are processed securely. Card numbers, bank log-ins, and M-Pesa PINs are handled directly by Paystack and are never visible to or stored by us.</li>
+          <li><b>Career Forms &amp; Consultation:</b> When you submit service requests, we collect your name, email, phone number, LinkedIn URL, target job fields, and uploaded CV files.</li>
+          <li><b>ATS Simulator (V2):</b> When you use the standalone simulator, your resume data is processed in memory to generate your readiness score. No parsed resume text is stored permanently on our servers.</li>
+          <li><b>The Resume Hot Seat Submissions:</b> When you submit a resume for live broadcast teardowns, we collect your full name, email, target role, and uploaded PDF. As outlined in the Terms, your sensitive contact details (phone, email, street address) are redacted prior to streaming on public channels.</li>
+          <li><b>HookBunker Transaction Logs:</b> We temporarily store transactional payload metadata received from payment gateways (M-Pesa, Paystack, Payhero) on your behalf. Database records are secured in Supabase PostgreSQL tables with strict Row-Level Security (RLS) policies and pruned automatically according to your plan tier.</li>
+          <li><b>Billing Data:</b> Email addresses and transaction references collected during Paystack checkout are processed securely. Credit card details and M-Pesa PINs are handled directly by Paystack and are never stored by us.</li>
         </ul>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>3. How We Use and Share Information</h3>
-        <p>We use your information exclusively to deliver the requested Services, refine your CV drafts, host client websites, verify payments, route webhook payloads, and communicate project updates. We **never sell, share, rent, or trade your personal data, resume details, contact lists, developer transaction payloads, or media files** with third-party advertising or marketing agencies.</p>
+        <p>We use your information exclusively to deliver the requested Services, refine your CV drafts, conduct requested live teardowns, host client websites, verify payments, route webhook payloads, and communicate project updates. We **never sell, share, rent, or trade your personal data, resume details, contact lists, developer transaction payloads, or media files** with third-party advertising or marketing agencies.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>4. Data Protection and Retention</h3>
-        <p>We store financial transaction records for 7 years to comply with Kenyan tax accounting audits. Completed client CV drafts, SEO audit logs, and custom web source code are retained for 1 year to assist you with future revisions, after which they are permanently deleted. You can request the immediate deletion of your career files at any time by contacting us.</p>
+        <p>We store financial transaction records for 7 years to comply with Kenyan tax accounting audits. Completed client CV drafts and audit logs are retained for 1 year to assist you with future revisions, after which they are permanently deleted. You can request the immediate deletion of your career files at any time by contacting us.</p>
 
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Third-Party Services</h3>
-        <p>We utilize the following secure integrations to facilitate Site operations:</p>
-        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem', lineHeight: 2 }}>
-          <li><b>Paystack:</b> Payment gateway processing and subscription billing.</li>
-          <li><b>Safaricom M-Pesa & Payhero:</b> Ingesting transaction webhook notification callbacks.</li>
-          <li><b>Render:</b> Hosting infrastructure and request proxy routing.</li>
-          <li><b>Secure AI Parsing Engine:</b> Processing resume analysis requests securely via a private server-side connection (data is not used to train models).</li>
-        </ul>
-
-        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>6. Legal Compliance</h3>
-        <p>This Privacy Policy is designed to comply with the Data Protection Act of the Republic of Kenya. By using the Services, you consent to our practices as outlined herein.</p>
+        <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>5. Legal Compliance</h3>
+        <p>This Privacy Policy is designed to comply with the Data Protection Act of the Republic of Kenya. By using any of our Services, you consent to our privacy practices as outlined herein.</p>
       </div>
     </div>
   );
@@ -2306,7 +2310,8 @@ function App() {
   const navigateToPath = (path) => {
     if (path === 'services') window.location.hash = '#/';
     else if (path === 'ats') window.location.hash = '#/ats';
-    else if (path === 'home') window.location.hash = '#/photo-tools';
+    else if (path === 'hotseat' || path === 'resume-hotseat') window.location.hash = '#/products/resume-hotseat';
+    else if (path === 'home' || path === 'photo-tools' || path === 'tools' || path === 'video-tools' || path === 'photo-video') window.location.hash = '#/photo-tools';
     else if (path === 'batch') window.location.hash = '#/batch';
     else if (path === 'custom') window.location.hash = '#/custom';
     else if (path === 'terms') window.location.hash = '#/terms';
@@ -2358,9 +2363,21 @@ function App() {
         <ATSResumeVault onNavigate={navigateToPath} />
       )}
 
+      {/* ── Resume Hot Seat Landing (standalone page) ── */}
+      {currentPath === 'hotseat' && (
+        <ResumeHotSeatLanding onNavigate={(path, payload) => {
+          if (payload && path === 'ats') setAtsHandoffState(payload);
+          setCurrentPath(path);
+          window.location.hash = `#/${path}`;
+        }} />
+      )}
+
       {/* ── ATS Simulator (standalone page) ── */}
       {currentPath === 'ats' && (
-        <ATSSimulator onBack={() => window.location.hash = '#/'} />
+        <ATSSimulator
+          onBack={() => { setAtsHandoffState(null); window.location.hash = '#/'; }}
+          handoffPayload={atsHandoffState}
+        />
       )}
 
       {/* ── LinkedIn Recruiter POV Scorecard (standalone page) ── */}
@@ -2371,27 +2388,43 @@ function App() {
 
       {/* ── HookBunker Landing Page ── */}
       {currentPath === 'hookbunker-landing' && (
-        <HookBunkerLanding onNavigate={navigateToPath} />
+        <HookBunkerLanding onNavigate={(path, payload) => {
+          if (payload && path === 'ats') setAtsHandoffState(payload);
+          setCurrentPath(path);
+          window.location.hash = `#/${path}`;
+        }} />
       )}
 
       {/* ── HookBunker Docs Page ── */}
       {currentPath === 'hookbunker-docs' && (
-        <HookBunkerDocs onNavigate={navigateToPath} />
+        <HookBunkerDocs onNavigate={(path, payload) => {
+          if (payload && path === 'ats') setAtsHandoffState(payload);
+          setCurrentPath(path);
+          window.location.hash = `#/${path}`;
+        }} />
       )}
 
       {/* ── HookBunker Dashboard ── */}
       {currentPath === 'hookbunker-dashboard' && (
-        <HookBunkerDashboard onNavigate={navigateToPath} />
+        <HookBunkerDashboard onNavigate={(path, payload) => {
+          if (payload && path === 'ats') setAtsHandoffState(payload);
+          setCurrentPath(path);
+          window.location.hash = `#/${path}`;
+        }} />
       )}
 
       {/* ── Academy Auth View ── */}
       {currentPath === 'academy-auth' && (
-        <AcademyAuth onAuthSuccess={() => navigateToPath('academy-dashboard')} />
+        <AcademyAuth onAuthSuccess={() => { setCurrentPath('academy-dashboard'); window.location.hash = '#/academy/dashboard'; }} />
       )}
 
       {/* ── Academy Dashboard View ── */}
       {currentPath === 'academy-dashboard' && (
-        <AcademyDashboard onNavigate={navigateToPath} />
+        <AcademyDashboard onNavigate={(path, payload) => {
+          if (payload && path === 'ats') setAtsHandoffState(payload);
+          setCurrentPath(path);
+          window.location.hash = `#/${path}`;
+        }} />
       )}
 
       {/* ── Workshop Landing View ── */}

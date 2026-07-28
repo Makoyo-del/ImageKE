@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
 import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import './AcademyDashboard.css';
@@ -111,6 +111,19 @@ export default function AcademyDashboard({ onNavigate }) {
     optimized_companies: '',
     file: null
   });
+
+  // Mentor Hot Seat Live states
+  const [hotseatSubmissions, setHotseatSubmissions] = useState([]);
+  const [loadingHotseat, setLoadingHotseat] = useState(false);
+  const [hotseatError, setHotseatError] = useState('');
+  const [hotseatFilter, setHotseatFilter] = useState('all');
+
+  // Live Session Scheduler states
+  const [liveSessions, setLiveSessions] = useState([]);
+  const [liveSessionForm, setLiveSessionForm] = useState({ title: 'Resume Hot Seat Live', live_datetime: '', stream_link: '', max_spots: 3, notes: '', deactivate_others: true });
+  const [savingLiveSession, setSavingLiveSession] = useState(false);
+  const [liveSessionSuccess, setLiveSessionSuccess] = useState('');
+  const [liveSessionError, setLiveSessionError] = useState('');
 
   // Fetch Dashboard State from Backend
   const fetchDashboardData = useCallback(async (token) => {
@@ -515,6 +528,120 @@ export default function AcademyDashboard({ onNavigate }) {
     }
   };
 
+  // â”€â”€ Mentor Hot Seat Handlers â”€â”€
+  const fetchHotseatSubmissions = useCallback(async () => {
+    if (!session?.access_token) return;
+    setLoadingHotseat(true);
+    setHotseatError('');
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/submissions`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setHotseatSubmissions(data.submissions || []);
+      } else {
+        setHotseatError(data.error || 'Failed to fetch Hot Seat submissions.');
+      }
+    } catch (err) {
+      setHotseatError('Connection error fetching Hot Seat submissions.');
+    } finally {
+      setLoadingHotseat(false);
+    }
+  }, [session]);
+
+  // Fetch all live sessions (history)
+  const fetchLiveSessions = useCallback(async () => {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/live-sessions`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) setLiveSessions(data.sessions || []);
+    } catch (err) { console.warn('[Live Sessions Fetch]', err); }
+  }, [session]);
+
+  // Save a new live session + auto-schedule reminders
+  const handleSaveLiveSession = async (e) => {
+    e.preventDefault();
+    if (!session?.access_token) return;
+    setSavingLiveSession(true);
+    setLiveSessionSuccess('');
+    setLiveSessionError('');
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/live-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify(liveSessionForm),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLiveSessionSuccess(data.message || 'Live session saved. Reminders are being scheduled!');
+        setLiveSessionForm({ title: 'Resume Hot Seat Live', live_datetime: '', stream_link: '', max_spots: 3, notes: '', deactivate_others: true });
+        fetchLiveSessions();
+      } else {
+        setLiveSessionError(data.error || 'Failed to save live session.');
+      }
+    } catch (err) {
+      setLiveSessionError('Connection error. Please try again.');
+    } finally {
+      setSavingLiveSession(false);
+    }
+  };
+
+  // Toggle a live session active/inactive
+  const handleToggleLiveSession = async (sessionId, currentActive) => {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/live-session/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ is_active: !currentActive }),
+      });
+      if (res.ok) fetchLiveSessions();
+    } catch (err) { console.warn('[Toggle Live Session]', err); }
+  };
+
+  const handleAnalyzeHotseatLive = async (item) => {
+    if (!session?.access_token) return;
+    try {
+      await fetch(`${API_URL}/api/hotseat/submissions/${item.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ status: 'selected' })
+      });
+      setHotseatSubmissions(prev => prev.map(s => s.id === item.id ? { ...s, status: 'selected' } : s));
+    } catch (err) {
+      console.warn('[Hotseat update error]', err);
+    }
+
+    if (onNavigate) {
+      onNavigate('ats', {
+        resumeUrl: item.resume_url,
+        candidateName: item.full_name,
+        filename: item.file_name || 'Resume.pdf'
+      });
+    }
+  };
+
+  const handleUpdateHotseatStatus = async (id, status) => {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/hotseat/submissions/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setHotseatSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+      }
+    } catch (err) {
+      console.warn('[Hotseat update status catch]', err);
+    }
+  };
+
   // Student: Submit deliverable
   const handleSubmission = async (e) => {
     e.preventDefault();
@@ -888,7 +1015,7 @@ export default function AcademyDashboard({ onNavigate }) {
             </button>
 
             <button onClick={handleLogout} className="ac-logout-sub-btn" style={{ marginTop: '0.5rem' }}>
-              ← Sign Out
+              â† Sign Out
             </button>
           </div>
         </div>
@@ -961,7 +1088,7 @@ export default function AcademyDashboard({ onNavigate }) {
           </form>
 
           <button onClick={handleLogout} className="ac-logout-sub-btn">
-            ← Sign Out
+            â† Sign Out
           </button>
         </div>
       </div>
@@ -976,7 +1103,7 @@ export default function AcademyDashboard({ onNavigate }) {
 
   return (
     <div className={`ac-dashboard-layout ${state?.role === 'mentor' ? 'mentor-theme' : ''}`}>
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <header className="ac-dashboard-header">
         <div className="ac-header-brand">
           <h1 className="ac-brand-text">Career Academy</h1>
@@ -991,10 +1118,10 @@ export default function AcademyDashboard({ onNavigate }) {
         </div>
       </header>
 
-      {/* ── Main Container ── */}
+      {/* â”€â”€ Main Container â”€â”€ */}
       <div className="ac-dashboard-container">
         
-        {/* ── Tabs Navigation (Render-style) ── */}
+        {/* â”€â”€ Tabs Navigation (Render-style) â”€â”€ */}
         <div className="ac-tabs-bar">
           {state?.role === 'student' ? (
             <>
@@ -1061,11 +1188,18 @@ export default function AcademyDashboard({ onNavigate }) {
               >
                 Resume Vault
               </button>
+              <button 
+                className={`ac-tab-btn ${activeTab === 'hotseat' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('hotseat'); fetchHotseatSubmissions(); fetchLiveSessions(); }}
+                style={{ color: activeTab === 'hotseat' ? '#D61A3C' : 'inherit' }}
+              >
+                Hot Seat Live ðŸ”´ ({hotseatSubmissions.filter(s => s.status === 'pending').length})
+              </button>
             </>
           )}
         </div>
 
-        {/* ── Error alerts ── */}
+        {/* â”€â”€ Error alerts â”€â”€ */}
         {error && <div className="ac-page-alert error">{error}</div>}
         {pageMessage && (
           <div className={`ac-page-alert ${pageMessage.type}`} onClick={() => setPageMessage(null)}>
@@ -1073,7 +1207,7 @@ export default function AcademyDashboard({ onNavigate }) {
           </div>
         )}
 
-        {/* ── Tab Contents ── */}
+        {/* â”€â”€ Tab Contents â”€â”€ */}
         <div className="ac-tab-content">
           
           {/* ========================================== */}
@@ -1132,7 +1266,7 @@ export default function AcademyDashboard({ onNavigate }) {
                     className="ac-pay-btn"
                     style={{ display: 'inline-block', width: 'fit-content', textDecoration: 'none', padding: '10px 24px', borderRadius: '8px', fontSize: '0.9rem', marginTop: '0.25rem' }}
                   >
-                    Join Google Meet →
+                    Join Google Meet â†’
                   </a>
                 </div>
               )}
@@ -1206,7 +1340,7 @@ export default function AcademyDashboard({ onNavigate }) {
                             </div>
                           ) : (
                             <button onClick={() => setSubmittingModule(m.id)} className="ac-btn-submit-action">
-                              Submit Asset →
+                              Submit Asset â†’
                             </button>
                           )}
                         </div>
@@ -1422,7 +1556,7 @@ export default function AcademyDashboard({ onNavigate }) {
                                 <button
                                   onClick={() => {
                                     setMessagingStudent(student);
-                                    setMessageSubject(`Direct Mentorship Message — Career Academy`);
+                                    setMessageSubject(`Direct Mentorship Message â€” Career Academy`);
                                     setMessageContent('');
                                     setMessageError('');
                                     setMessageSuccess('');
@@ -1656,7 +1790,7 @@ export default function AcademyDashboard({ onNavigate }) {
                                   {reg.attendance_status === 'attended' ? 'Attended' : 'Mark Attended'}
                                 </button>
                               ) : (
-                                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
+                                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>â€”</span>
                               )}
                             </td>
                             <td style={{ padding: '12px' }}>
@@ -1683,7 +1817,7 @@ export default function AcademyDashboard({ onNavigate }) {
                                   )}
                                 </button>
                               ) : (
-                                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>—</span>
+                                <span style={{ color: '#64748b', fontSize: '0.85rem' }}>â€”</span>
                               )}
                             </td>
                           </tr>
@@ -1770,7 +1904,7 @@ export default function AcademyDashboard({ onNavigate }) {
                         <tr key={rider.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '12px', fontWeight: 500, color: '#0f172a' }}>{rider.name}</td>
                           <td style={{ padding: '12px', color: '#475569' }}>{rider.phone}</td>
-                          <td style={{ padding: '12px', color: '#475569' }}>{rider.email || '—'}</td>
+                          <td style={{ padding: '12px', color: '#475569' }}>{rider.email || 'â€”'}</td>
                           <td style={{ padding: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <div style={{ position: 'relative', display: 'inline-block' }}>
                               <input 
@@ -1817,12 +1951,13 @@ export default function AcademyDashboard({ onNavigate }) {
                           <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>No riders found.</td>
                         </tr>
                       )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                     </tbody>
+                   </table>
+                 </div>
+               </div>
             </div>
           )}
+
           {/* MENTOR RESUME VAULT TEMPLATE MANAGER TAB */}
           {state?.role === 'mentor' && activeTab === 'templates' && (
             <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -1943,6 +2078,151 @@ export default function AcademyDashboard({ onNavigate }) {
             </div>
           )}
 
+          {/* MENTOR HOT SEAT LIVE SUBMISSIONS TAB */}
+          {state?.role === 'mentor' && activeTab === 'hotseat' && (
+            <div className="ac-submissions-layout" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="ac-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem 2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    Hot Seat Live Submissions ðŸ”´
+                  </h2>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                    Select candidate resumes to launch directly into live ATS simulation during broadcasts.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
+                  {['all', 'pending', 'selected', 'reviewed'].map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setHotseatFilter(f)}
+                      style={{
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: hotseatFilter === f ? '#0f172a' : '#ffffff',
+                        color: hotseatFilter === f ? '#ffffff' : '#475569',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        textTransform: 'capitalize'
+                      }}
+                    >
+                      {f} ({f === 'all' ? hotseatSubmissions.length : hotseatSubmissions.filter(s => s.status === f).length})
+                    </button>
+                  ))}
+                  <button
+                    onClick={fetchHotseatSubmissions}
+                    style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}
+                  >
+                    ðŸ”„ Refresh
+                  </button>
+                </div>
+              </div>
+
+              {hotseatError && (
+                <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '0.875rem' }}>
+                  {hotseatError}
+                </div>
+              )}
+
+              <div className="ac-card" style={{ padding: '1.5rem 2rem' }}>
+                {loadingHotseat ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading Hot Seat submissions...</div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Candidate Name</th>
+                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Target Role</th>
+                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Email Address</th>
+                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Submitted At</th>
+                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Status</th>
+                          <th style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {hotseatSubmissions
+                          .filter(s => hotseatFilter === 'all' || s.status === hotseatFilter)
+                          .map(sub => (
+                            <tr key={sub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{sub.full_name}</td>
+                              <td style={{ padding: '12px', color: '#475569', fontSize: '0.875rem' }}>{sub.target_role || 'General Application'}</td>
+                              <td style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>{sub.email}</td>
+                              <td style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>
+                                {new Date(sub.created_at).toLocaleDateString()}
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  background: sub.status === 'selected' ? 'rgba(214, 26, 60, 0.12)' : sub.status === 'reviewed' ? '#f0fdf4' : '#f1f5f9',
+                                  color: sub.status === 'selected' ? '#D61A3C' : sub.status === 'reviewed' ? '#166534' : '#475569',
+                                  border: `1px solid ${sub.status === 'selected' ? '#D61A3C' : sub.status === 'reviewed' ? '#bbf7d0' : '#cbd5e1'}`
+                                }}>
+                                  {sub.status === 'selected' ? 'ðŸ”´ Live Selected' : sub.status === 'reviewed' ? 'âœ“ Reviewed' : 'Pending'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                  <button
+                                    onClick={() => handleAnalyzeHotseatLive(sub)}
+                                    style={{
+                                      background: '#D61A3C',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      padding: '6px 12px',
+                                      fontWeight: 700,
+                                      fontSize: '0.8rem',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    Analyze Live ðŸ”´
+                                  </button>
+                                  {sub.status !== 'reviewed' && (
+                                    <button
+                                      onClick={() => handleUpdateHotseatStatus(sub.id, 'reviewed')}
+                                      style={{
+                                        background: '#f8fafc',
+                                        color: '#475569',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        padding: '6px 10px',
+                                        fontWeight: 600,
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Mark Reviewed
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        {hotseatSubmissions.length === 0 && (
+                          <tr>
+                            <td colSpan="6" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+                              No Hot Seat submissions found yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TEMPLATE ADD/EDIT MODAL OVERLAY */}
           {showTemplateModal && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
@@ -1955,7 +2235,7 @@ export default function AcademyDashboard({ onNavigate }) {
                     onClick={() => setShowTemplateModal(false)}
                     style={{ background: 'none', border: 'none', fontSize: '1.25rem', color: '#64748b', cursor: 'pointer', marginLeft: 'auto' }}
                   >
-                    ×
+                    Ã—
                   </button>
                 </div>
 
@@ -2109,3 +2389,4 @@ export default function AcademyDashboard({ onNavigate }) {
     </div>
   );
 }
+

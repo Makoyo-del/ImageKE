@@ -4,6 +4,7 @@ import axios from 'axios';
 import { FileText, Search, User, Briefcase, GraduationCap, Wrench, Layout, BarChart, Lock, UploadCloud, CheckCircle } from 'lucide-react';
 import FeedbackToast from './components/reviews/FeedbackToast';
 import ReviewsSection from './components/reviews/ReviewsSection';
+import { maskPII, sanitizeRawTextForLiveStream } from './utils/maskPII';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -551,7 +552,7 @@ function StatusBadge({ found, warningText, okText = 'Detected' }) {
 }
 
 // ─── Main ATS Simulator Component ────────────────────────────────────────────
-export default function ATSSimulator({ onBack }) {
+export default function ATSSimulator({ onBack, handoffPayload }) {
   const [view, setView] = useState('upload'); // 'upload' | 'parsing' | 'results'
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -563,6 +564,39 @@ export default function ATSSimulator({ onBack }) {
   const [stepStatuses, setStepStatuses] = useState({}); // { stepId: 'running' | 'done' | 'error' }
   const [parseResult, setParseResult] = useState(null);
   const [parseError, setParseError] = useState('');
+
+  // Auto-fetch candidate resume into browser RAM when handed off from Mentor Dashboard
+  useEffect(() => {
+    if (handoffPayload?.resumeUrl) {
+      let isMounted = true;
+      (async () => {
+        try {
+          setView('parsing');
+          setUploadError('');
+          setParseError('');
+
+          const res = await fetch(handoffPayload.resumeUrl);
+          if (!res.ok) throw new Error('Could not retrieve candidate resume file from storage.');
+
+          const blob = await res.blob();
+          const filename = handoffPayload.filename || 'Candidate_Resume.pdf';
+          const fileObj = new File([blob], filename, { type: 'application/pdf' });
+
+          if (isMounted) {
+            setFile(fileObj);
+            handleStartParsing(fileObj);
+          }
+        } catch (err) {
+          if (isMounted) {
+            setView('upload');
+            setUploadError(err.message || 'Failed to auto-load resume file.');
+          }
+        }
+      })();
+
+      return () => { isMounted = false; };
+    }
+  }, [handoffPayload]);
 
   // Lead form state
   const [leadForm, setLeadForm] = useState({ name: '', email: '', linkedin: '', consent: false });
@@ -1844,11 +1878,11 @@ export default function ATSSimulator({ onBack }) {
                     <thead><tr><th>Field</th><th>Extracted Value</th><th>Status</th></tr></thead>
                     <tbody>
                       {[
-                        { field: 'Full Name', value: contact.name, found: !!contact.name },
-                        { field: 'Email Address', value: contact.email, found: !!contact.email },
-                        { field: 'Phone Number', value: contact.phone, found: !!contact.phone },
-                        { field: 'LinkedIn URL', value: contact.linkedin, found: !!contact.linkedin },
-                        { field: 'Location', value: contact.location, found: !!contact.location },
+                        { field: 'Full Name', value: maskPII(contact.name, 'name'), found: !!contact.name },
+                        { field: 'Email Address', value: maskPII(contact.email, 'email'), found: !!contact.email },
+                        { field: 'Phone Number', value: maskPII(contact.phone, 'phone'), found: !!contact.phone },
+                        { field: 'LinkedIn URL', value: maskPII(contact.linkedin, 'linkedin'), found: !!contact.linkedin },
+                        { field: 'Location', value: maskPII(contact.location, 'address'), found: !!contact.location },
                         { field: 'Years of Experience', value: yearsExp, found: yearsExp !== 'Not detected' },
                       ].map(row => (
                         <tr key={row.field}>
@@ -2052,10 +2086,10 @@ export default function ATSSimulator({ onBack }) {
               </p>
               <div style={{ background: 'var(--dm-navy-800)', borderRadius: '12px', padding: '1.5rem', fontFamily: "'Courier New', monospace", fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.8 }}>
                 <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.5rem' }}>// ATS Parsed Profile</div>
-                <div><span style={{ color: '#FB7185' }}>Name:</span> <span style={{ color: '#fff' }}>{contact.name || '[ERR] NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>Email:</span> <span style={{ color: '#fff' }}>{contact.email || '[ERR] NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>Phone:</span> <span style={{ color: '#fff' }}>{contact.phone || '[ERR] NOT DETECTED'}</span></div>
-                <div><span style={{ color: '#FB7185' }}>LinkedIn:</span> <span style={{ color: '#fff' }}>{contact.linkedin || '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Name:</span> <span style={{ color: '#fff' }}>{contact.name ? maskPII(contact.name, 'name') : '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Email:</span> <span style={{ color: '#fff' }}>{contact.email ? maskPII(contact.email, 'email') : '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>Phone:</span> <span style={{ color: '#fff' }}>{contact.phone ? maskPII(contact.phone, 'phone') : '[ERR] NOT DETECTED'}</span></div>
+                <div><span style={{ color: '#FB7185' }}>LinkedIn:</span> <span style={{ color: '#fff' }}>{contact.linkedin ? maskPII(contact.linkedin, 'linkedin') : '[ERR] NOT DETECTED'}</span></div>
                 <div><span style={{ color: '#FB7185' }}>Experience:</span> <span style={{ color: '#fff' }}>{yearsExp}</span></div>
                 <div><span style={{ color: '#FB7185' }}>Education:</span> <span style={{ color: '#fff' }}>{hasEducation ? '[OK] Detected' : '[ERR] NOT DETECTED'}</span></div>
                 <div><span style={{ color: '#FB7185' }}>Skills ({skills.length}):</span> <span style={{ color: '#fff' }}>{skills.slice(0, 8).join(', ') || '[ERR] NONE FOUND'}{skills.length > 8 ? ` +${skills.length - 8} more` : ''}</span></div>

@@ -9,6 +9,7 @@ import hookBunkerRouter from './hookbunker.js';
 import academyRouter from './academy.js';
 import workshopRouter, { sendConfirmationEmail } from './workshop.js';
 import riderRouter from './rider.js';
+import hotseatRouter from './hotseat.js';
 import { supabase } from './supabase.js';
 
 dotenv.config();
@@ -92,6 +93,9 @@ app.use('/api/workshop', workshopRouter);
 
 // ─── Rider Mount ──────────────────────────────────────────────────────────────
 app.use('/api/rider', riderRouter);
+
+// ─── Hot Seat Mount ───────────────────────────────────────────────────────────
+app.use('/api/hotseat', hotseatRouter);
 
 // ─── Health Check (for UptimeRobot / monitoring) ──────────────────────────────
 // Ping this endpoint every 5 minutes from UptimeRobot to:

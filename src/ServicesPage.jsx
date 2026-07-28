@@ -392,29 +392,32 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   {onNavigateToPath && (
                     <>
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('ats')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Brain size={14} className="text-blue-500" /> ATS Simulator
+                        <Brain size={14} style={{ color: '#2563EB' }} /> ATS Simulator
+                      </button>
+                      <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('hotseat')} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D61A3C', fontWeight: 700 }}>
+                        <Video size={14} style={{ color: '#D61A3C' }} /> The Resume Hot Seat 🔴
                       </button>
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('linkedin')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Briefcase size={14} style={{ color: '#D61A3C' }} /> LinkedIn Recruiter Scorecard
                       </button>
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('hookbunker')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Shield size={14} className="text-emerald-500" /> HookBunker Proxy
+                        <Shield size={14} style={{ color: '#10B981' }} /> HookBunker Proxy
                       </button>
 
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('academy')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <GraduationCap size={14} className="text-teal-500" /> Career Academy
+                        <GraduationCap size={14} style={{ color: '#0D9488' }} /> Career Academy
                       </button>
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('workshop')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Zap size={14} className="text-amber-500" /> AI Masterclass
+                        <Zap size={14} style={{ color: '#F59E0B' }} /> AI Masterclass
                       </button>
                       <button className="dm-nav-dropdown-item" onClick={() => onNavigateToPath('vault')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <FileText size={14} className="text-rose-500" /> Resume Vault
+                        <FileText size={14} style={{ color: '#F43F5E' }} /> Resume Vault
                       </button>
                     </>
                   )}
-                  {onNavigateToTools && (
-                    <button className="dm-nav-dropdown-item" onClick={onNavigateToTools} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Wrench size={14} className="text-slate-400" /> Photo &amp; Video Tools
+                  {(onNavigateToTools || onNavigateToPath) && (
+                    <button className="dm-nav-dropdown-item" onClick={() => onNavigateToTools ? onNavigateToTools() : onNavigateToPath('photo-tools')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Wrench size={14} style={{ color: '#6366F1' }} /> Photo &amp; Video Tools
                     </button>
                   )}
                 </div>
@@ -469,6 +472,9 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   <button className="dm-mobile-link" onClick={() => { onNavigateToPath('ats'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Brain size={16} /> ATS Simulator
                   </button>
+                  <button className="dm-mobile-link" onClick={() => { onNavigateToPath('hotseat'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D61A3C', fontWeight: 700 }}>
+                    <Video size={16} /> The Resume Hot Seat 🔴
+                  </button>
                   <button className="dm-mobile-link" onClick={() => { onNavigateToPath('linkedin'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D61A3C' }}>
                     <Briefcase size={16} /> LinkedIn Recruiter Scorecard
                   </button>
@@ -487,8 +493,8 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
                   </button>
                 </>
               )}
-              {onNavigateToTools && (
-                <button className="dm-mobile-link" onClick={() => { onNavigateToTools(); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {(onNavigateToTools || onNavigateToPath) && (
+                <button className="dm-mobile-link" onClick={() => { if (onNavigateToTools) onNavigateToTools(); else onNavigateToPath('photo-tools'); setMobileMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6366F1' }}>
                   <Wrench size={16} /> Photo &amp; Video Tools
                 </button>
               )}

@@ -1,0 +1,527 @@
+/* =============================================================================
+   SWISS EDITORIAL / BENTO BOX - RESUME HOT SEAT STYLES (DECOMPRESSED V2)
+   Tokens:
+   Background: #F4F4EE
+   Primary Text / Borders: #111111
+   Editorial Crimson Accent: #D61A3C
+   Muted Text: #555555
+   ============================================================================= */
+
+:root {
+  --hs-bg: #F4F4EE;
+  --hs-text: #111111;
+  --hs-border: #111111;
+  --hs-crimson: #D61A3C;
+  --hs-muted: #555555;
+  --hs-light-card: #FFFFFF;
+}
+
+.hotseat-root {
+  background-color: var(--hs-bg);
+  color: var(--hs-text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  padding-bottom: 6rem;
+}
+
+/* ── Global Container ── */
+.hotseat-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* ── Navigation Header ── */
+.hotseat-nav-bar {
+  border-bottom: 2px solid var(--hs-border);
+  background: var(--hs-bg);
+  padding: 1.25rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.hotseat-nav-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hotseat-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hotseat-nav-badge {
+  background: #111111;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  padding: 0.25rem 0.6rem;
+  text-transform: uppercase;
+}
+
+.hotseat-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.hotseat-nav-link {
+  color: var(--hs-text);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.hotseat-nav-link:hover {
+  color: var(--hs-crimson);
+}
+
+/* ── Typography Scale ── */
+.hotseat-font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.hotseat-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--hs-text);
+  display: inline-block;
+}
+
+.hotseat-heading-hero {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--hs-text);
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.hotseat-heading-hero em {
+  font-style: italic;
+  color: var(--hs-crimson);
+}
+
+.hotseat-subheadline {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--hs-muted);
+  line-height: 1.65;
+  max-width: 680px;
+}
+
+/* ── Vertical Sections (Decompressed Layout) ── */
+.hotseat-section {
+  padding: 5rem 0;
+  border-bottom: 2px solid var(--hs-border);
+}
+
+.hotseat-section-hero {
+  padding: 4rem 0 5rem;
+  border-bottom: 2px solid var(--hs-border);
+}
+
+.hotseat-section-value {
+  padding: 5rem 0;
+  border-bottom: 2px solid var(--hs-border);
+  background: #FFFFFF;
+}
+
+.hotseat-section-form {
+  padding: 5rem 0 6rem;
+  background: var(--hs-bg);
+  border-bottom: 2px solid var(--hs-border);
+}
+
+.hotseat-section-proof {
+  padding: 5rem 0 6rem;
+  background: #FFFFFF;
+  border-bottom: 2px solid var(--hs-border);
+}
+
+/* ── Bento Grid System ── */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  border-top: 2px solid var(--hs-border);
+  border-left: 2px solid var(--hs-border);
+}
+
+.bento-cell {
+  border-right: 2px solid var(--hs-border);
+  border-bottom: 2px solid var(--hs-border);
+  padding: 2.5rem;
+  position: relative;
+  background: var(--hs-bg);
+}
+
+/* ── Urgency Scarcity Badge ── */
+.urgency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(214, 26, 60, 0.08);
+  border: 1.5px solid var(--hs-crimson);
+  color: var(--hs-crimson);
+  padding: 0.5rem 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.urgency-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--hs-crimson);
+  border-radius: 50%;
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Crimson Call-To-Action Button ── */
+.hotseat-btn-crimson {
+  background-color: var(--hs-crimson);
+  color: #FFFFFF;
+  border: 2px solid var(--hs-border);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1.1rem 2.2rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+  box-shadow: 4px 4px 0px var(--hs-border);
+}
+
+.hotseat-btn-crimson:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--hs-border);
+}
+
+/* ── Form Inputs ── */
+.hotseat-input {
+  width: 100%;
+  background: #FFFFFF;
+  border: 2px solid var(--hs-border);
+  padding: 1rem 1.2rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--hs-text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.hotseat-input:focus {
+  border-color: var(--hs-crimson);
+  box-shadow: 0 0 0 2px rgba(214, 26, 60, 0.15);
+}
+
+.hotseat-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  color: var(--hs-text);
+}
+
+/* ── Hero 100% Emmanuel Proof Card ── */
+.hero-100-badge {
+  background: var(--hs-crimson);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid var(--hs-border);
+}
+
+.hero-proof-img-container {
+  position: relative;
+  border: 2px solid var(--hs-border);
+  overflow: hidden;
+  cursor: pointer;
+  background: #F8F8F4;
+  aspect-ratio: 16 / 10;
+}
+
+.hero-proof-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.hero-proof-img-container:hover .hero-proof-img {
+  transform: scale(1.03);
+}
+
+.hero-proof-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.hero-proof-img-container:hover .hero-proof-overlay {
+  opacity: 1;
+}
+
+/* ── Pain Agitation Cards ── */
+.pain-card {
+  border: 2px solid var(--hs-border);
+  padding: 2rem;
+  background: #FFFFFF;
+  box-shadow: 4px 4px 0px var(--hs-border);
+}
+
+.pain-card-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  margin-bottom: 0.75rem;
+  color: var(--hs-text);
+}
+
+/* ── Proof Gallery Grid ── */
+.proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.proof-card {
+  border: 2px solid var(--hs-border);
+  background: var(--hs-bg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 4px 4px 0px var(--hs-border);
+}
+
+.proof-card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 7px 7px 0px var(--hs-border);
+  background: #FFFFFF;
+}
+
+.proof-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.proof-card-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--hs-text);
+}
+
+.proof-card-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--hs-crimson);
+  letter-spacing: 0.1em;
+  margin-top: 0.2rem;
+}
+
+.proof-score-pill {
+  background: #111111;
+  color: #FFFFFF;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--hs-border);
+}
+
+.proof-score-pill.perfect {
+  background: var(--hs-crimson);
+}
+
+.proof-img-wrapper {
+  position: relative;
+  border: 1.5px solid var(--hs-border);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #E5E5DC;
+}
+
+.proof-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.proof-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.proof-card:hover .proof-img-overlay {
+  opacity: 1;
+}
+
+.proof-card-quote {
+  font-size: 0.825rem;
+  color: var(--hs-muted);
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── Lightbox Modal ── */
+.proof-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.proof-lightbox-content {
+  background: #F4F4EE;
+  border: 3px solid var(--hs-border);
+  box-shadow: 10px 10px 0px #000000;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.proof-lightbox-header {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 2px solid var(--hs-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #FFFFFF;
+}
+
+.proof-lightbox-close {
+  background: none;
+  border: 2px solid var(--hs-border);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.proof-lightbox-close:hover {
+  background: var(--hs-crimson);
+  color: #FFFFFF;
+  border-color: var(--hs-crimson);
+}
+
+.proof-lightbox-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  background: #111111;
+}
+
+.proof-lightbox-img {
+  max-width: 100%;
+  height: auto;
+  max-height: 65vh;
+  object-fit: contain;
+  border: 1px solid #333333;
+}
+
+.proof-lightbox-footer {
+  padding: 1.25rem 1.75rem;
+  border-top: 2px solid var(--hs-border);
+  background: #FFFFFF;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ── Mobile & Responsive Breakpoints ── */
+@media (max-width: 900px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento-cell {
+    grid-column: span 12 !important;
+    padding: 1.75rem;
+  }
+  .hotseat-nav-links {
+    display: none;
+  }
+  .proof-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .proof-grid {
+    grid-template-columns: 1fr;
+  }
+  .hotseat-heading-hero {
+    font-size: 2.3rem;
+  }
+  .hotseat-btn-crimson {
+    width: 100%;
+    padding: 1rem;
+  }
+  .proof-lightbox-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
