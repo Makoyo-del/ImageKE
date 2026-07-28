@@ -40,5 +40,27 @@ create policy "Authenticated users can update Hot Seat status"
   using (true);
 
 -- =============================================================================
--- NOTE: In Supabase Storage, ensure a public storage bucket named 'resumes' exists.
+-- STORAGE BUCKETS CONFIGURATION (ensure 'resumes' bucket exists with public access)
 -- =============================================================================
+
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('resumes', 'resumes', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Anyone can download resumes" ON storage.objects;
+CREATE POLICY "Anyone can download resumes" ON storage.objects
+  FOR SELECT USING (bucket_id = 'resumes');
+
+DROP POLICY IF EXISTS "Anyone can upload resumes" ON storage.objects;
+CREATE POLICY "Anyone can upload resumes" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'resumes');
+
+DROP POLICY IF EXISTS "Mentors can manage resumes" ON storage.objects;
+CREATE POLICY "Mentors can manage resumes" ON storage.objects
+  FOR ALL USING (
+    bucket_id = 'resumes' AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role = 'mentor'
+    )
+  );
