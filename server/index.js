@@ -893,7 +893,7 @@ const parserLimiter = rateLimit({
 });
 
 app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
-  const { text, fileBase64, fileType, extractedLinks } = req.body;
+  const { text, fileBase64, fileType, extractedLinks, hasImagesInDocx } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -902,7 +902,6 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
   }
 
   // ── Input size guard (prevents memory exhaustion under concurrent load) ─────
-  // base64-encoded PDF can be up to ~10MB; extracted DOCX text is typically under 1MB
   const MAX_BASE64_BYTES = 12 * 1024 * 1024; // 12MB of base64 characters
   const MAX_TEXT_BYTES = 500 * 1024;          // 500KB of plain text
   if (fileBase64 && fileBase64.length > MAX_BASE64_BYTES) {
@@ -940,6 +939,9 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
 
     } else if (text) {
       let promptText = `Here is the extracted text of the resume:\n\n${text}\n\nPlease analyze it using the instructions.`;
+      if (hasImagesInDocx) {
+        promptText += `\n\nCRITICAL CONTEXT — EMBEDDED MEDIA IN DOCUMENT:\nThe document package contains embedded image files (photos/graphics) in its media archive (word/media/). Set contact.hasPhoto to true.`;
+      }
       if (safeLinks.length > 0) {
         promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${safeLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
       }
@@ -948,12 +950,92 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Missing resume text or document.' });
     }
 
+    const responseSchema = {
+      type: "OBJECT",
+      properties: {
+        contact: {
+          type: "OBJECT",
+          properties: {
+            name: { type: "STRING", nullable: true },
+            email: { type: "STRING", nullable: true },
+            phone: { type: "STRING", nullable: true },
+            phoneNumbers: { type: "ARRAY", items: { type: "STRING" } },
+            linkedin: { type: "STRING", nullable: true },
+            location: { type: "STRING", nullable: true },
+            hasPhoto: { type: "BOOLEAN" },
+            hasDOB: { type: "BOOLEAN" },
+            hasMaritalStatus: { type: "BOOLEAN" },
+            hasIDNumber: { type: "BOOLEAN" },
+            hasFullAddress: { type: "BOOLEAN" }
+          },
+          required: ["hasPhoto", "hasDOB", "hasMaritalStatus", "hasIDNumber", "hasFullAddress"]
+        },
+        sections: {
+          type: "OBJECT",
+          properties: {
+            summary: { type: "BOOLEAN" },
+            experience: { type: "BOOLEAN" },
+            education: { type: "BOOLEAN" },
+            skills: { type: "BOOLEAN" },
+            certifications: { type: "BOOLEAN" },
+            languages: { type: "BOOLEAN" },
+            achievements: { type: "BOOLEAN" },
+            references: { type: "BOOLEAN" }
+          }
+        },
+        formatting: {
+          type: "OBJECT",
+          properties: {
+            isLikelyScanned: { type: "BOOLEAN" },
+            multiColumnRisk: { type: "BOOLEAN" },
+            hasTables: { type: "BOOLEAN" },
+            hasGraphics: { type: "BOOLEAN" },
+            hasTextBoxes: { type: "BOOLEAN" },
+            hasHeaderFooterContact: { type: "BOOLEAN" },
+            hasCreativeHeadings: { type: "BOOLEAN" },
+            hasSpecialBullets: { type: "BOOLEAN" },
+            pageCountEstimate: { type: "NUMBER" },
+            isOverTwoPages: { type: "BOOLEAN" },
+            hasColoredTextOrBg: { type: "BOOLEAN" }
+          }
+        },
+        skills: { type: "ARRAY", items: { type: "STRING" } },
+        jobTitles: { type: "ARRAY", items: { type: "STRING" } },
+        yearsExp: { type: "STRING" },
+        hasAchievements: { type: "BOOLEAN" },
+        experienceEvaluation: {
+          type: "OBJECT",
+          properties: {
+            usesStarMethod: { type: "BOOLEAN" },
+            hasMetrics: { type: "BOOLEAN" },
+            boldsFirstWords: { type: "BOOLEAN" },
+            boldsMetrics: { type: "BOOLEAN" },
+            grammarCapitalizationAndPeriods: { type: "BOOLEAN" },
+            rawAsterisksFound: { type: "BOOLEAN" }
+          }
+        },
+        recommendations: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              type: { type: "STRING" },
+              text: { type: "STRING" }
+            },
+            required: ["type", "text"]
+          }
+        }
+      },
+      required: ["contact", "sections", "formatting", "skills", "jobTitles", "experienceEvaluation", "recommendations"]
+    };
+
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
       {
         contents: [{ parts }],
         generationConfig: {
           responseMimeType: 'application/json',
+          responseSchema: responseSchema,
           temperature: 0.0
         }
       },

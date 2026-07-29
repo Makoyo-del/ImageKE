@@ -74,8 +74,20 @@ function parseResume(rawText) {
 
   // ── Contact Information ────────────────────────────────────────────────────
   const emailMatch = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-  // International phone: matches +CC (NN)NNN-NNNN variants, 7-15 digits (ITU E.164 range)
-  const phoneMatch = text.match(/(\+?[0-9]{1,4}[\s.\-]?\(?[0-9]{1,4}\)?[\s.\-]?[0-9]{3,5}[\s.\-]?[0-9]{3,5}(?:[\s.\-]?[0-9]{1,4})?)/);
+  
+  // International phone: global regex match, filter out false positives (< 7 digits), and deduplicate
+  const phoneGlobalRegex = /(\+?[0-9]{1,4}[\s.\-]?\(?[0-9]{1,4}\)?[\s.\-]?[0-9]{3,5}[\s.\-]?[0-9]{3,5}(?:[\s.\-]?[0-9]{1,4})?)/g;
+  const rawPhoneMatches = text.match(phoneGlobalRegex) || [];
+  const validPhoneNumbers = Array.from(new Set(
+    rawPhoneMatches
+      .map(p => p.trim())
+      .filter(p => {
+        const digitsOnly = p.replace(/\D/g, '');
+        return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+      })
+  ));
+  const primaryPhoneDisplay = validPhoneNumbers.length > 0 ? validPhoneNumbers.join(' | ') : null;
+
   // LinkedIn: match profile, company, school URLs
   const linkedinMatch = text.match(/linkedin\.com\/(?:in|company|school)\/[a-zA-Z0-9\-_%]+/i);
 
@@ -171,7 +183,8 @@ function parseResume(rawText) {
     contact: {
       name: detectedName,
       email: emailMatch ? emailMatch[0] : null,
-      phone: phoneMatch ? phoneMatch[0] : null,
+      phone: primaryPhoneDisplay,
+      phoneNumbers: validPhoneNumbers,
       linkedin: linkedinMatch ? linkedinMatch[0] : null,
       location: null,
       hasPhoto: false,
@@ -339,50 +352,66 @@ You must parse the document and return a JSON object with the following schema:
 function calculateScores(parsedData) {
   if (!parsedData) return { parsingAccuracy: 0, sectionScore: 0, keywordScore: 0, formattingScore: 0, overallScore: 0 };
 
-  // Parsing Accuracy (30%)
+  // DIRECTIVE 2: Parsing Accuracy (Base: 100, Floor: 0)
   let parsingAccuracy = 100;
   if (parsedData.formatting?.isLikelyScanned) parsingAccuracy -= 50;
-  if (!parsedData.contact?.name) parsingAccuracy -= 20;
-  if (!parsedData.contact?.email) parsingAccuracy -= 15;
-  if (!parsedData.contact?.phone) parsingAccuracy -= 15;
+  if (!parsedData.contact?.name) parsingAccuracy -= 25;
+  if (!parsedData.contact?.email) parsingAccuracy -= 25;
+  if (!parsedData.contact?.phone) parsingAccuracy -= 20;
   parsingAccuracy = Math.max(0, parsingAccuracy);
 
-  // Section Score (25%)
-  const sectionsObj = parsedData.sections || {};
-  const sectionKeys = Object.keys(sectionsObj);
-  const sectionsFound = sectionKeys.filter(k => sectionsObj[k]).length;
-  const sectionScore = sectionKeys.length ? Math.round((sectionsFound / sectionKeys.length) * 100) : 0;
+  // DIRECTIVE 3: Section Recognition Score (Base: 100, Floor: 0)
+  let sectionScore = 100;
+  if (!parsedData.sections?.experience) sectionScore -= 30;
+  const hasEducation = parsedData.hasEducation ?? (parsedData.sections?.education ?? false);
+  if (!hasEducation) sectionScore -= 20;
+  if (!parsedData.sections?.skills) sectionScore -= 15;
+  if (!parsedData.sections?.summary) sectionScore -= 15;
+  if (parsedData.formatting?.hasCreativeHeadings) sectionScore -= 15;
+  sectionScore = Math.max(0, sectionScore);
 
-  // Keyword Score (25%) — dynamic: 12 recognised skills = full marks (avoids domain bias)
-  const KEYWORD_TARGET = 12;
+  // DIRECTIVE 5: Hybrid Keyword & Impact Score (Max: 100)
   const skillsCount = Array.isArray(parsedData.skills) ? parsedData.skills.length : 0;
-  const keywordScore = Math.min(100, Math.round((skillsCount / KEYWORD_TARGET) * 100));
+  const skillsComponent = Math.min(50, Math.round((skillsCount / 12) * 50));
 
-  // Formatting Score (20%)
+  let impactPoints = 0;
+  const expEval = parsedData.experienceEvaluation || {};
+  const usesStarMethod = expEval.usesStarMethod ?? parsedData.hasAchievements ?? false;
+  const hasMetrics = expEval.hasMetrics ?? parsedData.hasAchievements ?? false;
+
+  if (usesStarMethod) impactPoints += 20;
+  if (hasMetrics) impactPoints += 20;
+  if (expEval.boldsFirstWords || expEval.boldsMetrics) impactPoints += 10;
+  const impactComponent = Math.min(50, impactPoints);
+
+  const keywordScore = Math.min(100, skillsComponent + impactComponent);
+
+  // DIRECTIVE 4: Formatting Safety & Risk Score (Base: 100, Floor: 0)
   let formattingDeductions = 0;
+  // Major structural ATS breakers (-25 each)
   if (parsedData.formatting?.multiColumnRisk) formattingDeductions += 25;
-  if (parsedData.contact?.hasPhoto) formattingDeductions += 35;
-  if (parsedData.formatting?.hasTables) formattingDeductions += 15;
-  if (parsedData.formatting?.hasGraphics) formattingDeductions += 15;
-  if (parsedData.formatting?.hasTextBoxes) formattingDeductions += 15;
-  if (parsedData.formatting?.hasColoredTextOrBg) formattingDeductions += 10;
-  if (parsedData.formatting?.hasSpecialBullets) formattingDeductions += 10;
-  if (parsedData.formatting?.hasCreativeHeadings) formattingDeductions += 10;
-  if (parsedData.formatting?.isOverTwoPages) formattingDeductions += 15;
-  
-  // Experience quality deductions
-  if (parsedData.experienceEvaluation && !parsedData.experienceEvaluation.usesStarMethod) formattingDeductions += 10;
-  if (parsedData.experienceEvaluation && !parsedData.experienceEvaluation.hasMetrics) formattingDeductions += 10;
-  if (parsedData.contact?.hasDOB) formattingDeductions += 20;
+  if (parsedData.formatting?.hasTables) formattingDeductions += 25;
+  if (parsedData.formatting?.hasTextBoxes) formattingDeductions += 25;
+  if (parsedData.formatting?.hasGraphics) formattingDeductions += 25;
+
+  // Privacy liabilities (-20 each)
+  const hasPhoto = parsedData.contact?.hasPhoto || parsedData.hasImagesInDocx || false;
+  if (hasPhoto) formattingDeductions += 20;
   if (parsedData.contact?.hasIDNumber) formattingDeductions += 20;
-  
+  if (parsedData.contact?.hasDOB) formattingDeductions += 20;
+
+  // Minor layout risks (-10 each)
+  if (parsedData.formatting?.hasSpecialBullets) formattingDeductions += 10;
+  if (parsedData.formatting?.hasColoredTextOrBg) formattingDeductions += 10;
+
   const formattingScore = Math.max(0, 100 - formattingDeductions);
 
+  // DIRECTIVE 1: Equalized Overall Score Weighting (25% each)
   const overallScore = Math.round(
-    parsingAccuracy * 0.30 +
+    parsingAccuracy * 0.25 +
     sectionScore * 0.25 +
     keywordScore * 0.25 +
-    formattingScore * 0.20
+    formattingScore * 0.25
   );
 
   return {
@@ -428,19 +457,31 @@ async function extractPdfText(file) {
 
 // ─── Extract text from DOCX ──────────────────────────────────────────────────
 async function extractDocxText(file) {
-  const arrayBuffer = await file.arrayBuffer();
-  const zip = await JSZip.loadAsync(arrayBuffer);
-  const xmlFile = zip.file('word/document.xml');
-  if (!xmlFile) throw new Error('Invalid DOCX file: word/document.xml not found.');
-  const xmlContent = await xmlFile.async('text');
-  // Remove XML tags, decode entities, collapse whitespace
-  return xmlContent
-    .replace(/<\/w:p>/gi, '\n')
-    .replace(/<\/w:r>/gi, ' ')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;/g, "'")
-    .replace(/[ \t]+/g, ' ')
-    .split('\n').map(l => l.trim()).join('\n');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    
+    // Check if any keys in the DOCX archive start with word/media/
+    const hasImagesInDocx = Object.keys(zip.files || {}).some(fileName => fileName.startsWith('word/media/'));
+
+    const xmlFile = zip.file('word/document.xml');
+    if (!xmlFile) throw new Error('Invalid DOCX file: word/document.xml not found.');
+    const xmlContent = await xmlFile.async('text');
+    
+    // Remove XML tags, decode entities, collapse whitespace
+    const textContent = xmlContent
+      .replace(/<\/w:p>/gi, '\n')
+      .replace(/<\/w:r>/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;/g, "'")
+      .replace(/[ \t]+/g, ' ')
+      .split('\n').map(l => l.trim()).join('\n');
+
+    return { text: textContent, hasImagesInDocx };
+  } catch (err) {
+    console.error('[DOCX extraction error]', err);
+    throw err;
+  }
 }
 
 // ─── Extract hyperlinks from PDF ──────────────────────────────────────────────
@@ -707,9 +748,13 @@ export default function ATSSimulator({ onBack, handoffPayload }) {
               promptText
             ]);
           } else {
-            const extractedText = await extractDocxText(file);
+            const docxRes = await extractDocxText(file);
+            const extractedText = docxRes.text;
             const extractedLinks = await extractDocxLinks(file);
             let promptText = `Here is the extracted text of the resume:\n\n${extractedText}\n\nPlease analyze it using the instructions.`;
+            if (docxRes.hasImagesInDocx) {
+              promptText += `\n\nCRITICAL CONTEXT — EMBEDDED MEDIA IN DOCUMENT:\nThe document package contains embedded image files (photos/graphics) in its media archive (word/media/). Set contact.hasPhoto to true.`;
+            }
             if (extractedLinks && extractedLinks.length > 0) {
               promptText += `\n\nCRITICAL CONTEXT — UNDERLYING HYPERLINKS:\nThe document parsing engine extracted the following interactive hyperlinks embedded in the document's metadata/relationships/code:\n${extractedLinks.map(l => `- ${l}`).join('\n')}\nUse this list to resolve any hidden/underlying links (e.g. if a link points to a LinkedIn profile, consider the LinkedIn URL detected even if only anchor text like 'LinkedIn' is visible in the resume body, and do not warn the user about it being missing or not formatted as a full URL).`;
             }
@@ -742,9 +787,11 @@ export default function ATSSimulator({ onBack, handoffPayload }) {
             extractedLinks = await extractPdfLinks(file);
             payload = { fileBase64: base64Data, fileType: 'pdf', extractedLinks };
           } else {
-            const extractedText = await extractDocxText(file);
+            const docxRes = await extractDocxText(file);
+            const extractedText = docxRes.text;
+            const hasImagesInDocx = docxRes.hasImagesInDocx;
             extractedLinks = await extractDocxLinks(file);
-            payload = { text: extractedText, fileType: 'docx', extractedLinks };
+            payload = { text: extractedText, fileType: 'docx', extractedLinks, hasImagesInDocx };
           }
 
           const response = await axios.post(`${API_URL}/api/analyze-resume`, payload);
@@ -765,9 +812,15 @@ export default function ATSSimulator({ onBack, handoffPayload }) {
       // Step 0: Extract text
       markStep('extract', 'running');
       let rawText = '';
+      let fileHasImages = false;
       if (!geminiPromise) {
-        if (ext === 'pdf') rawText = await extractPdfText(file);
-        else rawText = await extractDocxText(file);
+        if (ext === 'pdf') {
+          rawText = await extractPdfText(file);
+        } else {
+          const docxRes = await extractDocxText(file);
+          rawText = docxRes.text;
+          fileHasImages = docxRes.hasImagesInDocx;
+        }
       }
       await delay(600);
       markStep('extract', 'done');
@@ -793,14 +846,25 @@ export default function ATSSimulator({ onBack, handoffPayload }) {
         } catch (apiErr) {
           // If Gemini fails, extract text locally if we haven't already and run regex fallback
           if (!rawText) {
-            if (ext === 'pdf') rawText = await extractPdfText(file);
-            else rawText = await extractDocxText(file);
+            if (ext === 'pdf') {
+              rawText = await extractPdfText(file);
+            } else {
+              const docxRes = await extractDocxText(file);
+              rawText = docxRes.text;
+              fileHasImages = docxRes.hasImagesInDocx;
+            }
           }
           result = parseResume(rawText);
+          if (fileHasImages && result?.contact) {
+            result.contact.hasPhoto = true;
+          }
         }
       } else {
         await delay(1000);
         result = parseResume(rawText);
+        if (fileHasImages && result?.contact) {
+          result.contact.hasPhoto = true;
+        }
       }
 
       setParseResult(result);
@@ -1507,7 +1571,10 @@ export default function ATSSimulator({ onBack, handoffPayload }) {
   const recommendations = Array.isArray(parseResult?.recommendations) ? parseResult.recommendations : [];
   const formatCheck    = parseResult?.formatting     ?? {};
   const expEval        = parseResult?.experienceEvaluation ?? {};
-  const privacyCheck   = parseResult?.contact        ?? {};
+  const privacyCheck   = {
+    ...(parseResult?.contact ?? {}),
+    hasPhoto: (parseResult?.contact?.hasPhoto ?? false) || (parseResult?.hasImagesInDocx ?? false)
+  };
   const scores         = parseResult?.scores         ?? { parsingAccuracy: 0, sectionScore: 0, keywordScore: 0, formattingScore: 0, overallScore: 0 };
   const overallScore   = scores.overallScore         ?? 0;
   const hasAchievements = parseResult?.hasAchievements ?? false;
