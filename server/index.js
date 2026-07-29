@@ -25,6 +25,43 @@ axiosRetry(axios, {
   }
 });
 
+// ─── Gemini API Helper & Model Fallback Configuration ─────────────────────────
+const GEMINI_PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const GEMINI_FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+
+/**
+ * Call Gemini generateContent API with primary model and automatic fallback to compatible Flash models.
+ */
+async function callGeminiAPI(apiKey, payload, options = {}) {
+  const modelsToTry = [
+    GEMINI_PRIMARY_MODEL,
+    ...GEMINI_FALLBACK_MODELS.filter(m => m !== GEMINI_PRIMARY_MODEL)
+  ];
+
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await axios.post(url, payload, options);
+      return response;
+    } catch (err) {
+      lastError = err;
+      const errMsg = err.response?.data?.error?.message || err.message || '';
+      const status = err.response?.status;
+
+      if (status === 404 || status === 400 || errMsg.includes('no longer available') || errMsg.includes('not found') || errMsg.includes('models/')) {
+        console.warn(`[Gemini API Warning] Model '${model}' failed (${errMsg}). Trying next model in fallback list...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError;
+}
+
+
 // ─── Startup Validation ───────────────────────────────────────────────────────
 if (!process.env.PAYSTACK_SECRET_KEY) {
   console.warn('[WARN] PAYSTACK_SECRET_KEY is not set. Career package and Academy payments will fail.');
@@ -552,8 +589,8 @@ Objectives of the pitch:
 6. Provide plain text, well-structured paragraphs, without markdown lists or asterisks. Make it look like a personal note written by Duncan's team.`;
 
   try {
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
+    const response = await callGeminiAPI(
+      apiKey,
       {
         contents: [{ parts: [{ text: systemPrompt }] }],
         generationConfig: {
@@ -1047,8 +1084,8 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
       required: ["contact", "sections", "formatting", "skills", "jobTitles", "experienceEvaluation", "recommendations"]
     };
 
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    const response = await callGeminiAPI(
+      apiKey,
       {
         contents: [{ parts }],
         generationConfig: {
@@ -1427,8 +1464,8 @@ app.post('/api/linkedin/analyze', apiLimiter, async (req, res) => {
 
     const promptText = `TARGET JOB TITLE THE CANDIDATE IS PURSUING: ${targetTitle}\n\n${profileBlock}\n\nUsing your Boolean recruiter search engine lens, evaluate this candidate's LinkedIn search visibility for the target role. Return strictly valid JSON per your schema.`;
 
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
+    const response = await callGeminiAPI(
+      apiKey,
       {
         contents: [{
           parts: [

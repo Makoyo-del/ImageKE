@@ -649,7 +649,7 @@ export default function ATSSimulator({ onBack, handoffPayload }) {
         try {
           const genAI = new GoogleGenerativeAI(apiKey);
           const model = genAI.getGenerativeModel({
-            model: 'gemini-3.1-flash-lite',
+            model: import.meta.env.VITE_GEMINI_MODEL || 'gemini-3.6-flash',
             generationConfig: {
               responseMimeType: 'application/json',
               temperature: 0.0,
