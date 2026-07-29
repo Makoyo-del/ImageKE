@@ -808,10 +808,16 @@ RESUME QUALITY RULES:
      7. Interests
      8. Referees
    - Standard headings should be uppercase (e.g., PROFESSIONAL SUMMARY, CORE SKILLS, PROFESSIONAL EXPERIENCE, EDUCATION, CERTIFICATIONS, LANGUAGES, KEY ACHIEVEMENTS, REFEREES). Avoid creative headings like "My Journey".
+   - SECTION MAPPING RULE: Do not look only for exact matches. You must map synonymous or creative headers to the standard boolean fields.
+     * If you see 'Core Expertise', 'Areas of Excellence', or 'Competencies', set skills: true.
+     * If you see 'Employment History', 'Professional Background', or 'Career History', set experience: true.
+     * If you see 'Academic Background' or 'Qualifications', set education: true.
+     * If you see 'Executive Profile' or 'Bio', set summary: true.
 3. Contact Details & Privacy Rules:
    - Contact line should be separated by pipes (" | ").
    - No profile photo/headshot (this is a major ATS bias and parsing risk). IMPORTANT: Set "hasPhoto" to true ONLY if you explicitly see a visual photographic headshot/profile picture of a person's face. Do NOT flag text headers, blank margins, colored sidebar containers, decorative icons, avatars, or logos as a photo. If not 100% certain, assume false.
    - No personal identifiers: Date of birth (DOB), age, gender, marital status, National ID, or passport numbers (these are privacy and bias risks!). Only set "hasDOB", "hasMaritalStatus", and "hasIDNumber" to true if you see explicit text stating these.
+   - STRICT ID RULE: You are strictly forbidden from classifying phone numbers, zip codes, IP addresses, or dates as a National ID or Passport number. You may ONLY set hasIDNumber: true if the digits are explicitly preceded by a clear label such as 'ID:', 'Passport:', 'SSN:', 'National ID', or 'Identity Number'. If there is no explicit label, you must return false.
    - No full physical address. City and Country is acceptable (e.g., "London, UK", "Nairobi, Kenya", "Lagos, Nigeria", "New York, USA", "Dubai, UAE"). Street-level address details are not acceptable.
    - Include LinkedIn URL if provided. LinkedIn URLs may appear as linkedin.com/in/name (personal profile), linkedin.com/company/name, or linkedin.com/school/name. A missing LinkedIn URL is NOT a critical or warning issue — set it to null and do not penalise the candidate. LinkedIn is not universally used across all industries and regions.
 4. Content & STAR Method (Critical):
@@ -1030,7 +1036,7 @@ app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
     };
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         contents: [{ parts }],
         generationConfig: {
