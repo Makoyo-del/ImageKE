@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import crypto from 'crypto';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -13,6 +14,16 @@ import hotseatRouter from './hotseat.js';
 import { supabase } from './supabase.js';
 
 dotenv.config();
+
+// Configure axios-retry for Gemini API calls (retries 3x with exponential backoff on 429 & 5xx)
+axiosRetry(axios, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+  retryCondition: (error) => {
+    const status = error.response?.status;
+    return axiosRetry.isNetworkOrIdempotentRequestError(error) || status === 429 || (status >= 500 && status < 600);
+  }
+});
 
 // ─── Startup Validation ───────────────────────────────────────────────────────
 if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -891,11 +902,12 @@ You must parse the document and return a JSON object with the following schema:
 `;
 
 const parserLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30,                  // 30 parses per 15 minutes
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 100,               // Exactly 100 requests per minute per IP
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many resume reviews. Please wait a few minutes and try again.' },
+  statusCode: 429,
+  message: { error: 'Too many requests. Rate limit is 100 requests per minute. Please try again after 1 minute.' },
 });
 
 app.post('/api/analyze-resume', parserLimiter, async (req, res) => {
