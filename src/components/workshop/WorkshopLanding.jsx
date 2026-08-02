@@ -8,29 +8,29 @@ const WHATSAPP_GROUP = 'https://chat.whatsapp.com/HhehXfi5reR4RzXOHh3rdo';
 const MAX_SEATS = 100;
 
 const CURRICULUM = [
-  { color: 'blue',   title: 'Build one Master CV',        desc: 'That never needs to be rewritten from scratch.' },
-  { color: 'green',  title: 'Create targeted CV versions', desc: 'Turn that one CV into multiple versions for different jobs in minutes.' },
-  { color: 'purple', title: 'Use ChatGPT properly',        desc: 'Write prompts that deliver high-quality results instead of guessing.' },
-  { color: 'gold',   title: 'Match the job description',   desc: 'Make every application closely align with what recruiters are scanning for.' },
-  { color: 'blue',   title: 'Generate cover letters',      desc: 'Create tailored, professional cover letters in minutes.' },
-  { color: 'green',  title: 'Avoid application filters',   desc: 'Understand the critical mistakes that cause recruiters to skip your CV.' },
+  { color: 'blue', title: 'Build one Master CV', desc: 'That never needs to be rewritten from scratch.' },
+  { color: 'green', title: 'Create targeted CV versions', desc: 'Turn that one CV into multiple versions for different jobs in minutes.' },
+  { color: 'purple', title: 'Use ChatGPT properly', desc: 'Write prompts that deliver high-quality results instead of guessing.' },
+  { color: 'gold', title: 'Match the job description', desc: 'Make every application closely align with what recruiters are scanning for.' },
+  { color: 'blue', title: 'Generate cover letters', desc: 'Create tailored, professional cover letters in minutes.' },
+  { color: 'green', title: 'Avoid application filters', desc: 'Understand the critical mistakes that cause recruiters to skip your CV.' },
 ];
 
 const TESTIMONIALS = [
-  { name: 'Isabella Makori',        initial: 'IM', text: 'Working with Duncan was a wonderful experience. He is a team player. Highly recommended.' },
-  { name: 'Philemon Kirui',         initial: 'PK', text: 'Duncan has all the qualities of a team player and can perform well as a team leader. He has an eye for detail and is well motivated.' },
-  { name: 'Achieri Maxmillah',      initial: 'AM', text: 'He is tech-savvy, always demonstrated professionalism and his ability to adapt to new challenges made him a valuable and dependable contributor.' },
-  { name: 'Damaris Nyagaka',        initial: 'DN', text: 'Makoyo is a team player, energetic and has great potential to Transform lives. Recommended!!' },
-  { name: 'Rabin Ogesi',            initial: 'RO', text: 'Duncan Makoyo is a team player, eager to learn, highly productive, reliable at all times. Highly recommended.' },
-  { name: 'Collins Kiprotich Koech',initial: 'CK', text: 'Duncan is a genuine and competent leader.' },
+  { name: 'Isabella Makori', initial: 'IM', text: 'Working with Duncan was a wonderful experience. He is a team player. Highly recommended.' },
+  { name: 'Philemon Kirui', initial: 'PK', text: 'Duncan has all the qualities of a team player and can perform well as a team leader. He has an eye for detail and is well motivated.' },
+  { name: 'Achieri Maxmillah', initial: 'AM', text: 'He is tech-savvy, always demonstrated professionalism and his ability to adapt to new challenges made him a valuable and dependable contributor.' },
+  { name: 'Damaris Nyagaka', initial: 'DN', text: 'Makoyo is a team player, energetic and has great potential to Transform lives. Recommended!!' },
+  { name: 'Rabin Ogesi', initial: 'RO', text: 'Duncan Makoyo is a team player, eager to learn, highly productive, reliable at all times. Highly recommended.' },
+  { name: 'Collins Kiprotich Koech', initial: 'CK', text: 'Duncan is a genuine and competent leader.' },
 ];
 
 // UI/UX Pro Max: "What vs How" upsell — Trust & Authority pattern
 const WHAT_VS_HOW = [
-  { what: 'What ATS algorithms actually scan for',              how: 'Duncan maps every keyword to your specific role and sector' },
-  { what: 'Why your current CV is being filtered out',          how: 'We rebuild your CV from scratch against the exact job spec' },
-  { what: 'How to write AI prompts for cover letters',          how: 'We draft 3 tailored cover letters ready to send immediately' },
-  { what: 'The Master CV framework that works for any role',    how: 'Your optimized Master CV delivered in 48 hours, guaranteed' },
+  { what: 'What ATS algorithms actually scan for', how: 'Duncan maps every keyword to your specific role and sector' },
+  { what: 'Why your current CV is being filtered out', how: 'We rebuild your CV from scratch against the exact job spec' },
+  { what: 'How to write AI prompts for cover letters', how: 'We draft 3 tailored cover letters ready to send immediately' },
+  { what: 'The Master CV framework that works for any role', how: 'Your optimized Master CV delivered in 48 hours, guaranteed' },
 ];
 
 function useCountdown(targetDate) {
@@ -39,10 +39,10 @@ function useCountdown(targetDate) {
     const tick = () => {
       const diff = Math.max(0, targetDate - Date.now());
       setTimeLeft({
-        days:  Math.floor(diff / 86400000),
+        days: Math.floor(diff / 86400000),
         hours: Math.floor((diff % 86400000) / 3600000),
-        mins:  Math.floor((diff % 3600000) / 60000),
-        secs:  Math.floor((diff % 60000) / 1000),
+        mins: Math.floor((diff % 3600000) / 60000),
+        secs: Math.floor((diff % 60000) / 1000),
       });
     };
     tick();
@@ -55,8 +55,8 @@ function useCountdown(targetDate) {
 export default function WorkshopLanding({ onNavigate }) {
   // Seat state
   const [totalRegistered, setTotalRegistered] = useState(0);
-  const [isFull, setIsFull]                   = useState(false);
-  const [loadingSeats, setLoadingSeats]       = useState(true);
+  const [isFull, setIsFull] = useState(false);
+  const [loadingSeats, setLoadingSeats] = useState(true);
 
   // Dynamic workshop configurations from backend
   const [maxSeats, setMaxSeats] = useState(100);
@@ -67,29 +67,29 @@ export default function WorkshopLanding({ onNavigate }) {
   const [sessionDuration, setSessionDuration] = useState('2 Hours');
 
   // Modal / form state
-  const [showModal, setShowModal]         = useState(false);
-  const [modalState, setModalState]       = useState('form'); // 'form' | 'waitlist' | 'success' | 'already'
-  const [fullName, setFullName]           = useState('');
-  const [email, setEmail]                 = useState('');
-  const [phone, setPhone]                 = useState('');
-  const [profession, setProfession]       = useState('');
-  const [challenge, setChallenge]         = useState('');
-  const [isSubmitting, setIsSubmitting]   = useState(false);
-  const [errorMsg, setErrorMsg]           = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [modalState, setModalState] = useState('form'); // 'form' | 'waitlist' | 'success' | 'already'
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [profession, setProfession] = useState('');
+  const [challenge, setChallenge] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Waitlist form state
-  const [wlName, setWlName]               = useState('');
-  const [wlEmail, setWlEmail]             = useState('');
-  const [wlPhone, setWlPhone]             = useState('');
-  const [wlSubmitting, setWlSubmitting]   = useState(false);
-  const [wlSuccess, setWlSuccess]         = useState(false);
-  const [wlError, setWlError]             = useState('');
+  const [wlName, setWlName] = useState('');
+  const [wlEmail, setWlEmail] = useState('');
+  const [wlPhone, setWlPhone] = useState('');
+  const [wlSubmitting, setWlSubmitting] = useState(false);
+  const [wlSuccess, setWlSuccess] = useState(false);
+  const [wlError, setWlError] = useState('');
 
-  const countdown  = useCountdown(workshopDate);
+  const countdown = useCountdown(workshopDate);
   const pricingRef = useRef(null);
-  const pad        = (n) => String(n).padStart(2, '0');
-  const remaining  = Math.max(0, maxSeats - totalRegistered);
-  const pctFull    = Math.min(100, Math.round((totalRegistered / maxSeats) * 100));
+  const pad = (n) => String(n).padStart(2, '0');
+  const remaining = Math.max(0, maxSeats - totalRegistered);
+  const pctFull = Math.min(100, Math.round((totalRegistered / maxSeats) * 100));
 
   // ── Fetch seat count & configs on mount (UI/UX Pro Max: immediate data, no jank)
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function WorkshopLanding({ onNavigate }) {
           if (d.sessionDuration) setSessionDuration(d.sessionDuration);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 2. Fetch registration count
     fetch(`${API_URL}/api/workshop/registration-count`)
@@ -117,7 +117,7 @@ export default function WorkshopLanding({ onNavigate }) {
           setIsFull(d.isFull || false);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingSeats(false));
   }, []);
 
@@ -134,9 +134,9 @@ export default function WorkshopLanding({ onNavigate }) {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!fullName.trim())                                         return setErrorMsg('Please enter your full name.');
+    if (!fullName.trim()) return setErrorMsg('Please enter your full name.');
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setErrorMsg('Please enter a valid email address.');
-    if (!phone.trim() || phone.trim().length < 8)                 return setErrorMsg('Please enter a valid phone number.');
+    if (!phone.trim() || phone.trim().length < 8) return setErrorMsg('Please enter a valid phone number.');
 
     setIsSubmitting(true);
     try {
@@ -144,11 +144,11 @@ export default function WorkshopLanding({ onNavigate }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name:           fullName.trim(),
-          email:               email.trim().toLowerCase(),
-          phone:               phone.trim(),
-          current_profession:  profession.trim(),
-          biggest_challenge:   challenge.trim(),
+          full_name: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          current_profession: profession.trim(),
+          biggest_challenge: challenge.trim(),
         }),
       });
       const data = await res.json();
@@ -185,7 +185,7 @@ export default function WorkshopLanding({ onNavigate }) {
   const handleWaitlist = async (e) => {
     e.preventDefault();
     setWlError('');
-    if (!wlName.trim())                                             return setWlError('Please enter your name.');
+    if (!wlName.trim()) return setWlError('Please enter your name.');
     if (!wlEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(wlEmail)) return setWlError('Please enter a valid email address.');
     setWlSubmitting(true);
     try {
@@ -264,7 +264,7 @@ export default function WorkshopLanding({ onNavigate }) {
               {[
                 { icon: <Users size={14} />, label: 'Live AI Demonstration' },
                 { icon: <Clock size={14} />, label: `${sessionDuration} Live Session` },
-                { icon: <Star  size={14} />, label: 'Free Prompt Library Included' },
+                { icon: <Star size={14} />, label: 'Free Prompt Library Included' },
                 { icon: <CheckCircle2 size={14} />, label: 'Reusable ATS CV Template' },
               ].map((b, i) => (
                 <div key={i} className="ws-hero-badge-item">
@@ -352,11 +352,11 @@ export default function WorkshopLanding({ onNavigate }) {
           <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '2rem', fontWeight: 800, textAlign: 'center', marginBottom: '2.5rem', letterSpacing: '-0.02em' }}>You Keep Everything</h2>
           <div className="ws-trust-grid">
             {[
-              { icon: '[lib]', title: 'AI Prompt Library',      desc: 'Copy-and-paste CV and cover letter workflow' },
-              { icon: '[doc]', title: 'ATS CV Template',        desc: 'Recruiter-approved, parser-safe template' },
-              { icon: '[crop]', title: 'Master CV Framework',    desc: 'Structured layout that adapts to any industry' },
-              { icon: '[target]', title: 'Job Matching Prompts',   desc: 'Extract critical keywords in seconds' },
-              { icon: '[email]', title: 'Cover Letter Prompts',   desc: 'Tailor custom cover letters instantly' },
+              { icon: '[lib]', title: 'AI Prompt Library', desc: 'Copy-and-paste CV and cover letter workflow' },
+              { icon: '[doc]', title: 'ATS CV Template', desc: 'Recruiter-approved, parser-safe template' },
+              { icon: '[crop]', title: 'Master CV Framework', desc: 'Structured layout that adapts to any industry' },
+              { icon: '[target]', title: 'Job Matching Prompts', desc: 'Extract critical keywords in seconds' },
+              { icon: '[email]', title: 'Cover Letter Prompts', desc: 'Tailor custom cover letters instantly' },
             ].map((item, i) => (
               <div key={i} className="ws-trust-card">
                 <div className="ws-trust-icon" aria-hidden="true">{item.icon}</div>
@@ -641,10 +641,10 @@ export default function WorkshopLanding({ onNavigate }) {
           <div className="ws-modal-card">
             <div className="ws-modal-header">
               <h3 id="ws-modal-title">
-                {modalState === 'form'      && 'Claim Your Free Seat'}
-                {modalState === 'waitlist'  && 'Join the Waitlist'}
-                {modalState === 'success'   && "You're Registered! [OK]"}
-                {modalState === 'already'   && 'Already Registered'}
+                {modalState === 'form' && 'Claim Your Free Seat'}
+                {modalState === 'waitlist' && 'Join the Waitlist'}
+                {modalState === 'success' && "You're Registered! [OK]"}
+                {modalState === 'already' && 'Already Registered'}
               </h3>
               <button className="ws-modal-close" onClick={() => setShowModal(false)} aria-label="Close modal">
                 <X size={18} />

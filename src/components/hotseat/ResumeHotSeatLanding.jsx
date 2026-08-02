@@ -358,7 +358,13 @@ export function ResumeHotSeatLanding({ onNavigate }) {
                     ))}
                   </div>
                   <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#888', fontWeight: 600 }}>
-                    {new Date(liveSession.live_datetime).toLocaleString('en-KE', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' })} EAT
+                    {(() => {
+                      const d = new Date(liveSession.live_datetime);
+                      if (isNaN(d.getTime())) return '';
+                      const formatted = d.toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+                      const tz = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(d).find(p => p.type === 'timeZoneName')?.value || '';
+                      return `${formatted} ${tz}`.trim();
+                    })()}
                   </div>
                 </div>
               )}

@@ -419,12 +419,21 @@ router.get('/live-session', async (req, res) => {
   } catch (err) { return res.json({ success: true, session: null }); }
 });
 
+function parseLiveDatetime(dtStr) {
+  if (typeof dtStr !== 'string') return new Date(dtStr);
+  const hasTimezone = dtStr.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(dtStr);
+  if (!hasTimezone) {
+    return new Date(`${dtStr}+03:00`);
+  }
+  return new Date(dtStr);
+}
+
 // 6. Create New Live Session (mentor only — auto-schedules reminders)
 router.post('/live-session', authenticateMentor, async (req, res) => {
   try {
     const { title, live_datetime, stream_link, max_spots, notes, deactivate_others } = req.body;
     if (!live_datetime) return res.status(400).json({ error: 'live_datetime is required.' });
-    const liveDate = new Date(live_datetime);
+    const liveDate = parseLiveDatetime(live_datetime);
     if (isNaN(liveDate.getTime())) return res.status(400).json({ error: 'live_datetime must be a valid date/time.' });
 
     if (deactivate_others) {
@@ -463,7 +472,7 @@ router.patch('/live-session/:id', authenticateMentor, async (req, res) => {
     if (max_spots !== undefined)   payload.max_spots   = parseInt(max_spots, 10) || 3;
     if (is_active !== undefined)   payload.is_active   = Boolean(is_active);
     if (live_datetime !== undefined) {
-      const d = new Date(live_datetime);
+      const d = parseLiveDatetime(live_datetime);
       if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid live_datetime.' });
       payload.live_datetime = d.toISOString();
     }
@@ -480,6 +489,17 @@ router.get('/live-sessions', authenticateMentor, async (req, res) => {
     const { data, error } = await supabase.from('hotseat_live_sessions').select('*').order('live_datetime', { ascending: false });
     if (error) return res.status(500).json({ error: 'Failed to fetch sessions.' });
     return res.json({ success: true, sessions: data || [] });
+  } catch (err) { return res.status(500).json({ error: 'Internal server error.' }); }
+});
+
+// 9. Delete Live Session (mentor only)
+router.delete('/live-session/:id', authenticateMentor, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidUUID(id)) return res.status(400).json({ error: 'Invalid session ID.' });
+    const { data, error } = await supabase.from('hotseat_live_sessions').delete().eq('id', id).select();
+    if (error) { console.error('[HotSeat Session Delete Error]', error.message); return res.status(500).json({ error: 'Failed to delete session.' }); }
+    return res.json({ success: true, message: 'Live session deleted successfully.', session: data?.[0] });
   } catch (err) { return res.status(500).json({ error: 'Internal server error.' }); }
 });
 

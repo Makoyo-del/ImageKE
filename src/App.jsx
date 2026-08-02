@@ -90,10 +90,10 @@ const getPathFromHash = () => {
   const hash = window.location.hash;
   const searchParams = new URLSearchParams(window.location.search);
   const fullUrl = window.location.href;
-  
+
   // Intercept Supabase Auth redirects (Implicit Grant Hash or PKCE/error Search Query)
   if (
-    hash.includes('access_token=') || 
+    hash.includes('access_token=') ||
     hash.includes('error=') ||
     searchParams.has('code') ||
     searchParams.has('error') ||
@@ -107,9 +107,9 @@ const getPathFromHash = () => {
 
   if (hash === '#/ats' || hash === '#/ats-simulator') return 'ats';
   if (
-    hash === '#/products/resume-hotseat' || 
-    hash === '#/hotseat' || 
-    hash === '#/resume-hotseat' || 
+    hash === '#/products/resume-hotseat' ||
+    hash === '#/hotseat' ||
+    hash === '#/resume-hotseat' ||
     hash === '#/hot-seat' ||
     hash === '#reserve-spot' ||
     hash.startsWith('#/products/resume-hotseat') ||
@@ -127,7 +127,7 @@ const getPathFromHash = () => {
   if (hash === '#/video-tools' || hash === '#/video-editor' || hash === '#/videos') return 'home';
   if (hash === '#/home' || hash === '#/tools') return 'home';
   if (hash === '#/vault' || hash === '#/ats-vault') return 'vault';
-  
+
   // Academy paths
   if (hash === '#/academy') return 'academy-auth';
   if (hash === '#/academy/dashboard') return 'academy-dashboard';
@@ -146,7 +146,7 @@ const getPathFromHash = () => {
   if (hash === '#/hookbunker/dashboard') return 'hookbunker-dashboard';
   if (hash === '#/hookbunker/terms') return 'terms';
   if (hash === '#/hookbunker/privacy') return 'privacy';
-  
+
   return 'services';
 };
 
@@ -194,14 +194,14 @@ function App() {
   const [ffmpegLoading, setFfmpegLoading] = useState(false);
   const [ffmpegLoadProgress, setFfmpegLoadProgress] = useState(0);
   const [ffmpegProcessProgress, setFfmpegProcessProgress] = useState(0);
-  
+
   // Aspect Ratio settings
   const [targetAspect, setTargetAspect] = useState('9:16');
   const [cropOffsetPercent, setCropOffsetPercent] = useState(50); // slider 0 to 100 for horizontal focus
-  
+
   // Compressor settings
   const [targetCompressMB, setTargetCompressMB] = useState(16); // Default 16MB for WhatsApp
-  
+
   // Watermark settings
   const [watermarkType, setWatermarkType] = useState('text'); // 'text' | 'image'
   const [watermarkText, setWatermarkText] = useState('My Brand');
@@ -214,7 +214,7 @@ function App() {
   const [frameExtractFpsRate, setFrameExtractFpsRate] = useState(2); // every 2 seconds
   const [frameExtractCount, setFrameExtractCount] = useState(10); // 10 frames total
   const [extractedFrames, setExtractedFrames] = useState([]); // Array of { name, timestamp, blob }
-  
+
   // Output states
   const [processedVideoBlob, setProcessedVideoBlob] = useState(null);
   const [processedVideoUrl, setProcessedVideoUrl] = useState('');
@@ -224,7 +224,7 @@ function App() {
   useEffect(() => {
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
-    
+
     // Check for custom Academy verify_token
     const verifyToken = searchParams.get('verify_token');
     if (verifyToken) {
@@ -250,7 +250,7 @@ function App() {
       })();
       return;
     }
-    
+
     let isAuthRedirect = false;
     let errorMsg = null;
     let authType = null;
@@ -654,7 +654,7 @@ function App() {
       <section className="hero" style={{ background: 'linear-gradient(135deg, #0D1B4D 0%, #1238E8 50%, #2B5BFF 100%)', borderBottom: 'none', color: '#ffffff', padding: '5rem 1.25rem 4rem' }}>
         <div className="container">
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', padding: '6px 16px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1.25rem', color: '#E0E7FF' }}>Kenya's #1 Photo Fixer</div>
-          <h1 style={{ color: '#ffffff', marginBottom: '1.25rem', fontSize: 'clamp(2rem, 5vw, 3rem)', lineHeight: 1.2 }}>Your Photo Was Rejected.<br/>Fix It in 20 Seconds.</h1>
+          <h1 style={{ color: '#ffffff', marginBottom: '1.25rem', fontSize: 'clamp(2rem, 5vw, 3rem)', lineHeight: 1.2 }}>Your Photo Was Rejected.<br />Fix It in 20 Seconds.</h1>
           <p style={{ fontSize: '1.1rem', maxWidth: '620px', margin: '0 auto', lineHeight: 1.75, color: 'rgba(255,255,255,0.85)' }}>
             eCitizen says your file is too large. The visa portal says the wrong dimensions. HELB bounces it back. You've been going back and forth for hours.
             <br /><br />
@@ -820,7 +820,7 @@ function App() {
   const renderBatchPage = () => {
     const isAnyCompressing = batchFiles.some(f => f.status === 'compressing');
     const successCount = batchFiles.filter(f => f.status === 'success').length;
-    
+
     return (
       <div className="container" style={{ paddingTop: '3rem', paddingBottom: '4rem' }}>
         {/* Back Button */}
@@ -861,7 +861,7 @@ function App() {
           gap: '2rem',
           alignItems: 'start',
         }} className="batch-layout">
-          
+
           {/* Settings Box */}
           <div style={{
             background: 'var(--card-bg)',
@@ -873,7 +873,7 @@ function App() {
             <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               ⚙️ Compression Settings
             </h3>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
               {/* Target File Size Slider */}
               <div>
@@ -1562,12 +1562,12 @@ function App() {
   const getVideoCropStyles = () => {
     const { width, height } = videoFileMetadata;
     if (!width || !height) return { width: '100%', left: '0%' };
-    
+
     const videoAspect = width / height;
-    let targetRatioVal = 16/9;
-    if (targetAspect === '9:16') targetRatioVal = 9/16;
+    let targetRatioVal = 16 / 9;
+    if (targetAspect === '9:16') targetRatioVal = 9 / 16;
     if (targetAspect === '1:1') targetRatioVal = 1;
-    
+
     if (videoAspect > targetRatioVal) {
       const overlayWidthPercent = (targetRatioVal / videoAspect) * 100;
       const maxLeftPercent = 100 - overlayWidthPercent;
@@ -1625,8 +1625,8 @@ function App() {
         const { width, height } = videoFileMetadata;
         let cropWidth, cropHeight, cropX, cropY;
         const videoAspect = width / height;
-        let targetRatioVal = 16/9;
-        if (targetAspect === '9:16') targetRatioVal = 9/16;
+        let targetRatioVal = 16 / 9;
+        if (targetAspect === '9:16') targetRatioVal = 9 / 16;
         if (targetAspect === '1:1') targetRatioVal = 1;
 
         if (videoAspect > targetRatioVal) {
@@ -1816,7 +1816,7 @@ function App() {
   // ── Video Editor UI ────────────────────────────────────────────────────────
   const renderVideoEditor = () => {
     const isProcessed = !!processedVideoUrl;
-    
+
     return (
       <div className="container" style={{ paddingTop: '3rem', paddingBottom: '4rem' }}>
         <button
@@ -1871,7 +1871,7 @@ function App() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }} className="batch-layout">
-            
+
             {/* Left Column: Video Preview and Visual Tools */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
               <h3 style={{ alignSelf: 'flex-start' }}>Original Video</h3>
@@ -1890,7 +1890,7 @@ function App() {
                   onLoadedMetadata={handleVideoMetadata}
                   style={{ display: 'block', maxHeight: '380px', width: 'auto', maxWidth: '100%' }}
                 />
-                
+
                 {/* Visual Crop Overlay (for Aspect Ratio) */}
                 {activeVideoTool === 'aspect' && !isProcessed && (
                   <div style={{
@@ -1925,7 +1925,7 @@ function App() {
                   </div>
                 )}
               </div>
-              
+
               <div style={{ alignSelf: 'flex-start', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 <span>Dimensions: <b>{videoFileMetadata.width}×{videoFileMetadata.height}px</b></span> &bull;&nbsp;
                 <span>Duration: <b>{Math.round(videoFileMetadata.duration || 0)}s</b></span> &bull;&nbsp;
@@ -1979,7 +1979,7 @@ function App() {
                       ))}
                     </div>
                   </div>
-                  
+
                   {/* Focus Slider */}
                   {(targetAspect === '9:16' || targetAspect === '1:1') && (
                     <div>
@@ -2325,7 +2325,7 @@ function App() {
     else if (path === 'custom') window.location.hash = '#/custom';
     else if (path === 'terms') window.location.hash = '#/terms';
     else if (path === 'privacy') window.location.hash = '#/privacy';
-    
+
     // Academy paths navigation
     else if (path === 'academy') window.location.hash = '#/academy';
     else if (path === 'academy-dashboard') window.location.hash = '#/academy/dashboard';
@@ -2340,7 +2340,7 @@ function App() {
     else if (path === 'hookbunker-dashboard') window.location.hash = '#/hookbunker/dashboard';
     else if (path === 'hookbunker-terms') window.location.hash = '#/terms';
     else if (path === 'hookbunker-privacy') window.location.hash = '#/privacy';
-    
+
     else window.location.hash = `#/${path}`;
   };
 
@@ -2360,200 +2360,200 @@ function App() {
       }>
 
         {/* ── Services Landing Page (no ImageKE header shown) ── */}
-      {currentPath === 'services' && (
-        <ServicesPage
-          onNavigateToTools={handleNavigateToTools}
-          onNavigateToPath={navigateToPath}
-        />
-      )}
+        {currentPath === 'services' && (
+          <ServicesPage
+            onNavigateToTools={handleNavigateToTools}
+            onNavigateToPath={navigateToPath}
+          />
+        )}
 
-      {/* ── ATS Resume Vault ── */}
-      {currentPath === 'vault' && (
-        <ATSResumeVault onNavigate={navigateToPath} />
-      )}
+        {/* ── ATS Resume Vault ── */}
+        {currentPath === 'vault' && (
+          <ATSResumeVault onNavigate={navigateToPath} />
+        )}
 
-      {/* ── Resume Hot Seat Landing (standalone page) ── */}
-      {currentPath === 'hotseat' && (
-        <ResumeHotSeatLanding onNavigate={(path, payload) => {
-          if (payload && path === 'ats') setAtsHandoffState(payload);
-          setCurrentPath(path);
-          window.location.hash = `#/${path}`;
-        }} />
-      )}
+        {/* ── Resume Hot Seat Landing (standalone page) ── */}
+        {currentPath === 'hotseat' && (
+          <ResumeHotSeatLanding onNavigate={(path, payload) => {
+            if (payload && path === 'ats') setAtsHandoffState(payload);
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
+        )}
 
-      {/* ── ATS Simulator (standalone page) ── */}
-      {currentPath === 'ats' && (
-        <ATSSimulator
-          onBack={() => { setAtsHandoffState(null); window.location.hash = '#/'; }}
-          handoffPayload={atsHandoffState}
-        />
-      )}
+        {/* ── ATS Simulator (standalone page) ── */}
+        {currentPath === 'ats' && (
+          <ATSSimulator
+            onBack={() => { setAtsHandoffState(null); window.location.hash = '#/'; }}
+            handoffPayload={atsHandoffState}
+          />
+        )}
 
-      {/* ── LinkedIn Recruiter POV Scorecard (standalone page) ── */}
-      {currentPath === 'linkedin' && (
-        <LinkedInScorecard onBack={() => window.location.hash = '#/'} />
-      )}
+        {/* ── LinkedIn Recruiter POV Scorecard (standalone page) ── */}
+        {currentPath === 'linkedin' && (
+          <LinkedInScorecard onBack={() => window.location.hash = '#/'} />
+        )}
 
 
-      {/* ── HookBunker Landing Page ── */}
-      {currentPath === 'hookbunker-landing' && (
-        <HookBunkerLanding onNavigate={(path, payload) => {
-          if (payload && path === 'ats') setAtsHandoffState(payload);
-          setCurrentPath(path);
-          window.location.hash = `#/${path}`;
-        }} />
-      )}
+        {/* ── HookBunker Landing Page ── */}
+        {currentPath === 'hookbunker-landing' && (
+          <HookBunkerLanding onNavigate={(path, payload) => {
+            if (payload && path === 'ats') setAtsHandoffState(payload);
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
+        )}
 
-      {/* ── HookBunker Docs Page ── */}
-      {currentPath === 'hookbunker-docs' && (
-        <HookBunkerDocs onNavigate={(path, payload) => {
-          if (payload && path === 'ats') setAtsHandoffState(payload);
-          setCurrentPath(path);
-          window.location.hash = `#/${path}`;
-        }} />
-      )}
+        {/* ── HookBunker Docs Page ── */}
+        {currentPath === 'hookbunker-docs' && (
+          <HookBunkerDocs onNavigate={(path, payload) => {
+            if (payload && path === 'ats') setAtsHandoffState(payload);
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
+        )}
 
-      {/* ── HookBunker Dashboard ── */}
-      {currentPath === 'hookbunker-dashboard' && (
-        <HookBunkerDashboard onNavigate={(path, payload) => {
-          if (payload && path === 'ats') setAtsHandoffState(payload);
-          setCurrentPath(path);
-          window.location.hash = `#/${path}`;
-        }} />
-      )}
+        {/* ── HookBunker Dashboard ── */}
+        {currentPath === 'hookbunker-dashboard' && (
+          <HookBunkerDashboard onNavigate={(path, payload) => {
+            if (payload && path === 'ats') setAtsHandoffState(payload);
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
+        )}
 
-      {/* ── Academy Auth View ── */}
-      {currentPath === 'academy-auth' && (
-        <AcademyAuth onAuthSuccess={() => { setCurrentPath('academy-dashboard'); window.location.hash = '#/academy/dashboard'; }} />
-      )}
+        {/* ── Academy Auth View ── */}
+        {currentPath === 'academy-auth' && (
+          <AcademyAuth onAuthSuccess={() => { setCurrentPath('academy-dashboard'); window.location.hash = '#/academy/dashboard'; }} />
+        )}
 
-      {/* ── Academy Dashboard View ── */}
-      {currentPath === 'academy-dashboard' && (
-        <AcademyDashboard onNavigate={(path, payload) => {
-          if (payload && path === 'ats') setAtsHandoffState(payload);
-          setCurrentPath(path);
-          window.location.hash = `#/${path}`;
-        }} />
-      )}
+        {/* ── Academy Dashboard View ── */}
+        {currentPath === 'academy-dashboard' && (
+          <AcademyDashboard onNavigate={(path, payload) => {
+            if (payload && path === 'ats') setAtsHandoffState(payload);
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
+        )}
 
-      {/* ── Workshop Landing View ── */}
-      {currentPath === 'workshop' && (
-        <WorkshopLanding onNavigate={navigateToPath} />
-      )}
+        {/* ── Workshop Landing View ── */}
+        {currentPath === 'workshop' && (
+          <WorkshopLanding onNavigate={navigateToPath} />
+        )}
 
-      {/* ── Workshop Join Gateway ── */}
-      {currentPath === 'workshop-join' && (
-        <WorkshopJoin />
-      )}
+        {/* ── Workshop Join Gateway ── */}
+        {currentPath === 'workshop-join' && (
+          <WorkshopJoin />
+        )}
 
-      {currentPath === 'rider-login' && <RiderLogin />}
-      {currentPath === 'rider-dashboard' && <RiderDashboard />}
+        {currentPath === 'rider-login' && <RiderLogin />}
+        {currentPath === 'rider-dashboard' && <RiderDashboard />}
 
-      {/* ── Legal pages (standalone, minimal header) ── */}
-      {(currentPath === 'terms' || currentPath === 'privacy') && (
-        <>
-          <header className="app-header">
-            <div
-              className="app-logo"
-              onClick={() => window.location.hash = '#/'}
-              role="button" tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && (window.location.hash = '#/')}
-              aria-label="Back to home"
-            >
-              <span className="app-logo-text">[KE] ImageKE <span className="app-logo-badge">PRO</span></span>
-            </div>
-          </header>
-          <div style={{ flex: 1 }}>
-            {currentPath === 'terms' && renderTerms()}
-            {currentPath === 'privacy' && renderPrivacy()}
-          </div>
-          <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-            <div className="container">
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
-            </div>
-          </footer>
-        </>
-      )}
-
-      {/* ── ImageKE Photo & Video Tools ── */}
-      {currentPath !== 'services' && 
-       currentPath !== 'terms' && 
-       currentPath !== 'privacy' && 
-       currentPath !== 'ats' && 
-       currentPath !== 'linkedin' && 
-       currentPath !== 'vault' && 
-
-       currentPath !== 'workshop' && 
-       currentPath !== 'workshop-join' && 
-       !currentPath.startsWith('hookbunker') && 
-       !currentPath.startsWith('academy') && 
-       !currentPath.startsWith('rider') && (
-        <>
-          {/* Sticky Header */}
-          <header className="app-header">
-            <div
-              className="app-logo"
-              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/'; }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), window.location.hash = '#/')}
-              aria-label="Home"
-            >
-              <span className="app-logo-text">
-                [KE] ImageKE <span className="app-logo-badge">PRO</span>
-              </span>
-            </div>
-            <nav className="app-nav" aria-label="Main navigation">
-              <button
-                className={`app-nav-btn${currentTab === 'images' ? ' active-images' : ''}`}
-                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/photo-tools'; }}
-                aria-current={currentTab === 'images' ? 'page' : undefined}
+        {/* ── Legal pages (standalone, minimal header) ── */}
+        {(currentPath === 'terms' || currentPath === 'privacy') && (
+          <>
+            <header className="app-header">
+              <div
+                className="app-logo"
+                onClick={() => window.location.hash = '#/'}
+                role="button" tabIndex={0}
+                onKeyDown={e => e.key === 'Enter' && (window.location.hash = '#/')}
+                aria-label="Back to home"
               >
-                [img] Photo Tools
-              </button>
-              <button
-                className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
-                onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/video-tools'; }}
-                aria-current={currentTab === 'videos' ? 'page' : undefined}
-              >
-                [vid] Video Tools
-              </button>
-            </nav>
-            <button
-              onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/'; }}
-              style={{ background: 'none', border: 'none', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'inherit' }}
-            >
-              ← Back to Services
-            </button>
-          </header>
-
-           <div style={{ flex: 1 }}>
-            {isProcessing && <ProcessingOverlay message={processingMsg} />}
-            {currentTab === 'images' ? (
-
-              <>
-                {currentPath === 'home' && renderHome()}
-                {currentPath === 'batch' && renderBatchPage()}
-                {currentPath === 'custom' && renderCustomPage()}
-                {currentPath === 'processor' && renderProcessor()}
-              </>
-            ) : (
-              renderVideoTools()
-            )}
-          </div>
-
-          <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-            <div className="container">
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
-              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
-                <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
-                <button onClick={() => window.location.hash = '#/rider-login'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Rider Portal</button>
-                <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
+                <span className="app-logo-text">[KE] ImageKE <span className="app-logo-badge">PRO</span></span>
               </div>
+            </header>
+            <div style={{ flex: 1 }}>
+              {currentPath === 'terms' && renderTerms()}
+              {currentPath === 'privacy' && renderPrivacy()}
             </div>
-          </footer>
-        </>
-      )}
+            <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+              <div className="container">
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+              </div>
+            </footer>
+          </>
+        )}
+
+        {/* ── ImageKE Photo & Video Tools ── */}
+        {currentPath !== 'services' &&
+          currentPath !== 'terms' &&
+          currentPath !== 'privacy' &&
+          currentPath !== 'ats' &&
+          currentPath !== 'linkedin' &&
+          currentPath !== 'vault' &&
+
+          currentPath !== 'workshop' &&
+          currentPath !== 'workshop-join' &&
+          !currentPath.startsWith('hookbunker') &&
+          !currentPath.startsWith('academy') &&
+          !currentPath.startsWith('rider') && (
+            <>
+              {/* Sticky Header */}
+              <header className="app-header">
+                <div
+                  className="app-logo"
+                  onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/'; }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && (reset(), resetVideoState(), setActiveVideoTool(null), window.location.hash = '#/')}
+                  aria-label="Home"
+                >
+                  <span className="app-logo-text">
+                    [KE] ImageKE <span className="app-logo-badge">PRO</span>
+                  </span>
+                </div>
+                <nav className="app-nav" aria-label="Main navigation">
+                  <button
+                    className={`app-nav-btn${currentTab === 'images' ? ' active-images' : ''}`}
+                    onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/photo-tools'; }}
+                    aria-current={currentTab === 'images' ? 'page' : undefined}
+                  >
+                    [img] Photo Tools
+                  </button>
+                  <button
+                    className={`app-nav-btn${currentTab === 'videos' ? ' active-videos' : ''}`}
+                    onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/video-tools'; }}
+                    aria-current={currentTab === 'videos' ? 'page' : undefined}
+                  >
+                    [vid] Video Tools
+                  </button>
+                </nav>
+                <button
+                  onClick={() => { reset(); resetVideoState(); setActiveVideoTool(null); window.location.hash = '#/'; }}
+                  style={{ background: 'none', border: 'none', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+                >
+                  ← Back to Services
+                </button>
+              </header>
+
+              <div style={{ flex: 1 }}>
+                {isProcessing && <ProcessingOverlay message={processingMsg} />}
+                {currentTab === 'images' ? (
+
+                  <>
+                    {currentPath === 'home' && renderHome()}
+                    {currentPath === 'batch' && renderBatchPage()}
+                    {currentPath === 'custom' && renderCustomPage()}
+                    {currentPath === 'processor' && renderProcessor()}
+                  </>
+                ) : (
+                  renderVideoTools()
+                )}
+              </div>
+
+              <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+                <div className="container">
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+                  <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                    <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
+                    <button onClick={() => window.location.hash = '#/rider-login'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Rider Portal</button>
+                    <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Privacy Policy</button>
+                  </div>
+                </div>
+              </footer>
+            </>
+          )}
       </Suspense>
     </div>
   );

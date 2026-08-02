@@ -125,6 +125,74 @@ export default function AcademyDashboard({ onNavigate }) {
   const [liveSessionSuccess, setLiveSessionSuccess] = useState('');
   const [liveSessionError, setLiveSessionError] = useState('');
 
+  const [editingSessionId, setEditingSessionId] = useState(null);
+
+  const formatDatetimeForInput = (dateString) => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Africa/Nairobi'
+      }).formatToParts(d);
+      
+      const year = parts.find(p => p.type === 'year').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const day = parts.find(p => p.type === 'day').value;
+      const hour = parts.find(p => p.type === 'hour').value;
+      const minute = parts.find(p => p.type === 'minute').value;
+      
+      const cleanHour = hour === '24' ? '00' : hour;
+      
+      return `${year}-${month}-${day}T${cleanHour}:${minute}`;
+    } catch (e) {
+      return dateString.substring(0, 16);
+    }
+  };
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: '',
+    cancelText: '',
+    onConfirm: null
+  });
+
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+
+  const showConfirm = (title, message, confirmText, cancelText, onConfirm) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      onConfirm
+    });
+  };
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast(prev => ({ ...prev, show: false }));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
+
   // Fetch Dashboard State from Backend
   const fetchDashboardData = useCallback(async (token) => {
     try {
@@ -569,45 +637,109 @@ export default function AcademyDashboard({ onNavigate }) {
 
 
 
-  // Save a new live session + auto-schedule reminders
+  // Save or update live session
   const handleSaveLiveSession = async (e) => {
     e.preventDefault();
     if (!session?.access_token) return;
     setSavingLiveSession(true);
     setLiveSessionSuccess('');
     setLiveSessionError('');
+
+    const url = editingSessionId
+      ? `${API_URL}/api/hotseat/live-session/${editingSessionId}`
+      : `${API_URL}/api/hotseat/live-session`;
+    const method = editingSessionId ? 'PATCH' : 'POST';
+
     try {
-      const res = await fetch(`${API_URL}/api/hotseat/live-session`, {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify(liveSessionForm),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setLiveSessionSuccess(data.message || 'Live session saved. Reminders are being scheduled!');
+        const msg = editingSessionId ? 'Live session updated successfully!' : 'Live session scheduled successfully!';
+        showToast(msg, 'success');
+        setLiveSessionSuccess(msg);
         setLiveSessionForm({ title: 'Resume Hot Seat Live', live_datetime: '', stream_link: '', max_spots: 3, notes: '', deactivate_others: true });
+        setEditingSessionId(null);
         fetchLiveSessions();
       } else {
-        setLiveSessionError(data.error || 'Failed to save live session.');
+        const errorMsg = data.error || 'Failed to save live session.';
+        showToast(errorMsg, 'error');
+        setLiveSessionError(errorMsg);
       }
     } catch (err) {
-      setLiveSessionError('Connection error. Please try again.');
+      const errorMsg = 'Connection error. Please try again.';
+      showToast(errorMsg, 'error');
+      setLiveSessionError(errorMsg);
     } finally {
       setSavingLiveSession(false);
     }
   };
 
+  // Delete live session
+  const handleDeleteLiveSession = async (sessionId) => {
+    if (!session?.access_token) return;
+    
+    showConfirm(
+      'Delete Live Session',
+      'Are you sure you want to delete this live session? This action is permanent and cannot be undone.',
+      'Yes, Delete Session',
+      'Cancel',
+      async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/hotseat/live-session/${sessionId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showToast('Live session deleted successfully.', 'success');
+            fetchLiveSessions();
+            if (editingSessionId === sessionId) {
+              setLiveSessionForm({ title: 'Resume Hot Seat Live', live_datetime: '', stream_link: '', max_spots: 3, notes: '', deactivate_others: true });
+              setEditingSessionId(null);
+            }
+          } else {
+            showToast(data.error || 'Failed to delete live session.', 'error');
+          }
+        } catch (err) {
+          showToast('Connection error. Please try again.', 'error');
+        }
+      }
+    );
+  };
+
   // Toggle a live session active/inactive
   const handleToggleLiveSession = async (sessionId, currentActive) => {
     if (!session?.access_token) return;
-    try {
-      const res = await fetch(`${API_URL}/api/hotseat/live-session/${sessionId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ is_active: !currentActive }),
-      });
-      if (res.ok) fetchLiveSessions();
-    } catch (err) { console.warn('[Toggle Live Session]', err); }
+    const actionName = currentActive ? 'deactivate' : 'activate';
+    
+    showConfirm(
+      `${currentActive ? 'Deactivate' : 'Activate'} Session`,
+      `Are you sure you want to ${actionName} this live session?`,
+      `Yes, ${currentActive ? 'Deactivate' : 'Activate'}`,
+      'Cancel',
+      async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/hotseat/live-session/${sessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ is_active: !currentActive }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Live session ${currentActive ? 'deactivated' : 'activated'} successfully.`, 'success');
+            fetchLiveSessions();
+          } else {
+            showToast(data.error || `Failed to ${actionName} session.`, 'error');
+          }
+        } catch (err) {
+          showToast('Connection error. Please try again.', 'error');
+        }
+      }
+    );
   };
 
   const handleAnalyzeHotseatLive = async (item) => {
@@ -2093,10 +2225,12 @@ export default function AcademyDashboard({ onNavigate }) {
               <div className="ac-card" style={{ padding: '1.75rem 2rem', background: '#FFFFFF' }}>
                 <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '1rem' }}>
                   <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    🔴 Schedule New Live Broadcast Session
+                    {editingSessionId ? '✏️ Update Live Broadcast Session' : '🔴 Schedule New Live Broadcast Session'}
                   </h2>
                   <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                    Create a live stream broadcast date. Automated 24-hour & 1-hour email reminders will be scheduled for candidates in the queue.
+                    {editingSessionId 
+                      ? 'Modify the live session details. Reminders will be updated accordingly.'
+                      : 'Create a live stream broadcast date. Automated 24-hour & 1-hour email reminders will be scheduled for candidates in the queue.'}
                   </p>
                 </div>
 
@@ -2170,7 +2304,7 @@ export default function AcademyDashboard({ onNavigate }) {
                     </label>
                   </div>
 
-                  <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                  <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem', display: 'flex', gap: '0.75rem' }}>
                     <button
                       type="submit"
                       disabled={savingLiveSession}
@@ -2188,8 +2322,36 @@ export default function AcademyDashboard({ onNavigate }) {
                         gap: '0.5rem'
                       }}
                     >
-                      {savingLiveSession ? 'Saving Session...' : '+ Schedule Live Session & Auto-Set Reminders'}
+                      {savingLiveSession 
+                        ? (editingSessionId ? 'Updating Session...' : 'Scheduling Session...') 
+                        : (editingSessionId ? 'Save Session Changes' : 'Schedule Broadcast Session')}
                     </button>
+                    {editingSessionId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLiveSessionForm({ title: 'Resume Hot Seat Live', live_datetime: '', stream_link: '', max_spots: 3, notes: '', deactivate_others: true });
+                          setEditingSessionId(null);
+                          setLiveSessionSuccess('');
+                          setLiveSessionError('');
+                        }}
+                        style={{
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          padding: '0.75rem 1.75rem',
+                          fontWeight: 800,
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        Cancel Editing
+                      </button>
+                    )}
                   </div>
                 </form>
               </div>
@@ -2225,7 +2387,13 @@ export default function AcademyDashboard({ onNavigate }) {
                         <tr key={sess.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '12px', fontWeight: 700, color: '#0f172a' }}>{sess.title}</td>
                           <td style={{ padding: '12px', color: '#334155' }}>
-                            {new Date(sess.live_datetime).toLocaleString('en-KE', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' })} EAT
+                            {(() => {
+                              const d = new Date(sess.live_datetime);
+                              if (isNaN(d.getTime())) return '';
+                              const formatted = d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+                              const tz = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(d).find(p => p.type === 'timeZoneName')?.value || '';
+                              return `${formatted} ${tz}`.trim();
+                            })()}
                           </td>
                           <td style={{ padding: '12px', color: '#3b82f6' }}>
                             {sess.stream_link ? (
@@ -2251,11 +2419,11 @@ export default function AcademyDashboard({ onNavigate }) {
                               {sess.is_active ? '🔴 ACTIVE LIVE' : 'INACTIVE'}
                             </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                             <button
                               onClick={() => handleToggleLiveSession(sess.id, sess.is_active)}
                               style={{
-                                background: sess.is_active ? '#f8fafc' : '#0f172a',
+                                background: sess.is_active ? '#f8fafc' : '#111111',
                                 color: sess.is_active ? '#475569' : '#ffffff',
                                 border: '1px solid #cbd5e1',
                                 borderRadius: '4px',
@@ -2265,7 +2433,53 @@ export default function AcademyDashboard({ onNavigate }) {
                                 cursor: 'pointer'
                               }}
                             >
-                              {sess.is_active ? 'Deactivate' : 'Set Active'}
+                              {sess.is_active ? 'Deactivate' : 'Activate Session'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingSessionId(sess.id);
+                                setLiveSessionForm({
+                                  title: sess.title || 'Resume Hot Seat Live',
+                                  live_datetime: formatDatetimeForInput(sess.live_datetime),
+                                  stream_link: sess.stream_link || '',
+                                  max_spots: sess.max_spots || 3,
+                                  notes: sess.notes || '',
+                                  deactivate_others: false
+                                });
+                                setLiveSessionSuccess('');
+                                setLiveSessionError('');
+                                const formEl = document.querySelector('form[onSubmit]');
+                                if (formEl) {
+                                  formEl.scrollIntoView({ behavior: 'smooth' });
+                                }
+                              }}
+                              style={{
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                border: '1px solid #bae6fd',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontWeight: 600,
+                                fontSize: '0.775rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Edit Details
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLiveSession(sess.id)}
+                              style={{
+                                background: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontWeight: 600,
+                                fontSize: '0.775rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Delete Session
                             </button>
                           </td>
                         </tr>
@@ -2602,6 +2816,113 @@ export default function AcademyDashboard({ onNavigate }) {
                   </div>
                 </form>
               </div>
+            </div>
+          )}
+
+          {/* Custom On-Screen Confirmation Modal */}
+          {confirmModal.isOpen && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(17, 17, 17, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              backdropFilter: 'blur(4px)'
+            }}>
+              <div style={{
+                background: '#FFFFFF',
+                border: '2px solid #111111',
+                padding: '2rem',
+                maxWidth: '450px',
+                width: '90%',
+                boxShadow: '8px 8px 0px #111111'
+              }}>
+                <h3 style={{
+                  fontFamily: 'Playfair Display, serif',
+                  fontSize: '1.4rem',
+                  fontWeight: 900,
+                  color: '#111111',
+                  margin: '0 0 1rem 0',
+                  borderBottom: '2px solid #111111',
+                  paddingBottom: '0.5rem'
+                }}>
+                  {confirmModal.title}
+                </h3>
+                <p style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '0.95rem',
+                  color: '#333333',
+                  lineHeight: 1.5,
+                  margin: '0 0 1.75rem 0'
+                }}>
+                  {confirmModal.message}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    style={{
+                      background: '#F4F4EE',
+                      color: '#111111',
+                      border: '1.5px solid #111111',
+                      padding: '0.5rem 1.25rem',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {confirmModal.cancelText || 'Cancel'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirmModal.onConfirm) confirmModal.onConfirm();
+                      setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    }}
+                    style={{
+                      background: '#D61A3C',
+                      color: '#FFFFFF',
+                      border: '1.5px solid #111111',
+                      padding: '0.5rem 1.25rem',
+                      fontWeight: 800,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {confirmModal.confirmText || 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Custom On-Screen Toast Notification */}
+          {toast.show && (
+            <div style={{
+              position: 'fixed',
+              bottom: '2rem',
+              right: '2rem',
+              background: toast.type === 'error' ? '#FEE2E2' : '#F4F4EE',
+              color: '#111111',
+              border: `2px solid ${toast.type === 'error' ? '#EF4444' : '#111111'}`,
+              padding: '1rem 1.5rem',
+              zIndex: 9999,
+              boxShadow: '4px 4px 0px #111111',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              maxWidth: '350px',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 700,
+              fontSize: '0.875rem'
+            }}>
+              <span style={{ fontSize: '1.15rem' }}>
+                {toast.type === 'error' ? '⚠️' : '✓'}
+              </span>
+              <div>{toast.message}</div>
             </div>
           )}
 
