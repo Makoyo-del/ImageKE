@@ -228,7 +228,7 @@ function App() {
   // Reset window scroll to top on path/tool change
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [currentPath, activeVideoTool]);
+  }, [currentPath]);
 
   // Listen for hash changes to update navigation state
   useEffect(() => {
