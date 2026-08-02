@@ -297,6 +297,19 @@
 }
 
 /* ── Pain Agitation Cards ── */
+.hotseat-pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 5rem;
+}
+
+@media (max-width: 900px) {
+  .hotseat-pain-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pain-card {
   border: 2px solid var(--hs-border);
   padding: 2rem;

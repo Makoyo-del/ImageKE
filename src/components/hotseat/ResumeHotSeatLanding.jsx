@@ -451,7 +451,7 @@ export function ResumeHotSeatLanding({ onNavigate }) {
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '5rem' }}>
+          <div className="hotseat-pain-grid">
             {PAIN_POINTS.map((pain, idx) => (
               <div key={idx} className="pain-card">
                 <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--hs-crimson)', marginBottom: '0.75rem', letterSpacing: '0.1em' }}>
