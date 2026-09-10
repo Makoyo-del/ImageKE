@@ -3,123 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CampusNet Session Status</title>
+    <title>CampusNet Session Status — Makoyocart Ventures</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0f1d;
-            --bg-card: rgba(18, 26, 47, 0.9);
-            --accent-blue: #2563eb;
-            --accent-emerald: #10b981;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-glass: rgba(255, 255, 255, 0.1);
+            --bg-canvas: #0d0e12;
+            --bg-card: rgba(18, 20, 27, 0.9);
+            --brand-orange: #f15c22;
+            --brand-ember: #ff4500;
+            --brand-orange-glow: rgba(241, 92, 34, 0.45);
+            --profit-green: #00e676;
+            --profit-green-bg: rgba(0, 230, 118, 0.12);
+            --profit-green-border: rgba(0, 230, 118, 0.35);
+            --text-primary: #ffffff;
+            --text-secondary: #9ea3b0;
+            --text-muted: #646a7a;
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-strong: rgba(255, 255, 255, 0.14);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: var(--bg-primary);
-            background-image: radial-gradient(circle at 50% 10%, rgba(37, 99, 235, 0.2) 0%, transparent 50%);
-            color: var(--text-main);
+            background-color: var(--bg-canvas);
+            background-image: 
+                radial-gradient(circle at 80% 15%, rgba(241, 92, 34, 0.2) 0%, transparent 60%),
+                radial-gradient(circle at 15% 85%, rgba(0, 230, 118, 0.1) 0%, transparent 50%);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 20px 16px;
         }
 
         .card {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             background: var(--bg-card);
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            padding: 24px;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+            border-radius: 24px;
+            padding: 28px 22px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(241, 92, 34, 0.12);
             text-align: center;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20%;
+            right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--brand-orange), transparent);
         }
 
         .status-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
-            padding: 4px 12px;
+            background: var(--profit-green-bg);
+            border: 1px solid var(--profit-green-border);
+            color: var(--profit-green);
+            padding: 4px 14px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 12px;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            margin-bottom: 14px;
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
+            width: 7px;
+            height: 7px;
+            background-color: var(--profit-green);
             border-radius: 50%;
-            box-shadow: 0 0 8px #10b981;
+            box-shadow: 0 0 8px var(--profit-green);
+            animation: pulse 2s infinite;
         }
 
-        h2 {
-            font-size: 20px;
-            margin-bottom: 18px;
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 230, 118, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
         }
 
+        .brand-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 3px;
+        }
+
+        .brand-title .title-serif {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-style: italic;
+            color: var(--brand-orange);
+        }
+
+        .brand-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        /* Hero Remaining Time Card */
         .timer-card {
-            background: rgba(37, 99, 235, 0.12);
-            border: 1.5px solid rgba(59, 130, 246, 0.3);
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 18px;
+            background: rgba(241, 92, 34, 0.08);
+            border: 1.5px solid rgba(241, 92, 34, 0.35);
+            border-radius: 18px;
+            padding: 20px 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 25px -5px var(--brand-orange-glow);
         }
 
         .timer-label {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
+            letter-spacing: 0.9px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 600;
         }
 
         .timer-val {
-            font-size: 26px;
+            font-size: 32px;
             font-weight: 800;
-            color: #60a5fa;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            text-shadow: 0 0 16px var(--brand-orange-glow);
         }
 
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             text-align: left;
         }
 
         .stat-box {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 10px 12px;
+            border-radius: 14px;
+            padding: 12px 14px;
         }
 
         .stat-box .title {
             font-size: 11px;
             color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 3px;
         }
 
         .stat-box .val {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 2px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
         }
 
+        /* Action Buttons */
         .btn-group {
             display: flex;
             gap: 10px;
@@ -127,27 +184,50 @@
 
         .btn {
             flex: 1;
-            height: 44px;
-            border-radius: 10px;
+            height: 48px;
+            border-radius: 12px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             text-decoration: none;
             cursor: pointer;
             border: none;
+            transition: all 0.2s;
         }
 
         .btn-topup {
-            background: #2563eb;
-            color: #fff;
+            background: linear-gradient(135deg, var(--brand-ember) 0%, var(--brand-orange) 100%);
+            color: #ffffff;
+            box-shadow: 0 8px 20px -4px var(--brand-orange-glow);
+        }
+
+        .btn-topup:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px -3px rgba(241, 92, 34, 0.6);
         }
 
         .btn-logout {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
             color: #fca5a5;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ffffff;
+        }
+
+        .preview-badge {
+            display: none;
+            margin-top: 14px;
+            font-size: 10.5px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-glass);
+            padding: 4px 10px;
+            border-radius: 20px;
         }
     </style>
     <script>
@@ -164,38 +244,32 @@
         <span>Connected & Active</span>
     </div>
 
-    <h2>Makoyocart CampusNet</h2>
-    <p style="font-size: 11px; color: #64748b; margin-bottom: 12px;">Makoyocart Ventures (BN-WLSP9KP9)</p>
+    <h2 class="brand-title">Makoyocart <span class="title-serif">CampusNet</span></h2>
+    <p class="brand-sub">Makoyocart Ventures (BN-WLSP9KP9) • Kisii</p>
 
     <div class="timer-card">
         <div class="timer-label">Remaining Time</div>
-        <div class="timer-val">
-            $(if session-time-left)
-                $(session-time-left)
-            $(elif uptime-left)
-                $(uptime-left)
-            $(else)
-                Active Unlimited
-            $(endif)
+        <div class="timer-val" id="time-left-display">
+            <span id="mt-time-raw">$(if session-time-left)$(session-time-left)$(elif uptime-left)$(uptime-left)$(else)Active Unlimited$(endif)</span>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-box">
             <div class="title">Connected Since</div>
-            <div class="val">$(uptime)</div>
+            <div class="val" id="stat-uptime">$(uptime)</div>
         </div>
         <div class="stat-box">
             <div class="title">Downloaded</div>
-            <div class="val">$(bytes-out-nice)</div>
+            <div class="val" id="stat-bytes">$(bytes-out-nice)</div>
         </div>
         <div class="stat-box">
             <div class="title">Your IP</div>
-            <div class="val">$(ip)</div>
+            <div class="val" id="stat-ip">$(ip)</div>
         </div>
         <div class="stat-box">
             <div class="title">Your MAC</div>
-            <div class="val" style="font-size:11px;">$(mac)</div>
+            <div class="val" id="stat-mac" style="font-size:12px; font-family:monospace;">$(mac)</div>
         </div>
     </div>
 
@@ -203,7 +277,51 @@
         <a href="login.html" class="btn btn-topup">⚡ Extend Pass</a>
         <a href="$(link-logout)" class="btn btn-logout">Disconnect</a>
     </div>
+
+    <div class="preview-badge" id="preview-badge">
+        👁️ Local Preview Mode (Serves real router metrics when connected)
+    </div>
 </div>
+
+<script>
+    // Smart template variable handler for both Browser Preview and RouterOS live serving
+    (function() {
+        var timeEl = document.getElementById('mt-time-raw');
+        var isPreview = false;
+
+        if (timeEl) {
+            var rawText = timeEl.innerText.trim();
+            if (rawText.indexOf('$(') !== -1 || rawText.startsWith('$(') || rawText === '') {
+                // We are opening this file locally in a browser without RouterOS compiling it
+                timeEl.innerText = '02h 45m 18s';
+                isPreview = true;
+            }
+        }
+
+        var fields = [
+            { id: 'stat-uptime', preview: '1h 14m' },
+            { id: 'stat-bytes', preview: '482.5 MB' },
+            { id: 'stat-ip', preview: '192.168.88.254' },
+            { id: 'stat-mac', preview: '6C:29:95:A1:B2:C3' }
+        ];
+
+        fields.forEach(function(item) {
+            var el = document.getElementById(item.id);
+            if (el) {
+                var val = el.innerText.trim();
+                if (val.indexOf('$(') !== -1 || val.startsWith('$(') || val === '') {
+                    el.innerText = item.preview;
+                    isPreview = true;
+                }
+            }
+        });
+
+        if (isPreview) {
+            var pb = document.getElementById('preview-badge');
+            if (pb) pb.style.display = 'inline-block';
+        }
+    })();
+</script>
 
 </body>
 </html>

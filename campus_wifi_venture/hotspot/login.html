@@ -3,113 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Makoyocart Ventures Wifi</title>
+    <title>Makoyocart CampusNet — High-Speed Campus WiFi</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0f1d;
-            --bg-card: rgba(18, 26, 47, 0.85);
-            --bg-card-hover: rgba(28, 39, 68, 0.95);
-            --accent-blue: #2563eb;
-            --accent-blue-light: #3b82f6;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-glass: rgba(255, 255, 255, 0.1);
-            --border-active: #3b82f6;
+            --bg-canvas: #0d0e12;
+            --bg-card: rgba(18, 20, 27, 0.88);
+            --bg-card-hover: rgba(26, 29, 39, 0.95);
+            --brand-orange: #f15c22;
+            --brand-orange-light: #ff7043;
+            --brand-orange-glow: rgba(241, 92, 34, 0.45);
+            --brand-ember: #ff4500;
+            --profit-green: #00e676;
+            --profit-green-bg: rgba(0, 230, 118, 0.12);
+            --profit-green-border: rgba(0, 230, 118, 0.35);
+            --text-primary: #ffffff;
+            --text-secondary: #9ea3b0;
+            --text-muted: #646a7a;
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-strong: rgba(255, 255, 255, 0.15);
+            --border-active: #f15c22;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: var(--bg-primary);
+            background-color: var(--bg-canvas);
             background-image: 
-                radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.18) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 40%);
-            color: var(--text-main);
+                radial-gradient(circle at 85% 12%, rgba(241, 92, 34, 0.22) 0%, transparent 55%),
+                radial-gradient(circle at 15% 85%, rgba(0, 230, 118, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 50% 50%, rgba(13, 14, 18, 0.8) 0%, transparent 100%);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 20px 16px;
         }
 
         .container {
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             background: var(--bg-card);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            padding: 24px 20px;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+            border-radius: 24px;
+            padding: 28px 22px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(241, 92, 34, 0.1);
+            position: relative;
+            overflow: hidden;
         }
 
-        .header {
+        /* Subtle top orange glow accent line */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--brand-orange), transparent);
+        }
+
+        /* Brand Header */
+        .brand-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
 
-        .badge-status {
+        .brand-pill-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .edition-badge {
+            background: var(--brand-orange);
+            color: #ffffff;
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 10px rgba(241, 92, 34, 0.35);
+        }
+
+        .network-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
-            padding: 4px 12px;
+            background: var(--profit-green-bg);
+            border: 1px solid var(--profit-green-border);
+            color: var(--profit-green);
+            padding: 3px 10px;
             border-radius: 20px;
             font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
         }
 
         .pulse-dot {
             width: 7px;
             height: 7px;
-            background-color: #10b981;
+            background-color: var(--profit-green);
             border-radius: 50%;
-            box-shadow: 0 0 8px #10b981;
+            box-shadow: 0 0 8px var(--profit-green);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 230, 118, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
         }
 
-        h1 {
-            font-size: 22px;
+        .logo-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #1e212b, #12141a);
+            border: 1px solid rgba(241, 92, 34, 0.3);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo-inner {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--brand-orange);
+            text-shadow: 0 0 12px var(--brand-orange-glow);
+        }
+
+        .hero-title {
+            font-size: 26px;
             font-weight: 700;
             letter-spacing: -0.5px;
             margin-bottom: 4px;
+            color: #ffffff;
+            line-height: 1.2;
         }
 
-        .subtext {
-            color: var(--text-muted);
+        .hero-title .title-serif {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 700;
+            color: var(--brand-orange);
+            font-style: italic;
+        }
+
+        .hero-subtext {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.45;
+            margin-bottom: 4px;
+        }
+
+        .hero-subtext em {
+            color: var(--text-primary);
+            font-style: normal;
+            font-weight: 600;
+        }
+
+        /* Features Bar */
+        .features-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 8px;
+            margin-bottom: 18px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .feature-item {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .feature-item .icon {
+            color: var(--brand-orange);
             font-size: 13px;
         }
 
+        /* Alert / Error Box */
+        .alert-box {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+            padding: 11px 14px;
+            border-radius: 12px;
+            font-size: 12.5px;
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .alert-box .icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            color: #ef4444;
+        }
+
+        /* Section Heading */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
         .section-title {
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11.5px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             color: var(--text-muted);
-            margin-bottom: 10px;
         }
 
+        .section-extra {
+            font-size: 11px;
+            color: var(--brand-orange);
+            font-weight: 600;
+        }
+
+        /* Packages List */
         .packages-grid {
             display: flex;
             flex-direction: column;
@@ -122,231 +266,290 @@
             align-items: center;
             justify-content: space-between;
             padding: 14px 16px;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.025);
             border: 1.5px solid var(--border-glass);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
         }
 
         .pkg-card:hover {
             background: var(--bg-card-hover);
-            border-color: rgba(59, 130, 246, 0.4);
+            border-color: rgba(241, 92, 34, 0.35);
+            transform: translateY(-1px);
         }
 
         .pkg-card.active {
-            background: rgba(37, 99, 255, 0.12);
-            border-color: var(--accent-blue-light);
-            box-shadow: 0 0 16px -4px rgba(37, 99, 235, 0.4);
+            background: rgba(241, 92, 34, 0.08);
+            border-color: var(--brand-orange);
+            box-shadow: 
+                0 0 20px -3px var(--brand-orange-glow),
+                inset 0 0 12px rgba(241, 92, 34, 0.04);
+        }
+
+        .pkg-tag {
+            position: absolute;
+            top: -9px;
+            right: 14px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 5px;
+            line-height: 1.2;
+        }
+
+        .tag-orange {
+            background: var(--brand-orange);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(241, 92, 34, 0.4);
+        }
+
+        .tag-green {
+            background: var(--profit-green);
+            color: #0c0d12;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(0, 230, 118, 0.3);
+        }
+
+        .tag-amber {
+            background: #ff9800;
+            color: #0c0d12;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
         }
 
         .pkg-left {
             display: flex;
             flex-direction: column;
+            gap: 2px;
         }
 
         .pkg-name {
             font-size: 15px;
-            font-weight: 600;
-            color: var(--text-main);
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.2px;
         }
 
         .pkg-desc {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 2px;
+            font-size: 11.5px;
+            color: var(--text-secondary);
+        }
+
+        .pkg-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
         }
 
         .pkg-price {
             font-size: 18px;
-            font-weight: 700;
-            color: #60a5fa;
-            white-space: nowrap;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.4px;
         }
 
-        .pkg-tag {
-            position: absolute;
-            top: -8px;
-            right: 14px;
-            background: var(--accent-blue);
-            color: #fff;
+        .pkg-card.active .pkg-price {
+            color: var(--brand-orange);
+        }
+
+        .pkg-unit {
             font-size: 10px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 10px;
+            color: var(--text-muted);
             text-transform: uppercase;
         }
 
+        /* Payment Form Inputs */
         .input-group {
             margin-bottom: 14px;
         }
 
-        label {
-            display: block;
+        .input-label {
+            display: flex;
+            justify-content: space-between;
             font-size: 12px;
             font-weight: 600;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             margin-bottom: 6px;
+        }
+
+        .input-label .sub {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            font-size: 15px;
+            color: var(--brand-orange);
+            pointer-events: none;
         }
 
         .input-box {
             width: 100%;
             height: 48px;
-            background: rgba(15, 23, 42, 0.8);
-            border: 1.5px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 0 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid var(--border-glass-strong);
+            border-radius: 14px;
+            padding: 0 16px 0 42px;
             font-size: 15px;
-            color: #fff;
+            font-weight: 600;
+            color: #ffffff;
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
 
         .input-box:focus {
-            border-color: var(--accent-blue-light);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            border-color: var(--brand-orange);
+            background: rgba(241, 92, 34, 0.05);
+            box-shadow: 0 0 14px rgba(241, 92, 34, 0.25);
         }
 
-        .btn-primary {
-            width: 100%;
-            height: 50px;
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        .input-box::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .promo-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .promo-box {
+            flex: 1;
+            height: 42px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 13px;
             color: #ffffff;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        .promo-box:focus {
+            border-color: var(--brand-orange);
+        }
+
+        .promo-btn {
+            height: 42px;
+            padding: 0 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 12px;
             font-weight: 700;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.6);
             transition: all 0.2s;
         }
 
-        .btn-primary:active {
-            transform: scale(0.98);
+        .promo-btn:hover {
+            background: rgba(241, 92, 34, 0.15);
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
         }
 
-        .footer-links {
-            margin-top: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-        }
-
-        .link-btn {
-            color: #93c5fd;
-            text-decoration: none;
-            cursor: pointer;
-            background: none;
+        /* Primary Action CTA (Reddit/Etsy Vibrant Orange Button) */
+        .btn-cta {
+            width: 100%;
+            height: 52px;
+            background: linear-gradient(135deg, var(--brand-ember) 0%, var(--brand-orange) 100%);
             border: none;
-            font-size: 12px;
-            padding: 4px;
-        }
-
-        .link-btn:hover {
-            text-decoration: underline;
-        }
-
-        /* Modal Overlay */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
-            display: none;
-            flex-direction: column;
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+            cursor: pointer;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            z-index: 1000;
+            gap: 10px;
+            box-shadow: 
+                0 10px 25px -4px var(--brand-orange-glow),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+            transition: all 0.2s ease;
         }
 
-        .modal-card {
-            width: 100%;
-            max-width: 360px;
-            background: #131d35;
-            border: 1px solid var(--border-glass);
-            border-radius: 18px;
-            padding: 26px 20px;
+        .btn-cta:hover {
+            background: linear-gradient(135deg, #ff5722 0%, #f15c22 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px -4px rgba(241, 92, 34, 0.6);
+        }
+
+        .btn-cta:active {
+            transform: translateY(0);
+        }
+
+        /* Sub-action Links */
+        .footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .action-link {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+
+        .action-link:hover {
+            color: var(--brand-orange);
+        }
+
+        /* Footer Info */
+        .venture-footer {
             text-align: center;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(59, 130, 246, 0.2);
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .modal-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .modal-msg {
-            font-size: 13px;
+            margin-top: 18px;
+            font-size: 11px;
             color: var(--text-muted);
-            margin-bottom: 16px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
-        .countdown-timer {
-            font-size: 24px;
-            font-weight: 800;
-            color: #60a5fa;
-            margin-bottom: 14px;
+        .venture-footer strong {
+            color: var(--text-secondary);
+            font-weight: 600;
         }
 
-        .fallback-box {
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 14px;
-            font-size: 12px;
-            text-align: left;
-        }
-
-        .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-size: 12px;
-            margin-bottom: 14px;
-            display: none;
-        }
-
-        /* Toast Notification System */
+        /* Toast Container */
         .toast-container {
             position: fixed;
-            bottom: 24px;
+            top: 18px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 9999;
+            z-index: 99999;
+            width: 90%;
+            max-width: 400px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             pointer-events: none;
-            width: calc(100% - 32px);
-            max-width: 380px;
         }
 
         .toast {
@@ -355,144 +558,301 @@
             gap: 12px;
             padding: 14px 16px;
             border-radius: 14px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid;
             font-size: 13px;
             line-height: 1.45;
             pointer-events: all;
-            box-shadow: 0 8px 24px -4px rgba(0,0,0,0.5);
-            animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         @keyframes toastIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            from { opacity: 0; transform: translateY(-16px) scale(0.96); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         @keyframes toastOut {
             from { opacity: 1; transform: translateY(0) scale(1); }
-            to   { opacity: 0; transform: translateY(12px) scale(0.94); }
+            to   { opacity: 0; transform: translateY(-12px) scale(0.95); }
         }
 
         .toast.toast-error {
-            background: rgba(30, 8, 8, 0.92);
-            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(28, 10, 10, 0.94);
+            border-color: rgba(239, 68, 68, 0.5);
             color: #fca5a5;
         }
 
         .toast.toast-success {
-            background: rgba(5, 28, 18, 0.92);
-            border-color: rgba(16, 185, 129, 0.45);
+            background: rgba(10, 28, 18, 0.94);
+            border-color: rgba(0, 230, 118, 0.5);
             color: #6ee7b7;
         }
 
         .toast.toast-info {
-            background: rgba(7, 16, 38, 0.92);
-            border-color: rgba(59, 130, 246, 0.45);
-            color: #93c5fd;
+            background: rgba(28, 16, 10, 0.94);
+            border-color: rgba(241, 92, 34, 0.5);
+            color: #fed7aa;
         }
 
-        .toast-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-        .toast-body .toast-title { font-weight: 700; margin-bottom: 2px; font-size: 13px; }
-        .toast-body .toast-msg { opacity: 0.85; font-size: 12px; }
+        .toast-icon { font-size: 18px; flex-shrink: 0; }
+        .toast-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+        .toast-msg { font-size: 12px; opacity: 0.9; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 10000;
+        }
+
+        .modal-card {
+            background: #14161f;
+            border: 1px solid var(--border-glass-strong);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 380px;
+            padding: 26px 20px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.85);
+            position: relative;
+        }
+
+        .spinner-ring {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(241, 92, 34, 0.2);
+            border-top: 3px solid var(--brand-orange);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        .modal-msg {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .countdown-pill {
+            display: inline-block;
+            background: rgba(241, 92, 34, 0.15);
+            border: 1px solid rgba(241, 92, 34, 0.35);
+            color: var(--brand-orange);
+            font-size: 20px;
+            font-weight: 800;
+            padding: 4px 18px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .fallback-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 12px;
+            text-align: left;
+        }
+
+        .fallback-box strong {
+            font-size: 12.5px;
+            color: #ffffff;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .fallback-box p {
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 14px;
+        }
+
+        .modal-close-btn:hover {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body>
+
+<!-- Toast Notification Container -->
 <div class="toast-container" id="toast-container"></div>
 
 <div class="container">
-    <div class="header">
-        <div class="badge-status">
-            <span class="pulse-dot"></span>
-            <span id="status-text">Network Online • 15 Mbps Fast</span>
+    <!-- Brand Header -->
+    <div class="brand-header">
+        <div class="brand-pill-row">
+            <span class="edition-badge">THE 2026 EDITION</span>
+            <div class="network-badge">
+                <span class="pulse-dot"></span>
+                <span id="status-text">15 MBPS FAST DEDICATED</span>
+            </div>
         </div>
-        <h1>Makoyocart Ventures Wifi</h1>
-        <p class="subtext">A Service by Makoyocart Ventures (BN-WLSP9KP9)</p>
+
+        <div class="logo-box">
+            <div class="logo-inner">M</div>
+        </div>
+
+        <h1 class="hero-title">Makoyocart <span class="title-serif">CampusNet</span></h1>
+        <p class="hero-subtext">The High-Speed Campus WiFi for <em>Productive Students</em>.</p>
     </div>
 
-    <!-- Error message display -->
-    <div id="error-banner" class="alert-error"></div>
-    $(if error)
-    <div class="alert-error" style="display:block;">$(error)</div>
-    $(endif)
+    <!-- Features Bar -->
+    <div class="features-bar">
+        <div class="feature-item"><span class="icon">⚡</span> 15 Mbps Fibre</div>
+        <div class="feature-item"><span class="icon">🔒</span> Instant STK Unlock</div>
+        <div class="feature-item"><span class="icon">🎮</span> Low Latency</div>
+    </div>
 
-    <div class="section-title">Select Access Pass</div>
-    
+    <!-- Error Banner (Clean Client & Router Integration) -->
+    <div id="error-banner" class="alert-box">
+        <span class="icon">⚠️</span>
+        <span id="error-banner-text">Error message</span>
+    </div>
+
+    <div id="mt-error-container" style="display:none;">
+        $(if error)
+        <div id="mt-raw-error">$(error)</div>
+        $(endif)
+    </div>
+
+    <!-- Packages Section -->
+    <div class="section-header">
+        <span class="section-title">Select Access Pass</span>
+        <span class="section-extra">⚡ Instant Activation</span>
+    </div>
+
     <div class="packages-grid" id="packages-list">
         <!-- 1 Hour Flash Pass -->
         <div class="pkg-card" onclick="selectPackage('pkg_1h', 10, '1 Hour Flash Pass')" id="card-pkg_1h">
-            <span class="pkg-tag" style="background:rgba(245,158,11,0.2); color:#fbbf24; border-color:rgba(245,158,11,0.4);">Quick Sprint ⚡</span>
+            <span class="pkg-tag tag-amber">Quick Sprint ⚡</span>
             <div class="pkg-left">
                 <span class="pkg-name">1 Hour Flash Pass</span>
-                <span class="pkg-desc">Quick assignments & notes download</span>
+                <span class="pkg-desc">Assignments & quick notes download</span>
             </div>
-            <span class="pkg-price">KSh 10</span>
+            <div class="pkg-right">
+                <span class="pkg-price">KSh 10</span>
+                <span class="pkg-unit">1 Hour</span>
+            </div>
         </div>
 
         <!-- 3 Hours Pass -->
-        <div class="pkg-card" onclick="selectPackage('pkg_3h', 20, '3 Hours Browsing')" id="card-pkg_3h">
+        <div class="pkg-card" onclick="selectPackage('pkg_3h', 20, '3 Hours Study Sprint')" id="card-pkg_3h">
             <div class="pkg-left">
-                <span class="pkg-name">3 Hours Browsing</span>
-                <span class="pkg-desc">Pauses when you disconnect • Valid 24h</span>
+                <span class="pkg-name">3 Hours Study Sprint</span>
+                <span class="pkg-desc">Lectures, YouTube research & coursework</span>
             </div>
-            <span class="pkg-price">KSh 20</span>
+            <div class="pkg-right">
+                <span class="pkg-price">KSh 20</span>
+                <span class="pkg-unit">3 Hours</span>
+            </div>
         </div>
 
         <!-- 24 Hours Unlimited (Active by default) -->
         <div class="pkg-card active" onclick="selectPackage('pkg_24h', 40, '24 Hours Unlimited')" id="card-pkg_24h">
-            <span class="pkg-tag">Most Popular ★</span>
+            <span class="pkg-tag tag-orange">🔥 Most Popular</span>
             <div class="pkg-left">
                 <span class="pkg-name">24 Hours Unlimited</span>
-                <span class="pkg-desc">Continuous high-speed access</span>
+                <span class="pkg-desc">Continuous uncapped streaming & gaming</span>
             </div>
-            <span class="pkg-price">KSh 40</span>
+            <div class="pkg-right">
+                <span class="pkg-price">KSh 40</span>
+                <span class="pkg-unit">24 Hours</span>
+            </div>
         </div>
 
         <!-- 7 Days Pass -->
-        <div class="pkg-card" onclick="selectPackage('pkg_7d', 150, '7 Days Unlimited')" id="card-pkg_7d">
+        <div class="pkg-card" onclick="selectPackage('pkg_7d', 150, '7 Days Mega Pack')" id="card-pkg_7d">
+            <span class="pkg-tag tag-green">Best Value 🚀</span>
             <div class="pkg-left">
-                <span class="pkg-name">7 Days Unlimited</span>
-                <span class="pkg-desc">Best for heavy hostel studying</span>
+                <span class="pkg-name">7 Days Mega Pack</span>
+                <span class="pkg-desc">Heavy hostel studying & continuous access</span>
             </div>
-            <span class="pkg-price">KSh 150</span>
+            <div class="pkg-right">
+                <span class="pkg-price">KSh 150</span>
+                <span class="pkg-unit">7 Days</span>
+            </div>
         </div>
 
         <!-- 30 Days VIP Pass -->
         <div class="pkg-card" onclick="selectPackage('pkg_30d', 500, '30 Days VIP Resident')" id="card-pkg_30d">
-            <span class="pkg-tag" style="background:rgba(16,185,129,0.2); color:#34d399; border-color:rgba(16,185,129,0.4);">Save KSh 1,000 🔥</span>
+            <span class="pkg-tag tag-amber">👑 Save KSh 700</span>
             <div class="pkg-left">
                 <span class="pkg-name">30 Days VIP Resident</span>
                 <span class="pkg-desc">Full month unmetered hostel Wi-Fi</span>
             </div>
-            <span class="pkg-price">KSh 500</span>
+            <div class="pkg-right">
+                <span class="pkg-price">KSh 500</span>
+                <span class="pkg-unit">30 Days</span>
+            </div>
         </div>
     </div>
 
+    <!-- M-Pesa Payment Form -->
     <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
         <div class="input-group">
-            <label for="phone-input">M-Pesa Phone Number</label>
-            <input type="tel" id="phone-input" class="input-box" placeholder="e.g. 0712345678" required autocomplete="tel">
+            <div class="input-label">
+                <span>M-Pesa Phone Number</span>
+                <span class="sub">Safaricom STK Prompt</span>
+            </div>
+            <div class="input-wrapper">
+                <span class="input-icon">📱</span>
+                <input type="tel" id="phone-input" class="input-box" placeholder="e.g. 0712345678" required autocomplete="tel">
+            </div>
         </div>
 
-        <div class="input-group" style="margin-bottom: 18px;">
-            <label for="promo-input">Promo Code (Optional)</label>
-            <input type="text" id="promo-input" class="input-box" placeholder="e.g. FRESHER2026" style="height: 40px; font-size: 13px;">
+        <div class="promo-row">
+            <input type="text" id="promo-input" class="promo-box" placeholder="PROMO CODE (OPTIONAL)">
+            <button type="button" class="promo-btn" onclick="applyPromoCode()">Apply</button>
         </div>
 
-        <button type="submit" id="btn-pay" class="btn-primary">
-            <span>⚡ Pay & Connect via M-Pesa</span>
+        <button type="submit" id="btn-pay" class="btn-cta">
+            <span>⚡ Pay KSh <span id="btn-amount-display">40</span> via M-Pesa</span>
         </button>
     </form>
 
-    <div class="footer-links">
-        <button class="link-btn" onclick="openRestoreModal()">🔄 Already Paid? Restore Session</button>
-        <button class="link-btn" onclick="openCodeVerifyModal()">Enter Code</button>
+    <!-- Sub Actions -->
+    <div class="footer-actions">
+        <button type="button" class="action-link" onclick="openRestoreModal()">
+            <span>🔄</span> Already Paid? Restore Session
+        </button>
+        <button type="button" class="action-link" onclick="openCodeVerifyModal()">
+            <span>🎟️</span> Enter Code
+        </button>
     </div>
 
-    <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #64748b;">
-        <span>Makoyocart Ventures • Reg. No: BN-WLSP9KP9</span><br>
-        <span>Support: 0712 345 678 • Kisii, Kenya</span>
+    <!-- Legal & Support Footer -->
+    <div class="venture-footer">
+        <strong>Makoyocart Ventures</strong> • Reg: BN-WLSP9KP9<br>
+        24/7 Helpline: <strong>0712 345 678</strong> • Kisii, Kenya
     </div>
 </div>
 
@@ -507,19 +867,19 @@
 <!-- Modal: STK Push Waiting -->
 <div class="modal-overlay" id="stk-modal">
     <div class="modal-card">
-        <div class="spinner" id="modal-spinner"></div>
+        <div class="spinner-ring" id="modal-spinner"></div>
         <h3 class="modal-title" id="modal-heading">Check Your Phone</h3>
         <p class="modal-msg" id="modal-subtext">We sent an M-Pesa prompt to your phone. Enter your PIN to activate your Wi-Fi pass.</p>
-        <div class="countdown-timer" id="timer-display">40s</div>
+        <div class="countdown-pill" id="timer-display">40s</div>
 
         <div class="fallback-box" id="modal-fallback" style="display:none;">
-            <strong>Prompt delayed?</strong>
-            <p style="margin: 4px 0 8px; color:#cbd5e1;">Pay KSh <span id="fb-amount">40</span> to Till/Paybill, then enter the M-Pesa SMS code below:</p>
-            <input type="text" id="manual-code-input" class="input-box" placeholder="e.g. QJD9472KL" style="height:40px; margin-bottom:8px; text-transform:uppercase;">
-            <button type="button" class="btn-primary" style="height:40px; font-size:14px;" onclick="verifyManualCode()">Verify Code & Connect</button>
+            <strong>Prompt delayed or missed?</strong>
+            <p>Pay KSh <span id="fb-amount">40</span> to Till/Paybill or check your M-Pesa SMS and enter the code below:</p>
+            <input type="text" id="manual-code-input" class="input-box" placeholder="e.g. QJD9472KL" style="height:40px; margin-bottom:8px; text-transform:uppercase; font-size:13px; padding-left:14px;">
+            <button type="button" class="btn-cta" style="height:42px; font-size:13px;" onclick="verifyManualCode()">Verify Code & Connect</button>
         </div>
         
-        <button type="button" class="link-btn" style="margin-top:14px; color:#ef4444;" onclick="closeModal()">Cancel</button>
+        <button type="button" class="modal-close-btn" onclick="closeModal()">Cancel / Close</button>
     </div>
 </div>
 
@@ -527,17 +887,15 @@
 <div class="modal-overlay" id="restore-modal">
     <div class="modal-card">
         <h3 class="modal-title">Restore Active Session</h3>
-        <p class="modal-msg">Enter the phone number you used to purchase Wi-Fi to restore your access on this device.</p>
-        <input type="tel" id="restore-phone" class="input-box" placeholder="07XXXXXXXX" style="margin-bottom:12px;">
-        <button type="button" class="btn-primary" style="height:44px;" onclick="submitSessionRestore()">Find & Connect</button>
-        <button type="button" class="link-btn" style="margin-top:12px;" onclick="closeRestoreModal()">Close</button>
+        <p class="modal-msg">Enter the phone number you used to purchase Wi-Fi to restore your connection on this device.</p>
+        <input type="tel" id="restore-phone" class="input-box" placeholder="07XXXXXXXX" style="margin-bottom:12px; padding-left:14px;">
+        <button type="button" class="btn-cta" style="height:46px; font-size:14px;" onclick="submitSessionRestore()">Find & Connect Device</button>
+        <button type="button" class="modal-close-btn" onclick="closeRestoreModal()">Close</button>
     </div>
 </div>
 
 <script>
     // Configuration
-    // Live backend: imageke-api on Render (Node.js Express, campusnet.js router)
-    // Routes are mounted at /api/campusnet/ on the imageke-api service
     const BACKEND_BASE_URL = "https://imageke-api.onrender.com/api/campusnet";
     
     // Client device identifiers extracted natively by MikroTik RouterOS
@@ -546,41 +904,86 @@
 
     let selectedPackageId = "pkg_24h";
     let selectedAmount = 40;
+    let baseAmount = 40;
+    let appliedDiscount = 0;
     let pollInterval = null;
     let countdownInterval = null;
     let secondsLeft = 40;
 
-    // Select package UI toggle
+    // Clean error display handler (hides unparsed template tags in local browser preview)
+    (function() {
+        var rawErr = document.getElementById('mt-raw-error');
+        if (rawErr) {
+            var msg = rawErr.innerText.trim();
+            if (msg && !msg.startsWith('$(')) {
+                var banner = document.getElementById('error-banner');
+                var txt = document.getElementById('error-banner-text');
+                if (txt) txt.innerText = msg;
+                banner.style.display = 'flex';
+            }
+        }
+    })();
+
+    // Package Selection Toggle
     function selectPackage(pkgId, amount, name) {
         selectedPackageId = pkgId;
-        selectedAmount = amount;
+        baseAmount = amount;
+        selectedAmount = Math.max(1, baseAmount - appliedDiscount);
+        
         document.querySelectorAll('.pkg-card').forEach(card => card.classList.remove('active'));
         const activeCard = document.getElementById('card-' + pkgId);
         if (activeCard) activeCard.classList.add('active');
-        document.getElementById('fb-amount').innerText = amount;
+        
+        document.getElementById('btn-amount-display').innerText = selectedAmount;
+        document.getElementById('fb-amount').innerText = selectedAmount;
     }
 
-    // Toast notification system - replaces all browser alert() calls
+    // Promo Code Handler
+    function applyPromoCode() {
+        const code = document.getElementById('promo-input').value.trim().toUpperCase();
+        if (!code) {
+            showToast('info', 'Promo Code', 'Please enter a promo code first.');
+            return;
+        }
+
+        if (code === 'FRESHER2026') {
+            appliedDiscount = Math.round(baseAmount * 0.25);
+            selectedAmount = Math.max(1, baseAmount - appliedDiscount);
+            document.getElementById('btn-amount-display').innerText = selectedAmount;
+            document.getElementById('fb-amount').innerText = selectedAmount;
+            showToast('success', 'Promo Applied!', `FRESHER2026 active: 25% OFF (Saved KSh ${appliedDiscount})!`);
+        } else if (code === 'EXAMNIGHT') {
+            appliedDiscount = 15;
+            selectedAmount = Math.max(1, baseAmount - appliedDiscount);
+            document.getElementById('btn-amount-display').innerText = selectedAmount;
+            document.getElementById('fb-amount').innerText = selectedAmount;
+            showToast('success', 'Promo Applied!', `EXAMNIGHT active: KSh 15 discount applied!`);
+        } else {
+            showToast('error', 'Invalid Code', 'Promo code not recognized or expired.');
+        }
+    }
+
+    // Toast Notification System
     function showToast(type, title, msg, duration) {
         const c = document.getElementById('toast-container');
-        const icons = { success: '\u2713', error: '\u26a0', info: '\u2139' };
+        const icons = { success: '✓', error: '⚠️', info: 'ℹ️' };
         const t = document.createElement('div');
         t.className = `toast toast-${type}`;
         t.innerHTML = `
-            <span class="toast-icon">${icons[type] || '\u2139'}</span>
+            <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
             <div class="toast-body">
                 <div class="toast-title">${title}</div>
                 <div class="toast-msg">${msg}</div>
             </div>`;
         c.appendChild(t);
-        const d = duration || (type === 'error' ? 6000 : 4000);
+        const d = duration || (type === 'error' ? 5000 : 3500);
         setTimeout(() => {
             t.style.animation = 'toastOut 0.3s ease both';
-            setTimeout(() => t.remove(), 320);
+            setTimeout(() => t.remove(), 300);
         }, d);
     }
 
-    // Try fetching dynamic promotional packages from backend on page load
+    // Dynamic Packages Fetch from Live Backend
     async function loadDynamicPackages() {
         try {
             const res = await fetch(`${BACKEND_BASE_URL}/packages`, { method: 'GET' });
@@ -591,7 +994,6 @@
                 }
             }
         } catch (e) {
-            // Walled garden or offline: built-in packages remain active
             console.log('Using built-in package fallback');
         }
     }
@@ -601,21 +1003,37 @@
         container.innerHTML = '';
         pkgs.forEach((p, idx) => {
             const card = document.createElement('div');
-            card.className = `pkg-card ${idx === 1 ? 'active' : ''}`;
+            const isDef = p.id === 'pkg_24h' || idx === 2;
+            card.className = `pkg-card ${isDef ? 'active' : ''}`;
             card.id = `card-${p.id}`;
             card.onclick = () => selectPackage(p.id, p.amount, p.name);
+            
+            let tagHtml = '';
+            if (p.tag) {
+                let tagClass = 'tag-orange';
+                if (p.tag.toLowerCase().includes('save')) tagClass = 'tag-green';
+                if (p.tag.toLowerCase().includes('sprint')) tagClass = 'tag-amber';
+                tagHtml = `<span class="pkg-tag ${tagClass}">${p.tag}</span>`;
+            }
+
             card.innerHTML = `
-                ${p.tag ? `<span class="pkg-tag">${p.tag}</span>` : ''}
+                ${tagHtml}
                 <div class="pkg-left">
                     <span class="pkg-name">${p.name}</span>
                     <span class="pkg-desc">${p.description}</span>
                 </div>
-                <span class="pkg-price">KSh ${p.amount}</span>
+                <div class="pkg-right">
+                    <span class="pkg-price">KSh ${p.amount}</span>
+                    <span class="pkg-unit">${p.duration || 'Pass'}</span>
+                </div>
             `;
             container.appendChild(card);
-            if (idx === 1) {
+            if (isDef) {
                 selectedPackageId = p.id;
+                baseAmount = p.amount;
                 selectedAmount = p.amount;
+                document.getElementById('btn-amount-display').innerText = selectedAmount;
+                document.getElementById('fb-amount').innerText = selectedAmount;
             }
         });
     }
@@ -632,7 +1050,6 @@
             return;
         }
 
-        // Open STK prompt modal
         openStkModal(phone);
 
         try {
@@ -657,11 +1074,11 @@
                 showModalError(result.detail || "Failed to initiate M-Pesa prompt. Try manual code below.");
             }
         } catch (err) {
-            showModalError("Unable to reach payment server. Check if M-Pesa SMS arrived and enter code below.");
+            showModalError("Unable to reach payment server. Check your M-Pesa SMS and enter code below.");
         }
     }
 
-    // Poll payment status every 2 seconds
+    // Poll status every 2 seconds
     function startStatusPolling(reference) {
         secondsLeft = 40;
         updateTimerDisplay();
@@ -669,15 +1086,14 @@
         countdownInterval = setInterval(() => {
             secondsLeft--;
             updateTimerDisplay();
-            if (secondsLeft <= 20) {
-                // Show manual M-Pesa code input fallback if delay occurs
+            if (secondsLeft <= 22) {
                 document.getElementById('modal-fallback').style.display = 'block';
             }
             if (secondsLeft <= 0) {
                 clearInterval(countdownInterval);
                 clearInterval(pollInterval);
                 document.getElementById('modal-heading').innerText = "STK Prompt Timed Out";
-                document.getElementById('modal-subtext').innerText = "If your M-Pesa was deducted, enter your M-Pesa SMS code below to connect.";
+                document.getElementById('modal-subtext').innerText = "If your M-Pesa was deducted, enter your SMS receipt code below to connect.";
             }
         }, 1000);
 
@@ -691,7 +1107,7 @@
                     handlePaymentSuccess(data.username, data.password);
                 }
             } catch (e) {
-                // Ignore transient network glitches during polling
+                // Ignore transient network blips
             }
         }, 2000);
     }
@@ -700,7 +1116,7 @@
     function handlePaymentSuccess(username, password) {
         document.getElementById('modal-spinner').style.display = 'none';
         document.getElementById('modal-heading').innerText = "✓ Payment Confirmed!";
-        document.getElementById('modal-heading').style.color = "#34d399";
+        document.getElementById('modal-heading').style.color = "#00e676";
         document.getElementById('modal-subtext').innerText = "Access granted! Connecting your device to the internet...";
         document.getElementById('timer-display').style.display = 'none';
         document.getElementById('modal-fallback').style.display = 'none';
@@ -708,16 +1124,18 @@
         document.getElementById('mk-user').value = username || CLIENT_MAC;
         document.getElementById('mk-pass').value = password || CLIENT_MAC;
 
+        showToast('success', 'Access Granted', 'Connecting to high-speed internet now...');
+
         setTimeout(() => {
             document.sendin.submit();
         }, 1200);
     }
 
-    // Session Restore (Defeats MAC Randomization)
+    // Session Restore
     async function submitSessionRestore() {
         const phone = document.getElementById('restore-phone').value.trim();
         if (!phone) {
-            showToast('error', 'Phone Required', 'Please enter your M-Pesa phone number to restore your session.');
+            showToast('error', 'Phone Required', 'Please enter your M-Pesa phone number.');
             return;
         }
 
@@ -730,13 +1148,13 @@
             const data = await res.json();
             if (res.ok && data.success) {
                 closeRestoreModal();
-                showToast('success', 'Session Restored!', `Your ${data.package || 'Wi-Fi'} pass is active. Connecting...`);
+                showToast('success', 'Session Restored!', `Active ${data.package || 'Wi-Fi'} pass found. Connecting...`);
                 handlePaymentSuccess(data.username, data.password);
             } else {
-                showToast('error', 'Not Found', data.detail || 'No active pass found for this number. Please buy a new one.');
+                showToast('error', 'Not Found', data.detail || 'No active pass found for this phone number.');
             }
         } catch (e) {
-            showToast('error', 'Connection Error', 'Could not reach session server. Try again in a moment.');
+            showToast('error', 'Connection Error', 'Could not reach session server. Try again shortly.');
         }
     }
 
@@ -759,10 +1177,10 @@
                 showToast('success', 'Code Verified!', 'Payment confirmed. Connecting your device...');
                 handlePaymentSuccess(data.username, data.password);
             } else {
-                showToast('error', 'Invalid Code', data.detail || 'This M-Pesa code could not be verified. Check and try again.');
+                showToast('error', 'Invalid Code', data.detail || 'This code could not be verified.');
             }
         } catch (e) {
-            showToast('error', 'Service Unavailable', 'Cannot reach verification server. Please try again.');
+            showToast('error', 'Service Unavailable', 'Cannot reach verification server.');
         }
     }
 
@@ -772,7 +1190,7 @@
         document.getElementById('modal-heading').innerText = "Check Your Phone";
         document.getElementById('modal-subtext').innerText = `We sent an M-Pesa PIN prompt to ${phone}. Enter your PIN to activate your pass.`;
         document.getElementById('modal-spinner').style.display = 'block';
-        document.getElementById('timer-display').style.display = 'block';
+        document.getElementById('timer-display').style.display = 'inline-block';
         document.getElementById('modal-fallback').style.display = 'none';
     }
 
@@ -783,7 +1201,7 @@
     }
 
     function showModalError(msg) {
-        document.getElementById('modal-heading').innerText = "Payment Notice";
+        document.getElementById('modal-heading').innerText = "Notice";
         document.getElementById('modal-subtext').innerText = msg;
         document.getElementById('modal-fallback').style.display = 'block';
     }
@@ -794,14 +1212,17 @@
         openStkModal("");
         document.getElementById('modal-spinner').style.display = 'none';
         document.getElementById('timer-display').style.display = 'none';
+        document.getElementById('modal-heading').innerText = "Enter Voucher / M-Pesa Code";
+        document.getElementById('modal-subtext').innerText = "Enter your M-Pesa confirmation code or voucher code to connect immediately:";
         document.getElementById('modal-fallback').style.display = 'block';
     }
 
     function showError(msg) {
         const b = document.getElementById('error-banner');
-        b.innerText = msg;
-        b.style.display = 'block';
-        showToast('error', 'Payment Error', msg);
+        const txt = document.getElementById('error-banner-text');
+        if (txt) txt.innerText = msg;
+        b.style.display = 'flex';
+        showToast('error', 'Attention', msg);
     }
     function hideError() { document.getElementById('error-banner').style.display = 'none'; }
 
