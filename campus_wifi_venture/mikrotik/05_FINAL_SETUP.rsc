@@ -52,7 +52,8 @@
 /ip hotspot walled-garden add dst-host=*.paystack.com action=allow
 /ip hotspot walled-garden add dst-host=*.safaricom.co.ke action=allow
 /ip hotspot walled-garden add dst-host=*.onrender.com action=allow
-/ip hotspot walled-garden add dst-host=campusnet-billing-api.onrender.com action=allow
+/ip hotspot walled-garden add dst-host=imageke-api.onrender.com action=allow
+/ip hotspot walled-garden add dst-host=api.duncanmakoyo.com action=allow
 /ip hotspot walled-garden add dst-host=captive.apple.com action=allow
 /ip hotspot walled-garden add dst-host=connectivitycheck.gstatic.com action=allow
 /ip hotspot walled-garden add dst-host=connectivitycheck.android.com action=allow

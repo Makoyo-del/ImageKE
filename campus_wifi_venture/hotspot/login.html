@@ -536,9 +536,9 @@
 
 <script>
     // Configuration
-    // Backend deployed on Render - campusnet-billing-api service
-    // UPDATE THIS URL ONCE: paste your Render service URL below (without trailing slash)
-    const BACKEND_BASE_URL = "https://campusnet-billing-api.onrender.com/api";
+    // Live backend: imageke-api on Render (Node.js Express, campusnet.js router)
+    // Routes are mounted at /api/campusnet/ on the imageke-api service
+    const BACKEND_BASE_URL = "https://imageke-api.onrender.com/api/campusnet";
     
     // Client device identifiers extracted natively by MikroTik RouterOS
     const CLIENT_MAC = "$(mac)" || "00:00:00:00:00:00";
