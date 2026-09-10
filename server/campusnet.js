@@ -13,6 +13,15 @@ const ROUTER_SYNC_KEY = process.env.ROUTER_SYNC_KEY || 'makoyocart_sync_secret_2
 // ─── Standard Package Catalog ──────────────────────────────────────────────────
 export const PACKAGES = [
   {
+    id: 'pkg_1h',
+    name: '1 Hour Flash Pass',
+    amount: 10,
+    duration_hours: 1,
+    uptime_limit: '1h',
+    tag: 'Quick Sprint ⚡',
+    description: 'Quick assignments & notes download'
+  },
+  {
     id: 'pkg_3h',
     name: '3 Hours Browsing',
     amount: 20,
@@ -36,6 +45,15 @@ export const PACKAGES = [
     duration_hours: 168,
     uptime_limit: '168h',
     description: 'Best for heavy hostel studying'
+  },
+  {
+    id: 'pkg_30d',
+    name: '30 Days VIP Resident',
+    amount: 500,
+    duration_hours: 720,
+    uptime_limit: '720h',
+    tag: 'Save KSh 1,000 🔥',
+    description: 'Full monthly unlimited access'
   }
 ];
 
