@@ -599,4 +599,59 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// ─── Automated Database Pruner (Zero-Cost Supabase Retention) ─────────────────
+// Automatically frees database space:
+// 1. Deletes expired sessions (with a 2-hour grace period for disputes)
+// 2. Deletes expired assigned vouchers
+// 3. Purges abandoned pending transactions older than 24 hours
+export const pruneExpiredRecords = async () => {
+  try {
+    const now = new Date();
+    const gracePeriod = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+    // Prune expired live sessions
+    const { count: prunedSessions } = await supabase
+      .from('campusnet_sessions')
+      .delete({ count: 'exact' })
+      .lt('valid_until', gracePeriod);
+
+    // Prune expired assigned vouchers
+    const { count: prunedVouchers } = await supabase
+      .from('campusnet_vouchers')
+      .delete({ count: 'exact' })
+      .eq('status', 'assigned')
+      .lt('expires_at', gracePeriod);
+
+    // Prune abandoned uncompleted checkout attempts (never paid)
+    const { count: prunedAbandoned } = await supabase
+      .from('campusnet_transactions')
+      .delete({ count: 'exact' })
+      .eq('status', 'pending')
+      .lt('created_at', yesterday);
+
+    console.log(`[CampusNet DB Pruner] Cleaned: ${prunedSessions || 0} sessions, ${prunedVouchers || 0} vouchers, ${prunedAbandoned || 0} abandoned TXs`);
+    return {
+      success: true,
+      pruned_sessions: prunedSessions || 0,
+      pruned_vouchers: prunedVouchers || 0,
+      pruned_abandoned_txs: prunedAbandoned || 0,
+      timestamp: now.toISOString()
+    };
+  } catch (err) {
+    console.error('[CampusNet DB Pruner Error]', err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+// ─── POST /api/campusnet/admin/prune ──────────────────────────────────────────
+// Manual trigger for Duncan Makoyo to clean database anytime
+router.post('/admin/prune', async (req, res) => {
+  const result = await pruneExpiredRecords();
+  return res.json(result);
+});
+
+// Auto-run background pruning every 6 hours
+setInterval(pruneExpiredRecords, 6 * 60 * 60 * 1000);
+
 export default router;
