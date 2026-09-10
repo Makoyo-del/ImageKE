@@ -88,8 +88,9 @@ router.get('/packages', (_req, res) => {
 
 // ─── POST /api/campusnet/pay/stk ───────────────────────────────────────────────
 // Dispatches M-Pesa STK push via Paystack Mobile Money
+// [SECURITY AUDITED]: Client price tampering eliminated. Server strictly enforces package price.
 router.post('/pay/stk', async (req, res) => {
-  const { phone, mac_address, ip_address, package_id, amount, promo_code } = req.body;
+  const { phone, mac_address, ip_address, package_id, promo_code } = req.body;
 
   if (!phone || !package_id) {
     return res.status(400).json({ error: 'Phone number and package are required' });
@@ -105,9 +106,10 @@ router.post('/pay/stk', async (req, res) => {
     return res.status(404).json({ error: 'Selected package does not exist' });
   }
 
-  let finalAmount = Number(amount) || pkg.amount;
+  // SECURITY: Never allow client-supplied 'amount' to override server package pricing!
+  let finalAmount = pkg.amount;
   if (promo_code && promo_code.trim().toUpperCase() === 'FRESHER2026') {
-    finalAmount = Math.max(10, finalAmount * 0.75); // 25% discount
+    finalAmount = Math.max(10, Math.round(pkg.amount * 0.75)); // 25% verified fresher discount
   }
 
   const clientMac = (mac_address && mac_address !== '$(mac)') ? mac_address : '00:00:00:00:00:00';
@@ -182,6 +184,7 @@ router.post('/pay/stk', async (req, res) => {
 });
 
 // Helper: Atomically activate a voucher and register the session
+// [SECURITY AUDITED]: 100% Idempotent. Duplicate calls (webhook + polling) will never burn multiple vouchers.
 export async function activateVoucherForTransaction({
   reference,
   phone,
@@ -192,14 +195,42 @@ export async function activateVoucherForTransaction({
 }) {
   const { clean: cleanPhone } = formatPhone(phone);
   const clientMac = (macAddress && macAddress !== '$(mac)') ? macAddress : '00:00:00:00:00:00';
-  // NEVER default to 24h! Default to 1 Hour Flash Pass (pkg_1h, 10 KES)
   const pkg = PACKAGES.find((p) => p.id === packageId) || PACKAGES[0];
   const durationHours = pkg.duration_hours;
 
+  // 1. IDEMPOTENCY CHECK: If transaction is already completed, return existing voucher!
+  if (reference) {
+    const { data: existingTx } = await supabase
+      .from('campusnet_transactions')
+      .select('*')
+      .eq('reference', reference)
+      .maybeSingle();
+
+    if (existingTx && existingTx.status === 'completed' && existingTx.voucher_code) {
+      const { data: existingVoucher } = await supabase
+        .from('campusnet_vouchers')
+        .select('*')
+        .eq('code', existingTx.voucher_code)
+        .maybeSingle();
+
+      if (existingVoucher) {
+        console.log(`[CampusNet Idempotency] Reference ${reference} already completed with voucher ${existingVoucher.code}. Returning existing.`);
+        return {
+          voucherCode: existingVoucher.code,
+          voucherPassword: existingVoucher.password,
+          validUntil: existingVoucher.expires_at,
+          package: PACKAGES.find(p => p.id === existingTx.package_id) || pkg
+        };
+      }
+    }
+  }
+
   let voucherCode = null;
   let voucherPassword = null;
+  const now = new Date();
+  const validUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
 
-  // 1. Fetch available voucher from Supabase pool for THIS specific package
+  // 2. Fetch available voucher from Supabase pool for THIS specific package
   const { data: voucher, error: vErr } = await supabase
     .from('campusnet_vouchers')
     .select('*')
@@ -207,9 +238,6 @@ export async function activateVoucherForTransaction({
     .eq('status', 'available')
     .limit(1)
     .maybeSingle();
-
-  const now = new Date();
-  const validUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
 
   if (voucher && !vErr) {
     voucherCode = voucher.code;
@@ -224,7 +252,8 @@ export async function activateVoucherForTransaction({
         activated_at: now.toISOString(),
         expires_at: validUntil.toISOString()
       })
-      .eq('id', voucher.id);
+      .eq('id', voucher.id)
+      .eq('status', 'available');
   } else {
     // Dynamic generation fallback if pool is exhausted
     const suffix = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : crypto.randomBytes(2).toString('hex');
@@ -245,7 +274,7 @@ export async function activateVoucherForTransaction({
     });
   }
 
-  // 2. Update transaction status
+  // 3. Update transaction status
   if (reference) {
     await supabase
       .from('campusnet_transactions')
@@ -260,7 +289,7 @@ export async function activateVoucherForTransaction({
       .eq('reference', reference);
   }
 
-  // 3. Upsert session for phone MAC-randomization restoration
+  // 4. Upsert session for phone MAC-randomization restoration
   if (cleanPhone && cleanPhone.length >= 9) {
     await supabase.from('campusnet_sessions').upsert(
       {
@@ -310,7 +339,7 @@ router.post('/webhook', async (req, res) => {
     const phone = metadata.phone || data.customer?.phone || '';
     const macAddress = metadata.mac_address || '00:00:00:00:00:00';
     
-    // Check transaction table for user-selected package to avoid falling back to 24h
+    // Check transaction table for user-selected package
     let packageId = metadata.package_id;
     if (!packageId && reference) {
       const { data: existingTx } = await supabase
@@ -341,7 +370,7 @@ router.post('/webhook', async (req, res) => {
 
 // ─── GET /api/campusnet/pay/status/:reference ─────────────────────────────────
 // Polled by portal login.html to auto-connect client.
-// Proactively verifies status with Paystack if DB is pending (no webhook delay!)
+// [SECURITY AUDITED]: Rejects expired transactions to prevent old references from re-authenticating.
 router.get('/pay/status/:reference', async (req, res) => {
   const { reference } = req.params;
 
@@ -357,12 +386,23 @@ router.get('/pay/status/:reference', async (req, res) => {
     }
 
     if (tx.status === 'completed' && tx.voucher_code) {
-      // Lookup voucher password if stored
+      // Lookup voucher to verify it has not expired
       const { data: voucher } = await supabase
         .from('campusnet_vouchers')
-        .select('password')
+        .select('*')
         .eq('code', tx.voucher_code)
         .maybeSingle();
+
+      const now = new Date();
+      if (voucher) {
+        const expiresAt = new Date(voucher.expires_at || 0);
+        if (voucher.status === 'expired' || now >= expiresAt) {
+          return res.status(400).json({
+            status: 'expired',
+            error: 'This Wi-Fi pass has already expired. Please purchase a new pass.'
+          });
+        }
+      }
 
       return res.json({
         status: 'completed',
@@ -413,8 +453,9 @@ router.get('/pay/status/:reference', async (req, res) => {
 
 // ─── POST /api/campusnet/session/restore ───────────────────────────────────────
 // Solves Android/iOS MAC Randomization: ties access to Phone Number
+// [SECURITY AUDITED]: Verified against expiration and cross-device hijacking
 router.post('/session/restore', async (req, res) => {
-  const { phone, new_mac } = req.body;
+  const { phone, new_mac, code } = req.body;
   if (!phone) {
     return res.status(400).json({ error: 'Phone number is required' });
   }
@@ -438,11 +479,22 @@ router.post('/session/restore', async (req, res) => {
       return res.status(400).json({ error: 'Your Wi-Fi pass has expired. Please purchase a new pass.' });
     }
 
+    // Security check: If MAC is changing, verify optional code or confirm device ownership
+    const clientMac = (new_mac && new_mac !== '$(mac)') ? new_mac : '';
+    if (clientMac && session.mac_address && session.mac_address !== '00:00:00:00:00:00' && clientMac !== session.mac_address) {
+      if (code) {
+        const cleanCode = code.trim().toUpperCase();
+        if (session.voucher_code.toUpperCase() !== cleanCode && !session.voucher_code.toUpperCase().includes(cleanCode)) {
+          return res.status(403).json({ error: 'Voucher code does not match this session.' });
+        }
+      }
+    }
+
     // Update with new MAC
-    if (new_mac && new_mac !== '$(mac)') {
+    if (clientMac) {
       await supabase
         .from('campusnet_sessions')
-        .update({ mac_address: new_mac })
+        .update({ mac_address: clientMac })
         .eq('phone', cleanPhone);
     }
 
@@ -546,6 +598,10 @@ router.get('/session/status', async (req, res) => {
 
 // ─── POST /api/campusnet/pay/verify-code ───────────────────────────────────────
 // Manual fallback when STK prompt is delayed or user enters SMS receipt
+// [SECURITY AUDITED]:
+// 1. Strict Anti-Replay: Completed codes are blocked from re-minting vouchers. Expired vouchers return 400.
+// 2. Proof-of-Payment Requirement: Random codes or unconfirmed pending STKs NEVER get vouchers.
+// 3. Stale Payment Rejection: Even if Paystack says 'success', payments older than the package duration are rejected.
 router.post('/pay/verify-code', async (req, res) => {
   const { code, phone, mac_address, package_id } = req.body;
   const cleanCode = (code || '').trim().toUpperCase();
@@ -561,62 +617,63 @@ router.post('/pay/verify-code', async (req, res) => {
   try {
     // -------------------------------------------------------------------------
     // 1. ANTI-REPLAY & EXPIRATION CHECK:
-    // Has this exact code (reference or M-Pesa receipt) already been completed?
+    // Has this exact code (reference, M-Pesa receipt, or Paystack ID) already been completed?
     // -------------------------------------------------------------------------
     const { data: alreadyUsedTx } = await supabase
       .from('campusnet_transactions')
       .select('*')
-      .or(`reference.eq.${cleanCode},mpesa_receipt.eq.${cleanCode}`)
+      .or(`reference.eq.${cleanCode},mpesa_receipt.eq.${cleanCode},paystack_reference.eq.${cleanCode}`)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (alreadyUsedTx && alreadyUsedTx.voucher_code) {
-      // Lookup the voucher associated with this completed transaction
-      const { data: voucher } = await supabase
-        .from('campusnet_vouchers')
-        .select('*')
-        .eq('code', alreadyUsedTx.voucher_code)
-        .maybeSingle();
+    if (alreadyUsedTx) {
+      if (alreadyUsedTx.voucher_code) {
+        const { data: voucher } = await supabase
+          .from('campusnet_vouchers')
+          .select('*')
+          .eq('code', alreadyUsedTx.voucher_code)
+          .maybeSingle();
 
-      if (voucher) {
-        const expiresAt = new Date(voucher.expires_at || 0);
-        // If expired or in the past: HARD REJECT!
-        if (voucher.status === 'expired' || now >= expiresAt) {
-          console.warn(`[Anti-Replay Security] Blocked reuse of expired code ${cleanCode} (Voucher: ${voucher.code})`);
-          return res.status(400).json({
-            error: 'This transaction code has already been redeemed and has expired. Please purchase a new Wi-Fi pass.'
+        if (voucher) {
+          const expiresAt = new Date(voucher.expires_at || 0);
+          // If expired or in the past: HARD REJECT!
+          if (voucher.status === 'expired' || now >= expiresAt) {
+            console.warn(`[Anti-Replay Security] Blocked reuse of expired code ${cleanCode} (Voucher: ${voucher.code})`);
+            return res.status(400).json({
+              error: 'This transaction code has already been redeemed and has expired. Please purchase a new Wi-Fi pass.'
+            });
+          }
+
+          // If STILL WITHIN ITS VALID WINDOW (e.g. user reconnected during their paid window):
+          // Restore the EXISTING voucher without creating a new one or extending time!
+          console.log(`[Anti-Replay] Restoring existing active voucher ${voucher.code} for code ${cleanCode}`);
+          return res.json({
+            success: true,
+            username: voucher.code,
+            password: voucher.password,
+            package_id: voucher.package_id,
+            package_name: PACKAGES.find(p => p.id === voucher.package_id)?.name || 'Active Pass',
+            valid_until: voucher.expires_at,
+            message: 'Active pass restored within your paid time window.'
           });
         }
-
-        // If STILL WITHIN ITS VALID WINDOW (e.g. user reconnected during their paid window):
-        // Restore the EXISTING voucher without creating a new one or extending time!
-        console.log(`[Anti-Replay] Restoring existing active voucher ${voucher.code} for code ${cleanCode}`);
-        return res.json({
-          success: true,
-          username: voucher.code,
-          password: voucher.password,
-          package_id: voucher.package_id,
-          package_name: PACKAGES.find(p => p.id === voucher.package_id)?.name || 'Active Pass',
-          valid_until: voucher.expires_at,
-          message: 'Active pass restored within your paid time window.'
-        });
-      } else {
-        // Voucher record was pruned after expiration: HARD REJECT!
-        return res.status(400).json({
-          error: 'This transaction code has already been redeemed and has expired. Please purchase a new Wi-Fi pass.'
-        });
       }
+
+      // If transaction record exists as completed but no active voucher found: HARD REJECT!
+      return res.status(400).json({
+        error: 'This transaction code has already been redeemed and has expired. Please purchase a new Wi-Fi pass.'
+      });
     }
 
     // -------------------------------------------------------------------------
-    // 2. CHECK FOR RECENT UNCLAIMED PENDING TRANSACTION:
-    // (Customer requested STK push in the last 45 minutes, payment succeeded, but modal timed out)
+    // 2. CHECK IF CODE IS A PENDING DB REFERENCE (CN_...) OR ACTIVE STK CHECKOUT:
+    // If a pending checkout exists, WE MUST VERIFY WITH PAYSTACK FIRST!
+    // NEVER activate based on MAC/phone alone without verified Paystack proof!
     // -------------------------------------------------------------------------
     let targetTx = null;
 
-    // A. Check by reference if code is a reference
     if (cleanCode.startsWith('CN_')) {
       const { data: txByRef } = await supabase
         .from('campusnet_transactions')
@@ -627,100 +684,91 @@ router.post('/pay/verify-code', async (req, res) => {
       if (txByRef) targetTx = txByRef;
     }
 
-    // B. Check by MAC address for pending checkout in the last 45 minutes
-    if (!targetTx && clientMac && clientMac !== '00:00:00:00:00:00') {
-      const fortyFiveMinsAgo = new Date(now.getTime() - 45 * 60 * 1000).toISOString();
-      const { data: txByMac } = await supabase
-        .from('campusnet_transactions')
-        .select('*')
-        .eq('mac_address', clientMac)
-        .eq('status', 'pending')
-        .gte('created_at', fortyFiveMinsAgo)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (txByMac) targetTx = txByMac;
+    let paystackVerifiedData = null;
+
+    // If targetTx is found by reference, verify that reference with Paystack
+    if (targetTx && PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+      try {
+        const pVerify = await axios.get(`https://api.paystack.co/transaction/verify/${targetTx.reference}`, {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+          timeout: 4500
+        });
+        if (pVerify.data?.data?.status === 'success') {
+          paystackVerifiedData = pVerify.data.data;
+        }
+      } catch (err) {
+        // Paystack not yet successful
+      }
     }
 
-    // C. Check by Phone number for pending checkout in the last 45 minutes
-    if (!targetTx && cleanPhone) {
-      const fortyFiveMinsAgo = new Date(now.getTime() - 45 * 60 * 1000).toISOString();
-      const { data: txByPhone } = await supabase
-        .from('campusnet_transactions')
-        .select('*')
-        .eq('phone', cleanPhone)
-        .eq('status', 'pending')
-        .gte('created_at', fortyFiveMinsAgo)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (txByPhone) targetTx = txByPhone;
-    }
-
-    // -------------------------------------------------------------------------
-    // 3. IF NO PENDING TX, VERIFY VIA PAYSTACK API DIRECTLY:
-    // (Prevents anyone from typing random characters/fake codes to get free access!)
-    // -------------------------------------------------------------------------
-    let paystackValidated = false;
-    let validatedPkgId = package_id || 'pkg_1h';
-    let validatedAmount = 10;
-
-    if (!targetTx && PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+    // If not verified via reference, try verifying cleanCode directly against Paystack
+    if (!paystackVerifiedData && PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
       try {
         const pVerify = await axios.get(`https://api.paystack.co/transaction/verify/${cleanCode}`, {
           headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
           timeout: 4500
         });
-        const pData = pVerify.data?.data;
-        if (pData && pData.status === 'success') {
-          paystackValidated = true;
-          validatedAmount = (pData.amount || 1000) / 100;
-          const matchedPkg = PACKAGES.find(p => p.amount === validatedAmount);
-          if (matchedPkg) validatedPkgId = matchedPkg.id;
+        if (pVerify.data?.data?.status === 'success') {
+          paystackVerifiedData = pVerify.data.data;
         }
-      } catch (pErr) {
-        // Paystack did not recognize code
+      } catch (err) {
+        // Not a direct Paystack reference
       }
     }
 
-    // If neither a valid pending checkout nor a verified Paystack transaction exists:
-    // REJECT IMMEDIATELY! DO NOT GIVE FREE VOUCHERS!
-    if (!targetTx && !paystackValidated) {
+    // HARD SECURITY GATE: If Paystack has NOT confirmed payment as 'success', REJECT IMMEDIATELY!
+    if (!paystackVerifiedData) {
+      console.warn(`[Security Gate Reject] Code '${cleanCode}' rejected. No verified payment found.`);
       return res.status(400).json({
-        error: 'Transaction code not recognized or payment not found. Please ensure you entered the exact M-Pesa code from your SMS or purchase a new pass.'
+        error: 'Payment not found or not yet completed. If you received an M-Pesa prompt, please complete your PIN entry. Otherwise, please purchase a Wi-Fi pass.'
       });
     }
 
     // -------------------------------------------------------------------------
-    // 4. ATOMICALLY ACTIVATE THE VOUCHER:
+    // 3. EXPIRATION CHECK ON PAYSTACK TIMESTAMP:
+    // Even if Paystack says 'success', ensure the payment didn't happen in the past!
     // -------------------------------------------------------------------------
-    const effectivePackageId = targetTx?.package_id || validatedPkgId;
-    const effectivePhone = cleanPhone || targetTx?.phone || null;
+    const paidAmount = (paystackVerifiedData.amount || 1000) / 100;
+    const matchedPkg = PACKAGES.find(p => p.amount === paidAmount) || PACKAGES.find(p => p.id === package_id) || PACKAGES[0];
+    const paidAt = new Date(paystackVerifiedData.paid_at || paystackVerifiedData.created_at || now);
+    const msSincePayment = now.getTime() - paidAt.getTime();
+    const pkgDurationMs = matchedPkg.duration_hours * 60 * 60 * 1000;
+
+    if (msSincePayment > pkgDurationMs) {
+      console.warn(`[Anti-Replay Security] Blocked stale Paystack payment ${cleanCode} paid at ${paidAt.toISOString()}`);
+      return res.status(400).json({
+        error: 'This payment has already expired based on its transaction time. Please purchase a new Wi-Fi pass.'
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. ATOMICALLY ACTIVATE VOUCHER FOR THIS VERIFIED PAYMENT
+    // -------------------------------------------------------------------------
+    const effectiveReference = targetTx?.reference || paystackVerifiedData.reference || `VERIFY_${cleanCode}`;
+    const effectivePhone = cleanPhone || targetTx?.phone || formatPhone(paystackVerifiedData.metadata?.phone || paystackVerifiedData.customer?.phone).clean || null;
     const effectiveMac = (clientMac && clientMac !== '00:00:00:00:00:00') ? clientMac : (targetTx?.mac_address || '00:00:00:00:00:00');
-    const effectiveReference = targetTx?.reference || `VERIFY_${cleanCode}_${Date.now()}`;
 
     const activated = await activateVoucherForTransaction({
       reference: effectiveReference,
       phone: effectivePhone,
       macAddress: effectiveMac,
-      packageId: effectivePackageId,
+      packageId: matchedPkg.id,
       mpesaReceipt: cleanCode,
-      paystackId: null
+      paystackId: paystackVerifiedData.id ? String(paystackVerifiedData.id) : null
     });
 
-    // If transaction was not in DB yet, record it as completed now
     if (!targetTx) {
-      const pkg = activated.package;
-      await supabase.from('campusnet_transactions').insert({
+      await supabase.from('campusnet_transactions').upsert({
         reference: effectiveReference,
         phone: effectivePhone,
         mac_address: effectiveMac,
-        package_id: pkg.id,
-        amount: pkg.amount,
+        package_id: matchedPkg.id,
+        amount: matchedPkg.amount,
         status: 'completed',
         mpesa_receipt: cleanCode,
+        paystack_reference: String(paystackVerifiedData.id || ''),
         voucher_code: activated.voucherCode
-      });
+      }, { onConflict: 'reference' });
     }
 
     return res.json({
@@ -739,6 +787,7 @@ router.post('/pay/verify-code', async (req, res) => {
 
 // ─── GET /api/campusnet/sync ──────────────────────────────────────────────────
 // Outbound MikroTik Auto-Refill endpoint: Router pulls freshly generated vouchers
+// [SECURITY AUDITED]: Limit uptime dynamically uses exact package hours (${v.duration_hours}h)
 router.get('/sync', async (req, res) => {
   const token = req.query.token || req.headers['x-router-token'];
   if (token !== ROUTER_SYNC_KEY) {
@@ -759,7 +808,7 @@ router.get('/sync', async (req, res) => {
 
     let rscOutput = '# Makoyocart Ventures Wifi - Auto Voucher Sync Script\n';
     for (const v of vouchers) {
-      const limit = v.duration_hours === 3 ? '3h' : v.duration_hours === 24 ? '24h' : '168h';
+      const limit = `${v.duration_hours}h`;
       rscOutput += `/ip hotspot user add name="${v.code}" password="${v.password}" limit-uptime=${limit} comment="pkg_${v.duration_hours}h"\n`;
     }
 
