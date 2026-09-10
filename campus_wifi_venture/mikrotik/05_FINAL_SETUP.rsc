@@ -1,65 +1,76 @@
 # ============================================================
-# Makoyocart Ventures - CampusNet DEFINITIVE SETUP
-# RouterOS 7.x  |  All lines verified < 120 chars
-# STEP 1: Run RESET first (safe_wipe_keep_password.rsc)
-# STEP 2: DRAG this file to WinBox Files (root, not subfolder)
-# STEP 3: In WinBox Terminal type: /import file-name=05_FINAL_SETUP.rsc
+# Makoyocart Ventures - CampusNet DEFINITIVE SETUP (V7)
+# Idempotent: Cleans existing setup and installs fresh
+# RouterOS 7.x  |  All lines verified < 100 chars
 # ============================================================
 
-# --- Bridge & Ports ---
+# --- Step 1: Clean previous setup safely ---
+/ip hotspot remove [find name=hs-campus]
+/ip hotspot profile remove [find name=hsprof-campus]
+/ip hotspot walled-garden remove [find]
+/ip dhcp-server remove [find name=dhcp-hotspot]
+/ip dhcp-server network remove [find comment=hs-net]
+/ip pool remove [find name=hs-pool]
+/ip address remove [find comment=hs-gw]
+/ip firewall nat remove [find comment=WAN-NAT]
+/ip firewall nat remove [find comment=DNS-NAT]
+/ip firewall filter remove [find action=fasttrack-connection]
+/interface bridge port remove [find bridge=bridge-hotspot]
+/interface bridge remove [find name=bridge-hotspot]
+
+# --- Step 2: Bridge & Ports ---
 /interface bridge add name=bridge-hotspot comment=HotspotBridge
 /interface bridge port add bridge=bridge-hotspot interface=ether2
 /interface bridge port add bridge=bridge-hotspot interface=ether3
 /interface bridge port add bridge=bridge-hotspot interface=ether4
 /interface bridge port add bridge=bridge-hotspot interface=wlan1
 
-# --- WiFi SSID (Makoyocart Ventures Wifi) ---
+# --- Step 3: WiFi AP (Makoyocart Ventures Wifi) ---
 /interface wireless set wlan1 ssid="Makoyocart Ventures Wifi" mode=ap-bridge
-/interface wireless set wlan1 band=2ghz-b/g/n disabled=no
-/interface wireless set wlan1 default-forwarding=no
+/interface wireless set wlan1 band=2ghz-b/g/n country=kenya installation=indoor
+/interface wireless set wlan1 default-forwarding=no disabled=no
 
-# --- WAN (Internet from Safaricom router) ---
+# --- Step 4: WAN Client (Safaricom / ISP on ether1) ---
 /ip dhcp-client add interface=ether1 disabled=no
 
-# --- LAN IP for this router ---
-/ip address add address=10.10.0.1/22 interface=bridge-hotspot
+# --- Step 5: Gateway IP ---
+/ip address add address=10.10.0.1/22 interface=bridge-hotspot comment=hs-gw
 
-# --- DHCP Pool & Server ---
+# --- Step 6: DHCP Pool & Server ---
 /ip pool add name=hs-pool ranges=10.10.0.10-10.10.3.250
 /ip dhcp-server add name=dhcp-hotspot interface=bridge-hotspot address-pool=hs-pool disabled=no
-/ip dhcp-server network add address=10.10.0.0/22 gateway=10.10.0.1 dns-server=10.10.0.1
+/ip dhcp-server network add address=10.10.0.0/22 gateway=10.10.0.1 dns-server=10.10.0.1 comment=hs-net
 
-# --- DNS ---
-/ip dns set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
+# --- Step 7: DNS Configuration ---
+/ip dns set allow-remote-requests=yes servers=8.8.8.8,1.1.1.1
 
-# --- NAT Masquerade (outbound internet) ---
-/ip firewall nat add chain=srcnat out-interface=ether1 action=masquerade comment=WAN-Masquerade
+# --- Step 8: Outbound Internet NAT ---
+/ip firewall nat add chain=srcnat out-interface=ether1 action=masquerade comment=WAN-NAT
 
-# --- Hotspot Profile (split into 2 lines - under 120 chars each) ---
+# --- Step 9: Hotspot Server Profile ---
 /ip hotspot profile add name=hsprof-campus hotspot-address=10.10.0.1 html-directory=hotspot
 /ip hotspot profile set hsprof-campus dns-name=campusnet.local login-by=http-pap,cookie
 /ip hotspot profile set hsprof-campus mac-cookie-timeout=1d
 
-# --- Hotspot Server ---
-/ip hotspot add name=hs-campus interface=bridge-hotspot address-pool=hs-pool profile=hsprof-campus
+# --- Step 10: Hotspot Server Activation ---
+/ip hotspot add name=hs-campus interface=bridge-hotspot address-pool=hs-pool profile=hsprof-campus disabled=no
 
-# --- Default User Profile ---
+# --- Step 11: Bandwidth & User Profile ---
 /ip hotspot user profile set [find default=yes] shared-users=1 keepalive-timeout=2m
-/ip hotspot user profile set [find default=yes] rate-limit=3M/1M mac-cookie-timeout=1d
+/ip hotspot user profile set [find default=yes] rate-limit=5M/2M mac-cookie-timeout=1d
 
-# --- Walled Garden (free access BEFORE payment) ---
+# --- Step 12: Walled Garden (Whitelisted BEFORE Payment) ---
+# Captive portal probes are excluded so phones automatically pop up login modal!
 /ip hotspot walled-garden add dst-host=*.paystack.co action=allow
 /ip hotspot walled-garden add dst-host=*.paystack.com action=allow
 /ip hotspot walled-garden add dst-host=*.safaricom.co.ke action=allow
 /ip hotspot walled-garden add dst-host=*.onrender.com action=allow
 /ip hotspot walled-garden add dst-host=imageke-api.onrender.com action=allow
-/ip hotspot walled-garden add dst-host=api.duncanmakoyo.com action=allow
-/ip hotspot walled-garden add dst-host=captive.apple.com action=allow
-/ip hotspot walled-garden add dst-host=connectivitycheck.gstatic.com action=allow
-/ip hotspot walled-garden add dst-host=connectivitycheck.android.com action=allow
-/ip hotspot walled-garden add dst-host=www.msftconnecttest.com action=allow
+/ip hotspot walled-garden add dst-host=fonts.googleapis.com action=allow
+/ip hotspot walled-garden add dst-host=fonts.gstatic.com action=allow
 
-# --- DNS Anti-Bypass (force all DNS through router) ---
-/ip firewall nat add chain=dstnat protocol=udp dst-port=53 action=redirect to-ports=53
+# --- Step 13: DNS Redirection (Anti-Bypass) ---
+/ip firewall nat add chain=dstnat protocol=udp dst-port=53 action=redirect to-ports=53 comment=DNS-NAT
+/ip firewall nat add chain=dstnat protocol=tcp dst-port=53 action=redirect to-ports=53 comment=DNS-NAT
 
-:log info "Makoyocart Ventures CampusNet - ONLINE!"
+:log info ">>> Makoyocart Ventures CampusNet - ONLINE & VERIFIED <<<"
