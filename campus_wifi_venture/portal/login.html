@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Makoyocart Ventures Wifi</title>
+    <style>
+        :root {
+            --bg-primary: #0a0f1d;
+            --bg-card: rgba(18, 26, 47, 0.85);
+            --bg-card-hover: rgba(28, 39, 68, 0.95);
+            --accent-blue: #2563eb;
+            --accent-blue-light: #3b82f6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --border-active: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.18) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .subtext {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .packages-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .pkg-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid var(--border-glass);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .pkg-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .pkg-card.active {
+            background: rgba(37, 99, 255, 0.12);
+            border-color: var(--accent-blue-light);
+            box-shadow: 0 0 16px -4px rgba(37, 99, 235, 0.4);
+        }
+
+        .pkg-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pkg-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .pkg-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .pkg-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: #60a5fa;
+            white-space: nowrap;
+        }
+
+        .pkg-tag {
+            position: absolute;
+            top: -8px;
+            right: 14px;
+            background: var(--accent-blue);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .input-box {
+            width: 100%;
+            height: 48px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 0 16px;
+            font-size: 15px;
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: var(--accent-blue-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.6);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .footer-links {
+            margin-top: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .link-btn {
+            color: #93c5fd;
+            text-decoration: none;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 12px;
+            padding: 4px;
+        }
+
+        .link-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 360px;
+            background: #131d35;
+            border: 1px solid var(--border-glass);
+            border-radius: 18px;
+            padding: 26px 20px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .modal-msg {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .countdown-timer {
+            font-size: 24px;
+            font-weight: 800;
+            color: #60a5fa;
+            margin-bottom: 14px;
+        }
+
+        .fallback-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 14px;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        /* Toast Notification System */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+            width: calc(100% - 32px);
+            max-width: 380px;
+        }
+
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid;
+            font-size: 13px;
+            line-height: 1.45;
+            pointer-events: all;
+            box-shadow: 0 8px 24px -4px rgba(0,0,0,0.5);
+            animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to   { opacity: 0; transform: translateY(12px) scale(0.94); }
+        }
+
+        .toast.toast-error {
+            background: rgba(30, 8, 8, 0.92);
+            border-color: rgba(239, 68, 68, 0.45);
+            color: #fca5a5;
+        }
+
+        .toast.toast-success {
+            background: rgba(5, 28, 18, 0.92);
+            border-color: rgba(16, 185, 129, 0.45);
+            color: #6ee7b7;
+        }
+
+        .toast.toast-info {
+            background: rgba(7, 16, 38, 0.92);
+            border-color: rgba(59, 130, 246, 0.45);
+            color: #93c5fd;
+        }
+
+        .toast-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .toast-body .toast-title { font-weight: 700; margin-bottom: 2px; font-size: 13px; }
+        .toast-body .toast-msg { opacity: 0.85; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div class="toast-container" id="toast-container"></div>
+
+<div class="container">
+    <div class="header">
+        <div class="badge-status">
+            <span class="pulse-dot"></span>
+            <span id="status-text">Network Online • 15 Mbps Fast</span>
+        </div>
+        <h1>Makoyocart Ventures Wifi</h1>
+        <p class="subtext">A Service by Makoyocart Ventures (BN-WLSP9KP9)</p>
+    </div>
+
+    <!-- Error message display -->
+    <div id="error-banner" class="alert-error"></div>
+    $(if error)
+    <div class="alert-error" style="display:block;">$(error)</div>
+    $(endif)
+
+    <div class="section-title">Select Access Pass</div>
+    
+    <div class="packages-grid" id="packages-list">
+        <!-- 1 Hour Flash Pass -->
+        <div class="pkg-card" onclick="selectPackage('pkg_1h', 10, '1 Hour Flash Pass')" id="card-pkg_1h">
+            <span class="pkg-tag" style="background:rgba(245,158,11,0.2); color:#fbbf24; border-color:rgba(245,158,11,0.4);">Quick Sprint ⚡</span>
+            <div class="pkg-left">
+                <span class="pkg-name">1 Hour Flash Pass</span>
+                <span class="pkg-desc">Quick assignments & notes download</span>
+            </div>
+            <span class="pkg-price">KSh 10</span>
+        </div>
+
+        <!-- 3 Hours Pass -->
+        <div class="pkg-card" onclick="selectPackage('pkg_3h', 20, '3 Hours Browsing')" id="card-pkg_3h">
+            <div class="pkg-left">
+                <span class="pkg-name">3 Hours Browsing</span>
+                <span class="pkg-desc">Pauses when you disconnect • Valid 24h</span>
+            </div>
+            <span class="pkg-price">KSh 20</span>
+        </div>
+
+        <!-- 24 Hours Unlimited (Active by default) -->
+        <div class="pkg-card active" onclick="selectPackage('pkg_24h', 40, '24 Hours Unlimited')" id="card-pkg_24h">
+            <span class="pkg-tag">Most Popular ★</span>
+            <div class="pkg-left">
+                <span class="pkg-name">24 Hours Unlimited</span>
+                <span class="pkg-desc">Continuous high-speed access</span>
+            </div>
+            <span class="pkg-price">KSh 40</span>
+        </div>
+
+        <!-- 7 Days Pass -->
+        <div class="pkg-card" onclick="selectPackage('pkg_7d', 150, '7 Days Unlimited')" id="card-pkg_7d">
+            <div class="pkg-left">
+                <span class="pkg-name">7 Days Unlimited</span>
+                <span class="pkg-desc">Best for heavy hostel studying</span>
+            </div>
+            <span class="pkg-price">KSh 150</span>
+        </div>
+
+        <!-- 30 Days VIP Pass -->
+        <div class="pkg-card" onclick="selectPackage('pkg_30d', 500, '30 Days VIP Resident')" id="card-pkg_30d">
+            <span class="pkg-tag" style="background:rgba(16,185,129,0.2); color:#34d399; border-color:rgba(16,185,129,0.4);">Save KSh 1,000 🔥</span>
+            <div class="pkg-left">
+                <span class="pkg-name">30 Days VIP Resident</span>
+                <span class="pkg-desc">Full month unmetered hostel Wi-Fi</span>
+            </div>
+            <span class="pkg-price">KSh 500</span>
+        </div>
+    </div>
+
+    <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
+        <div class="input-group">
+            <label for="phone-input">M-Pesa Phone Number</label>
+            <input type="tel" id="phone-input" class="input-box" placeholder="e.g. 0712345678" required autocomplete="tel">
+        </div>
+
+        <div class="input-group" style="margin-bottom: 18px;">
+            <label for="promo-input">Promo Code (Optional)</label>
+            <input type="text" id="promo-input" class="input-box" placeholder="e.g. FRESHER2026" style="height: 40px; font-size: 13px;">
+        </div>
+
+        <button type="submit" id="btn-pay" class="btn-primary">
+            <span>⚡ Pay & Connect via M-Pesa</span>
+        </button>
+    </form>
+
+    <div class="footer-links">
+        <button class="link-btn" onclick="openRestoreModal()">🔄 Already Paid? Restore Session</button>
+        <button class="link-btn" onclick="openCodeVerifyModal()">Enter Code</button>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #64748b;">
+        <span>Makoyocart Ventures • Reg. No: BN-WLSP9KP9</span><br>
+        <span>Support: 0712 345 678 • Kisii, Kenya</span>
+    </div>
+</div>
+
+<!-- MikroTik Native Login Form (Hidden Drop-in Submitter) -->
+<form name="sendin" action="$(link-login-only)" method="post" style="display:none;">
+    <input type="hidden" name="username" id="mk-user" value="$(username)" />
+    <input type="hidden" name="password" id="mk-pass" />
+    <input type="hidden" name="dst" value="$(link-orig)" />
+    <input type="hidden" name="popup" value="true" />
+</form>
+
+<!-- Modal: STK Push Waiting -->
+<div class="modal-overlay" id="stk-modal">
+    <div class="modal-card">
+        <div class="spinner" id="modal-spinner"></div>
+        <h3 class="modal-title" id="modal-heading">Check Your Phone</h3>
+        <p class="modal-msg" id="modal-subtext">We sent an M-Pesa prompt to your phone. Enter your PIN to activate your Wi-Fi pass.</p>
+        <div class="countdown-timer" id="timer-display">40s</div>
+
+        <div class="fallback-box" id="modal-fallback" style="display:none;">
+            <strong>Prompt delayed?</strong>
+            <p style="margin: 4px 0 8px; color:#cbd5e1;">Pay KSh <span id="fb-amount">40</span> to Till/Paybill, then enter the M-Pesa SMS code below:</p>
+            <input type="text" id="manual-code-input" class="input-box" placeholder="e.g. QJD9472KL" style="height:40px; margin-bottom:8px; text-transform:uppercase;">
+            <button type="button" class="btn-primary" style="height:40px; font-size:14px;" onclick="verifyManualCode()">Verify Code & Connect</button>
+        </div>
+        
+        <button type="button" class="link-btn" style="margin-top:14px; color:#ef4444;" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<!-- Modal: Session Restore (Defeats MAC Randomization) -->
+<div class="modal-overlay" id="restore-modal">
+    <div class="modal-card">
+        <h3 class="modal-title">Restore Active Session</h3>
+        <p class="modal-msg">Enter the phone number you used to purchase Wi-Fi to restore your access on this device.</p>
+        <input type="tel" id="restore-phone" class="input-box" placeholder="07XXXXXXXX" style="margin-bottom:12px;">
+        <button type="button" class="btn-primary" style="height:44px;" onclick="submitSessionRestore()">Find & Connect</button>
+        <button type="button" class="link-btn" style="margin-top:12px;" onclick="closeRestoreModal()">Close</button>
+    </div>
+</div>
+
+<script>
+    // Configuration
+    // Backend deployed on Render - campusnet-billing-api service
+    // UPDATE THIS URL ONCE: paste your Render service URL below (without trailing slash)
+    const BACKEND_BASE_URL = "https://campusnet-billing-api.onrender.com/api";
+    
+    // Client device identifiers extracted natively by MikroTik RouterOS
+    const CLIENT_MAC = "$(mac)" || "00:00:00:00:00:00";
+    const CLIENT_IP = "$(ip)" || "10.10.0.10";
+
+    let selectedPackageId = "pkg_24h";
+    let selectedAmount = 40;
+    let pollInterval = null;
+    let countdownInterval = null;
+    let secondsLeft = 40;
+
+    // Select package UI toggle
+    function selectPackage(pkgId, amount, name) {
+        selectedPackageId = pkgId;
+        selectedAmount = amount;
+        document.querySelectorAll('.pkg-card').forEach(card => card.classList.remove('active'));
+        const activeCard = document.getElementById('card-' + pkgId);
+        if (activeCard) activeCard.classList.add('active');
+        document.getElementById('fb-amount').innerText = amount;
+    }
+
+    // Toast notification system - replaces all browser alert() calls
+    function showToast(type, title, msg, duration) {
+        const c = document.getElementById('toast-container');
+        const icons = { success: '\u2713', error: '\u26a0', info: '\u2139' };
+        const t = document.createElement('div');
+        t.className = `toast toast-${type}`;
+        t.innerHTML = `
+            <span class="toast-icon">${icons[type] || '\u2139'}</span>
+            <div class="toast-body">
+                <div class="toast-title">${title}</div>
+                <div class="toast-msg">${msg}</div>
+            </div>`;
+        c.appendChild(t);
+        const d = duration || (type === 'error' ? 6000 : 4000);
+        setTimeout(() => {
+            t.style.animation = 'toastOut 0.3s ease both';
+            setTimeout(() => t.remove(), 320);
+        }, d);
+    }
+
+    // Try fetching dynamic promotional packages from backend on page load
+    async function loadDynamicPackages() {
+        try {
+            const res = await fetch(`${BACKEND_BASE_URL}/packages`, { method: 'GET' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.packages && data.packages.length > 0) {
+                    renderPackages(data.packages);
+                }
+            }
+        } catch (e) {
+            // Walled garden or offline: built-in packages remain active
+            console.log('Using built-in package fallback');
+        }
+    }
+
+    function renderPackages(pkgs) {
+        const container = document.getElementById('packages-list');
+        container.innerHTML = '';
+        pkgs.forEach((p, idx) => {
+            const card = document.createElement('div');
+            card.className = `pkg-card ${idx === 1 ? 'active' : ''}`;
+            card.id = `card-${p.id}`;
+            card.onclick = () => selectPackage(p.id, p.amount, p.name);
+            card.innerHTML = `
+                ${p.tag ? `<span class="pkg-tag">${p.tag}</span>` : ''}
+                <div class="pkg-left">
+                    <span class="pkg-name">${p.name}</span>
+                    <span class="pkg-desc">${p.description}</span>
+                </div>
+                <span class="pkg-price">KSh ${p.amount}</span>
+            `;
+            container.appendChild(card);
+            if (idx === 1) {
+                selectedPackageId = p.id;
+                selectedAmount = p.amount;
+            }
+        });
+    }
+
+    // Handle M-Pesa STK Push Submission
+    async function handlePaymentSubmit(e) {
+        e.preventDefault();
+        hideError();
+        const phone = document.getElementById('phone-input').value.trim();
+        const promo = document.getElementById('promo-input').value.trim();
+
+        if (!phone || phone.length < 9) {
+            showError("Please enter a valid M-Pesa phone number (e.g. 0712345678).");
+            return;
+        }
+
+        // Open STK prompt modal
+        openStkModal(phone);
+
+        try {
+            const response = await fetch(`${BACKEND_BASE_URL}/pay/stk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: phone,
+                    mac_address: CLIENT_MAC,
+                    ip_address: CLIENT_IP,
+                    package_id: selectedPackageId,
+                    amount: selectedAmount,
+                    promo_code: promo
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.reference) {
+                startStatusPolling(result.reference);
+            } else {
+                showModalError(result.detail || "Failed to initiate M-Pesa prompt. Try manual code below.");
+            }
+        } catch (err) {
+            showModalError("Unable to reach payment server. Check if M-Pesa SMS arrived and enter code below.");
+        }
+    }
+
+    // Poll payment status every 2 seconds
+    function startStatusPolling(reference) {
+        secondsLeft = 40;
+        updateTimerDisplay();
+
+        countdownInterval = setInterval(() => {
+            secondsLeft--;
+            updateTimerDisplay();
+            if (secondsLeft <= 20) {
+                // Show manual M-Pesa code input fallback if delay occurs
+                document.getElementById('modal-fallback').style.display = 'block';
+            }
+            if (secondsLeft <= 0) {
+                clearInterval(countdownInterval);
+                clearInterval(pollInterval);
+                document.getElementById('modal-heading').innerText = "STK Prompt Timed Out";
+                document.getElementById('modal-subtext').innerText = "If your M-Pesa was deducted, enter your M-Pesa SMS code below to connect.";
+            }
+        }, 1000);
+
+        pollInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${BACKEND_BASE_URL}/pay/status/${reference}`);
+                const data = await res.json();
+                if (data.status === 'completed' || data.status === 'success') {
+                    clearInterval(pollInterval);
+                    clearInterval(countdownInterval);
+                    handlePaymentSuccess(data.username, data.password);
+                }
+            } catch (e) {
+                // Ignore transient network glitches during polling
+            }
+        }, 2000);
+    }
+
+    // Auto-login to MikroTik once payment confirmed
+    function handlePaymentSuccess(username, password) {
+        document.getElementById('modal-spinner').style.display = 'none';
+        document.getElementById('modal-heading').innerText = "✓ Payment Confirmed!";
+        document.getElementById('modal-heading').style.color = "#34d399";
+        document.getElementById('modal-subtext').innerText = "Access granted! Connecting your device to the internet...";
+        document.getElementById('timer-display').style.display = 'none';
+        document.getElementById('modal-fallback').style.display = 'none';
+
+        document.getElementById('mk-user').value = username || CLIENT_MAC;
+        document.getElementById('mk-pass').value = password || CLIENT_MAC;
+
+        setTimeout(() => {
+            document.sendin.submit();
+        }, 1200);
+    }
+
+    // Session Restore (Defeats MAC Randomization)
+    async function submitSessionRestore() {
+        const phone = document.getElementById('restore-phone').value.trim();
+        if (!phone) {
+            showToast('error', 'Phone Required', 'Please enter your M-Pesa phone number to restore your session.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BACKEND_BASE_URL}/session/restore`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone, new_mac: CLIENT_MAC })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeRestoreModal();
+                showToast('success', 'Session Restored!', `Your ${data.package || 'Wi-Fi'} pass is active. Connecting...`);
+                handlePaymentSuccess(data.username, data.password);
+            } else {
+                showToast('error', 'Not Found', data.detail || 'No active pass found for this number. Please buy a new one.');
+            }
+        } catch (e) {
+            showToast('error', 'Connection Error', 'Could not reach session server. Try again in a moment.');
+        }
+    }
+
+    // Verify manual transaction code
+    async function verifyManualCode() {
+        const code = document.getElementById('manual-code-input').value.trim();
+        if (!code) {
+            showToast('error', 'Code Required', 'Please enter the M-Pesa transaction code from your SMS.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BACKEND_BASE_URL}/pay/verify-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: code, mac_address: CLIENT_MAC })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('success', 'Code Verified!', 'Payment confirmed. Connecting your device...');
+                handlePaymentSuccess(data.username, data.password);
+            } else {
+                showToast('error', 'Invalid Code', data.detail || 'This M-Pesa code could not be verified. Check and try again.');
+            }
+        } catch (e) {
+            showToast('error', 'Service Unavailable', 'Cannot reach verification server. Please try again.');
+        }
+    }
+
+    // UI Helpers
+    function openStkModal(phone) {
+        document.getElementById('stk-modal').style.display = 'flex';
+        document.getElementById('modal-heading').innerText = "Check Your Phone";
+        document.getElementById('modal-subtext').innerText = `We sent an M-Pesa PIN prompt to ${phone}. Enter your PIN to activate your pass.`;
+        document.getElementById('modal-spinner').style.display = 'block';
+        document.getElementById('timer-display').style.display = 'block';
+        document.getElementById('modal-fallback').style.display = 'none';
+    }
+
+    function closeModal() {
+        clearInterval(pollInterval);
+        clearInterval(countdownInterval);
+        document.getElementById('stk-modal').style.display = 'none';
+    }
+
+    function showModalError(msg) {
+        document.getElementById('modal-heading').innerText = "Payment Notice";
+        document.getElementById('modal-subtext').innerText = msg;
+        document.getElementById('modal-fallback').style.display = 'block';
+    }
+
+    function openRestoreModal() { document.getElementById('restore-modal').style.display = 'flex'; }
+    function closeRestoreModal() { document.getElementById('restore-modal').style.display = 'none'; }
+    function openCodeVerifyModal() {
+        openStkModal("");
+        document.getElementById('modal-spinner').style.display = 'none';
+        document.getElementById('timer-display').style.display = 'none';
+        document.getElementById('modal-fallback').style.display = 'block';
+    }
+
+    function showError(msg) {
+        const b = document.getElementById('error-banner');
+        b.innerText = msg;
+        b.style.display = 'block';
+        showToast('error', 'Payment Error', msg);
+    }
+    function hideError() { document.getElementById('error-banner').style.display = 'none'; }
+
+    function updateTimerDisplay() {
+        const d = document.getElementById('timer-display');
+        if (d) d.innerText = secondsLeft + 's';
+    }
+
+    window.onload = loadDynamicPackages;
+</script>
+
+</body>
+</html>

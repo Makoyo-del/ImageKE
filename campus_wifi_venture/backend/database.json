@@ -1,0 +1,64 @@
+{
+  "packages": [
+    {
+      "id": "pkg_1h",
+      "name": "1 Hour Flash Pass",
+      "amount": 10,
+      "uptime_limit": "1h",
+      "validity_hours": 3,
+      "description": "Quick assignments & notes download",
+      "tag": "Quick Sprint \u26a1",
+      "type": "banked"
+    },
+    {
+      "id": "pkg_3h",
+      "name": "3 Hours Browsing",
+      "amount": 20,
+      "uptime_limit": "3h",
+      "validity_hours": 24,
+      "description": "Pauses when you disconnect \u2022 Valid 24h",
+      "type": "banked"
+    },
+    {
+      "id": "pkg_24h",
+      "name": "24 Hours Unlimited",
+      "amount": 40,
+      "uptime_limit": "24h",
+      "validity_hours": 24,
+      "description": "Continuous high-speed access",
+      "tag": "Most Popular \u2605",
+      "type": "continuous"
+    },
+    {
+      "id": "pkg_7d",
+      "name": "7 Days Unlimited",
+      "amount": 150,
+      "uptime_limit": "168h",
+      "validity_hours": 168,
+      "description": "Best for heavy hostel studying",
+      "type": "continuous"
+    },
+    {
+      "id": "pkg_30d",
+      "name": "30 Days VIP Resident",
+      "amount": 500,
+      "uptime_limit": "720h",
+      "validity_hours": 720,
+      "description": "Full month unmetered hostel Wi-Fi",
+      "tag": "Save KSh 1,000 \ud83d\udd25",
+      "type": "continuous"
+    }
+  ],
+  "promos": {
+    "FRESHER2026": {
+      "discount_percent": 25,
+      "active": true
+    },
+    "EXAMNIGHT": {
+      "discount_fixed": 15,
+      "active": true
+    }
+  },
+  "transactions": {},
+  "active_sessions": {}
+}
