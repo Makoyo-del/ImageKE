@@ -1,6 +1,6 @@
 # ============================================================
-# Makoyocart Ventures - CampusNet DEFINITIVE SETUP (V8)
-# Zero-Disconnect & Zero-Error: Safe on RouterOS 7.x
+# Makoyocart Ventures - CampusNet DEFINITIVE SETUP (V9)
+# Optimized for 15 Mbps High Speed & Instant M-Pesa STK Push
 # ============================================================
 
 # --- Step 1: Ensure Bridge & Ports exist without dropping connection ---
@@ -23,6 +23,7 @@
 /ip hotspot user remove [find name!=admin]
 /ip hotspot user profile remove [find name!=default]
 /ip hotspot walled-garden remove [find]
+/ip hotspot walled-garden ip remove [find]
 /ip dhcp-server remove [find]
 /ip dhcp-server network remove [find]
 /ip pool remove [find name=hs-pool]
@@ -49,11 +50,10 @@
 /ip hotspot profile set [find name=hsprof-campus] dns-name=campusnet.local login-by=http-pap,cookie
 /ip hotspot add name=hs-campus interface=bridge-hotspot address-pool=hs-pool profile=hsprof-campus disabled=no
 
-# --- Step 8: User Profile Bandwidth ---
-/ip hotspot user profile set [find default=yes] shared-users=1 keepalive-timeout=2m rate-limit=5M/2M
+# --- Step 8: Full 15 Mbps Bandwidth Speed Profile ---
+/ip hotspot user profile set [find default=yes] shared-users=1 keepalive-timeout=2m rate-limit=15M/5M
 
-# --- Step 9: Walled Garden (Accessible before payment) ---
-# Captive portal probe URLs excluded so phone auto-displays login modal!
+# --- Step 9: Walled Garden HTTP (Port 80) ---
 /ip hotspot walled-garden add dst-host=*.paystack.co action=allow
 /ip hotspot walled-garden add dst-host=*.paystack.com action=allow
 /ip hotspot walled-garden add dst-host=*.safaricom.co.ke action=allow
@@ -62,8 +62,16 @@
 /ip hotspot walled-garden add dst-host=fonts.googleapis.com action=allow
 /ip hotspot walled-garden add dst-host=fonts.gstatic.com action=allow
 
-# --- Step 10: DNS Anti-Bypass Redirection ---
+# --- Step 10: Walled Garden IP (Port 443 HTTPS - Instant STK Push) ---
+/ip hotspot walled-garden ip add dst-host=imageke-api.onrender.com action=accept
+/ip hotspot walled-garden ip add dst-host=*.onrender.com action=accept
+/ip hotspot walled-garden ip add dst-host=api.paystack.co action=accept
+/ip hotspot walled-garden ip add dst-host=*.paystack.co action=accept
+/ip hotspot walled-garden ip add dst-host=*.paystack.com action=accept
+/ip hotspot walled-garden ip add dst-host=*.safaricom.co.ke action=accept
+
+# --- Step 11: DNS Anti-Bypass Redirection ---
 /ip firewall nat add chain=dstnat protocol=udp dst-port=53 action=redirect to-ports=53 comment=DNS-NAT
 /ip firewall nat add chain=dstnat protocol=tcp dst-port=53 action=redirect to-ports=53 comment=DNS-NAT
 
-:log info ">>> Makoyocart Ventures CampusNet - READY & VERIFIED <<<"
+:log info ">>> Makoyocart Ventures CampusNet - 15 MBPS ONLINE & READY <<<"

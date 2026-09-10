@@ -1051,11 +1051,17 @@
         }
 
         openStkModal(phone);
+        document.getElementById('modal-heading').innerText = "Sending Prompt...";
+        document.getElementById('modal-subtext').innerText = `Requesting M-Pesa prompt for ${phone}. Keep your screen unlocked.`;
 
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
+
             const response = await fetch(`${BACKEND_BASE_URL}/pay/stk`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
                 body: JSON.stringify({
                     phone: phone,
                     mac_address: CLIENT_MAC,
@@ -1065,16 +1071,22 @@
                     promo_code: promo
                 })
             });
+            clearTimeout(timeoutId);
 
             const result = await response.json();
 
             if (response.ok && result.reference) {
+                document.getElementById('modal-heading').innerText = "Check Your Phone";
+                document.getElementById('modal-subtext').innerText = `M-Pesa PIN prompt sent to ${phone}. Enter your PIN to activate Wi-Fi.`;
                 startStatusPolling(result.reference);
             } else {
-                showModalError(result.detail || "Failed to initiate M-Pesa prompt. Try manual code below.");
+                showModalError(result.error || result.detail || "Failed to initiate M-Pesa prompt. Try manual code below.");
             }
         } catch (err) {
-            showModalError("Unable to reach payment server. Check your M-Pesa SMS and enter code below.");
+            // Even if network blipped, prompt was likely dispatched by backend
+            document.getElementById('modal-heading').innerText = "Check Your Phone";
+            document.getElementById('modal-subtext').innerText = "If the M-Pesa prompt appears on your phone, enter your PIN. Otherwise use the manual code below.";
+            document.getElementById('modal-fallback').style.display = 'block';
         }
     }
 

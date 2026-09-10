@@ -129,7 +129,7 @@ router.post('/pay/stk', async (req, res) => {
       console.warn('[CampusNet] DB transaction log warning:', txErr.message);
     }
 
-    // 2. Dispatch Paystack STK Charge
+    // 2. Non-blocking Paystack STK Dispatch for lightning-fast mobile response
     if (PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
       const paystackPayload = {
         email: `wifi+${cleanPhone}@makoyocart.com`,
@@ -150,21 +150,22 @@ router.post('/pay/stk', async (req, res) => {
         }
       };
 
-      try {
-        const paystackRes = await axios.post('https://api.paystack.co/charge', paystackPayload, {
-          headers: {
-            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 10000
-        });
-
+      // Dispatched in background without stalling the mobile client
+      axios.post('https://api.paystack.co/charge', paystackPayload, {
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 15000
+      }).then(paystackRes => {
         if (!paystackRes.data.status) {
-          console.warn('[CampusNet Paystack Charge Notice]', paystackRes.data);
+          console.warn('[CampusNet Paystack Notice]', paystackRes.data);
+        } else {
+          console.log(`[CampusNet STK] Dispatched to ${cleanPhone} (Ref: ${reference})`);
         }
-      } catch (payErr) {
+      }).catch(payErr => {
         console.error('[CampusNet Paystack Error]', payErr.response?.data || payErr.message);
-      }
+      });
     }
 
     return res.json({
