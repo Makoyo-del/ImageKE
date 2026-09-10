@@ -11,6 +11,7 @@ import academyRouter from './academy.js';
 import workshopRouter, { sendConfirmationEmail } from './workshop.js';
 import riderRouter from './rider.js';
 import hotseatRouter from './hotseat.js';
+import campusNetRouter from './campusnet.js';
 import { supabase } from './supabase.js';
 
 dotenv.config();
@@ -100,7 +101,7 @@ const apiLimiter = rateLimit({
 const baseOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : [];
-const allowedOrigins = [...baseOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+const allowedOrigins = [...baseOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://10.10.0.1', 'http://campusnet.local'];
 
 app.use(
   cors({
@@ -123,7 +124,7 @@ app.use(
   express.json({
     limit: '8mb',
     verify: (req, _res, buf) => {
-      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/rider/webhook') {
+      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/rider/webhook' || req.originalUrl === '/api/campusnet/webhook') {
         req.rawBody = buf;
       }
     },
@@ -144,6 +145,9 @@ app.use('/api/rider', riderRouter);
 
 // ─── Hot Seat Mount ───────────────────────────────────────────────────────────
 app.use('/api/hotseat', hotseatRouter);
+
+// ─── CampusNet Wi-Fi Mount (Makoyocart Ventures) ───────────────────────────────
+app.use('/api/campusnet', campusNetRouter);
 
 // ─── Health Check (for UptimeRobot / monitoring) ──────────────────────────────
 // Ping this endpoint every 5 minutes from UptimeRobot to:
