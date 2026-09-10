@@ -1178,18 +1178,26 @@
             return;
         }
 
+        const phoneVal = (document.getElementById('phone-input') ? document.getElementById('phone-input').value.trim() : '') || localStorage.getItem('cn_phone') || '';
+        const pkgId = selectedPackageId || 'pkg_1h';
+
         try {
             const res = await fetch(`${BACKEND_BASE_URL}/pay/verify-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: code, mac_address: CLIENT_MAC })
+                body: JSON.stringify({
+                    code: code,
+                    phone: phoneVal,
+                    mac_address: CLIENT_MAC,
+                    package_id: pkgId
+                })
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast('success', 'Code Verified!', 'Payment confirmed. Connecting your device...');
+                showToast('success', 'Code Verified!', `Pass activated for ${data.package_name || 'your package'}. Connecting...`);
                 handlePaymentSuccess(data.username, data.password);
             } else {
-                showToast('error', 'Invalid Code', data.detail || 'This code could not be verified.');
+                showToast('error', 'Invalid Code', data.error || data.detail || 'This code could not be verified.');
             }
         } catch (e) {
             showToast('error', 'Service Unavailable', 'Cannot reach verification server.');

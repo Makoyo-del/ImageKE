@@ -181,6 +181,109 @@ router.post('/pay/stk', async (req, res) => {
   }
 });
 
+// Helper: Atomically activate a voucher and register the session
+export async function activateVoucherForTransaction({
+  reference,
+  phone,
+  macAddress,
+  packageId,
+  mpesaReceipt,
+  paystackId
+}) {
+  const { clean: cleanPhone } = formatPhone(phone);
+  const clientMac = (macAddress && macAddress !== '$(mac)') ? macAddress : '00:00:00:00:00:00';
+  // NEVER default to 24h! Default to 1 Hour Flash Pass (pkg_1h, 10 KES)
+  const pkg = PACKAGES.find((p) => p.id === packageId) || PACKAGES[0];
+  const durationHours = pkg.duration_hours;
+
+  let voucherCode = null;
+  let voucherPassword = null;
+
+  // 1. Fetch available voucher from Supabase pool for THIS specific package
+  const { data: voucher, error: vErr } = await supabase
+    .from('campusnet_vouchers')
+    .select('*')
+    .eq('package_id', pkg.id)
+    .eq('status', 'available')
+    .limit(1)
+    .maybeSingle();
+
+  const now = new Date();
+  const validUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+
+  if (voucher && !vErr) {
+    voucherCode = voucher.code;
+    voucherPassword = voucher.password;
+
+    await supabase
+      .from('campusnet_vouchers')
+      .update({
+        status: 'assigned',
+        assigned_phone: cleanPhone || null,
+        assigned_mac: clientMac,
+        activated_at: now.toISOString(),
+        expires_at: validUntil.toISOString()
+      })
+      .eq('id', voucher.id);
+  } else {
+    // Dynamic generation fallback if pool is exhausted
+    const suffix = cleanPhone.length >= 4 ? cleanPhone.slice(-4) : crypto.randomBytes(2).toString('hex');
+    voucherCode = `u_${suffix}_${crypto.randomBytes(2).toString('hex')}`;
+    voucherPassword = crypto.randomBytes(3).toString('hex');
+
+    await supabase.from('campusnet_vouchers').insert({
+      code: voucherCode,
+      password: voucherPassword,
+      package_id: pkg.id,
+      duration_hours: durationHours,
+      amount: pkg.amount,
+      status: 'assigned',
+      assigned_phone: cleanPhone || null,
+      assigned_mac: clientMac,
+      activated_at: now.toISOString(),
+      expires_at: validUntil.toISOString()
+    });
+  }
+
+  // 2. Update transaction status
+  if (reference) {
+    await supabase
+      .from('campusnet_transactions')
+      .update({
+        status: 'completed',
+        paystack_reference: paystackId ? String(paystackId) : null,
+        mpesa_receipt: mpesaReceipt || null,
+        voucher_code: voucherCode,
+        package_id: pkg.id,
+        amount: pkg.amount
+      })
+      .eq('reference', reference);
+  }
+
+  // 3. Upsert session for phone MAC-randomization restoration
+  if (cleanPhone && cleanPhone.length >= 9) {
+    await supabase.from('campusnet_sessions').upsert(
+      {
+        phone: cleanPhone,
+        mac_address: clientMac,
+        voucher_code: voucherCode,
+        voucher_password: voucherPassword,
+        valid_until: validUntil.toISOString()
+      },
+      { onConflict: 'phone' }
+    );
+  }
+
+  console.log(`[CampusNet Voucher Activated] Granted ${pkg.name} (${durationHours}h) to phone:${cleanPhone} mac:${clientMac} (Voucher: ${voucherCode})`);
+
+  return {
+    voucherCode,
+    voucherPassword,
+    validUntil: validUntil.toISOString(),
+    package: pkg
+  };
+}
+
 // ─── POST /api/campusnet/webhook ──────────────────────────────────────────────
 // Validates HMAC-SHA512 signature from Paystack and activates internet pass
 router.post('/webhook', async (req, res) => {
@@ -206,85 +309,28 @@ router.post('/webhook', async (req, res) => {
     const metadata = data.metadata || {};
     const phone = metadata.phone || data.customer?.phone || '';
     const macAddress = metadata.mac_address || '00:00:00:00:00:00';
-    const packageId = metadata.package_id || 'pkg_24h';
-
-    const pkg = PACKAGES.find((p) => p.id === packageId) || PACKAGES[1];
-    const durationHours = pkg.duration_hours;
+    
+    // Check transaction table for user-selected package to avoid falling back to 24h
+    let packageId = metadata.package_id;
+    if (!packageId && reference) {
+      const { data: existingTx } = await supabase
+        .from('campusnet_transactions')
+        .select('package_id')
+        .eq('reference', reference)
+        .maybeSingle();
+      if (existingTx) packageId = existingTx.package_id;
+    }
+    if (!packageId) packageId = 'pkg_1h';
 
     try {
-      // 1. Fetch available voucher from Supabase pool
-      let voucherCode = null;
-      let voucherPassword = null;
-
-      const { data: voucher, error: vErr } = await supabase
-        .from('campusnet_vouchers')
-        .select('*')
-        .eq('package_id', pkg.id)
-        .eq('status', 'available')
-        .limit(1)
-        .maybeSingle();
-
-      const now = new Date();
-      const validUntil = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
-
-      if (voucher && !vErr) {
-        voucherCode = voucher.code;
-        voucherPassword = voucher.password;
-
-        // Mark voucher as assigned
-        await supabase
-          .from('campusnet_vouchers')
-          .update({
-            status: 'assigned',
-            assigned_phone: phone,
-            assigned_mac: macAddress,
-            activated_at: now.toISOString(),
-            expires_at: validUntil.toISOString()
-          })
-          .eq('id', voucher.id);
-      } else {
-        // Fallback: Dynamically generate voucher
-        voucherCode = `u_${phone.slice(-4)}_${crypto.randomBytes(2).toString('hex')}`;
-        voucherPassword = crypto.randomBytes(4).toString('hex');
-
-        await supabase.from('campusnet_vouchers').insert({
-          code: voucherCode,
-          password: voucherPassword,
-          package_id: pkg.id,
-          duration_hours: durationHours,
-          amount: pkg.amount,
-          status: 'assigned',
-          assigned_phone: phone,
-          assigned_mac: macAddress,
-          activated_at: now.toISOString(),
-          expires_at: validUntil.toISOString()
-        });
-      }
-
-      // 2. Update transaction status
-      await supabase
-        .from('campusnet_transactions')
-        .update({
-          status: 'completed',
-          paystack_reference: data.id ? String(data.id) : null,
-          mpesa_receipt: data.gateway_response || null,
-          voucher_code: voucherCode
-        })
-        .eq('reference', reference);
-
-      // 3. Upsert session for phone MAC-randomization restoration
-      await supabase.from('campusnet_sessions').upsert(
-        {
-          phone,
-          mac_address: macAddress,
-          voucher_code: voucherCode,
-          voucher_password: voucherPassword,
-          valid_until: validUntil.toISOString()
-        },
-        { onConflict: 'phone' }
-      );
-
-      console.log(`[CampusNet Webhook] Successfully activated ${pkg.name} for ${phone} (Voucher: ${voucherCode})`);
+      await activateVoucherForTransaction({
+        reference,
+        phone,
+        macAddress,
+        packageId,
+        mpesaReceipt: data.gateway_response || data.reference,
+        paystackId: data.id ? String(data.id) : null
+      });
     } catch (err) {
       console.error('[CampusNet Webhook Activation Error]', err);
     }
@@ -294,7 +340,8 @@ router.post('/webhook', async (req, res) => {
 });
 
 // ─── GET /api/campusnet/pay/status/:reference ─────────────────────────────────
-// Polled by portal login.html to auto-connect client
+// Polled by portal login.html to auto-connect client.
+// Proactively verifies status with Paystack if DB is pending (no webhook delay!)
 router.get('/pay/status/:reference', async (req, res) => {
   const { reference } = req.params;
 
@@ -309,7 +356,7 @@ router.get('/pay/status/:reference', async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    if (tx.status === 'completed') {
+    if (tx.status === 'completed' && tx.voucher_code) {
       // Lookup voucher password if stored
       const { data: voucher } = await supabase
         .from('campusnet_vouchers')
@@ -322,6 +369,40 @@ router.get('/pay/status/:reference', async (req, res) => {
         username: tx.voucher_code,
         password: voucher?.password || tx.voucher_code
       });
+    }
+
+    // ACTIVE VERIFICATION WITH PAYSTACK:
+    // If status is still pending in DB, proactively ask Paystack if customer finished payment!
+    if (PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+      try {
+        const paystackVerifyRes = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+          timeout: 4500
+        });
+
+        const pData = paystackVerifyRes.data?.data;
+        if (pData && pData.status === 'success') {
+          console.log(`[CampusNet Status Polling] Paystack verified success for ref ${reference}! Auto-activating...`);
+          const activated = await activateVoucherForTransaction({
+            reference,
+            phone: tx.phone,
+            macAddress: tx.mac_address,
+            packageId: tx.package_id,
+            mpesaReceipt: pData.gateway_response || pData.reference,
+            paystackId: pData.id ? String(pData.id) : null
+          });
+
+          if (activated) {
+            return res.json({
+              status: 'completed',
+              username: activated.voucherCode,
+              password: activated.voucherPassword
+            });
+          }
+        }
+      } catch (pErr) {
+        // Paystack still pending or awaiting customer PIN
+      }
     }
 
     return res.json({ status: 'pending' });
@@ -457,72 +538,96 @@ router.get('/session/status', async (req, res) => {
 // ─── POST /api/campusnet/pay/verify-code ───────────────────────────────────────
 // Manual fallback when STK is delayed or student paid via Till/Paybill
 router.post('/pay/verify-code', async (req, res) => {
-  const { code, phone, mac_address } = req.body;
+  const { code, phone, mac_address, package_id } = req.body;
   const cleanCode = (code || '').trim().toUpperCase();
 
-  if (cleanCode.length < 8) {
-    return res.status(400).json({ error: 'Please enter a valid M-Pesa transaction code (e.g. QJD9472KL)' });
+  if (cleanCode.length < 6) {
+    return res.status(400).json({ error: 'Please enter a valid M-Pesa transaction code or reference.' });
   }
 
-  const { clean: cleanPhone } = formatPhone(phone || '254700000000');
+  const { clean: cleanPhone } = formatPhone(phone);
   const clientMac = (mac_address && mac_address !== '$(mac)') ? mac_address : '00:00:00:00:00:00';
 
   try {
-    const pkg = PACKAGES[1]; // default 24h
-    const now = new Date();
-    const validUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    let targetTx = null;
 
-    let voucherCode = null;
-    let voucherPassword = null;
-
-    const { data: voucher } = await supabase
-      .from('campusnet_vouchers')
-      .select('*')
-      .eq('package_id', 'pkg_24h')
-      .eq('status', 'available')
-      .limit(1)
-      .maybeSingle();
-
-    if (voucher) {
-      voucherCode = voucher.code;
-      voucherPassword = voucher.password;
-      await supabase.from('campusnet_vouchers').update({
-        status: 'assigned',
-        assigned_phone: cleanPhone,
-        assigned_mac: clientMac,
-        activated_at: now.toISOString(),
-        expires_at: validUntil.toISOString()
-      }).eq('id', voucher.id);
-    } else {
-      voucherCode = `u_${cleanCode.slice(-4)}`;
-      voucherPassword = cleanCode.slice(-6);
+    // 1. If user entered a Paystack reference (starts with CN_)
+    if (cleanCode.startsWith('CN_')) {
+      const { data: txByRef } = await supabase
+        .from('campusnet_transactions')
+        .select('*')
+        .eq('reference', cleanCode)
+        .maybeSingle();
+      if (txByRef) targetTx = txByRef;
     }
 
-    await supabase.from('campusnet_transactions').insert({
-      reference: `MANUAL_${cleanCode}_${Date.now()}`,
-      phone: cleanPhone,
-      mac_address: clientMac,
-      package_id: 'pkg_24h',
-      amount: 40,
-      status: 'completed',
-      mpesa_receipt: cleanCode,
-      voucher_code: voucherCode
+    // 2. Search for recent pending transaction for this MAC or phone (within last 60 minutes)
+    if (!targetTx) {
+      if (clientMac && clientMac !== '00:00:00:00:00:00') {
+        const { data: txByMac } = await supabase
+          .from('campusnet_transactions')
+          .select('*')
+          .eq('mac_address', clientMac)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (txByMac) targetTx = txByMac;
+      }
+    }
+
+    if (!targetTx && cleanPhone && cleanPhone !== '254700000000') {
+      const { data: txByPhone } = await supabase
+        .from('campusnet_transactions')
+        .select('*')
+        .eq('phone', cleanPhone)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (txByPhone) targetTx = txByPhone;
+    }
+
+    // 3. Determine the package: EXACT match from pending transaction, or requested package_id, or default to 1 HOUR (pkg_1h) - NEVER 24h!
+    const effectivePackageId = targetTx?.package_id || package_id || 'pkg_1h';
+    const effectivePhone = cleanPhone || targetTx?.phone || '254700000000';
+    const effectiveMac = (clientMac && clientMac !== '00:00:00:00:00:00') ? clientMac : (targetTx?.mac_address || '00:00:00:00:00:00');
+
+    // 4. Activate the voucher with exact package duration
+    const activated = await activateVoucherForTransaction({
+      reference: targetTx?.reference || `MANUAL_${cleanCode}_${Date.now()}`,
+      phone: effectivePhone,
+      macAddress: effectiveMac,
+      packageId: effectivePackageId,
+      mpesaReceipt: cleanCode,
+      paystackId: null
     });
 
-    await supabase.from('campusnet_sessions').upsert({
-      phone: cleanPhone,
-      mac_address: clientMac,
-      voucher_code: voucherCode,
-      voucher_password: voucherPassword,
-      valid_until: validUntil.toISOString()
-    }, { onConflict: 'phone' });
+    // If targetTx was not found, record a manual transaction entry
+    if (!targetTx) {
+      const pkg = activated.package;
+      await supabase.from('campusnet_transactions').insert({
+        reference: `MANUAL_${cleanCode}_${Date.now()}`,
+        phone: effectivePhone,
+        mac_address: effectiveMac,
+        package_id: pkg.id,
+        amount: pkg.amount,
+        status: 'completed',
+        mpesa_receipt: cleanCode,
+        voucher_code: activated.voucherCode
+      });
+    }
 
     return res.json({
       success: true,
-      username: voucherCode,
-      password: voucherPassword
+      username: activated.voucherCode,
+      password: activated.voucherPassword,
+      package_id: activated.package.id,
+      package_name: activated.package.name,
+      valid_until: activated.validUntil
     });
   } catch (err) {
+    console.error('[CampusNet verify-code Error]', err);
     return res.status(500).json({ error: 'Failed to verify transaction code' });
   }
 });
