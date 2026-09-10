@@ -375,6 +375,84 @@ router.post('/session/restore', async (req, res) => {
   }
 });
 
+// ─── GET /api/campusnet/session/status ────────────────────────────────────────
+// Dynamic session status lookup by MAC, IP, or Username/Voucher
+router.get('/session/status', async (req, res) => {
+  const mac = (req.query.mac || '').trim();
+  const username = (req.query.username || '').trim();
+  const phone = (req.query.phone || '').trim();
+
+  try {
+    let query = supabase.from('campusnet_sessions').select('*');
+    
+    if (username && username !== '$(username)' && !username.startsWith('$(')) {
+      query = query.eq('voucher_code', username);
+    } else if (mac && mac !== '$(mac)' && !mac.startsWith('$(')) {
+      query = query.eq('mac_address', mac);
+    } else if (phone) {
+      const { clean: cleanPhone } = formatPhone(phone);
+      query = query.eq('phone', cleanPhone);
+    } else {
+      return res.json({
+        active: true,
+        source: 'router',
+        message: 'Active router session'
+      });
+    }
+
+    const { data: session, error } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle();
+
+    if (error || !session) {
+      return res.json({
+        active: true,
+        source: 'router',
+        message: 'Active router session'
+      });
+    }
+
+    const validUntil = new Date(session.valid_until);
+    const now = new Date();
+    const msRemaining = validUntil.getTime() - now.getTime();
+    const isActive = msRemaining > 0;
+
+    let timeLeftStr = 'Expired';
+    if (isActive) {
+      const totalSec = Math.floor(msRemaining / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      timeLeftStr = `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+    }
+
+    const { data: tx } = await supabase
+      .from('campusnet_transactions')
+      .select('package_id, amount, created_at')
+      .eq('voucher_code', session.voucher_code)
+      .maybeSingle();
+
+    const pkg = PACKAGES.find(p => p.id === tx?.package_id);
+
+    return res.json({
+      active: isActive,
+      source: 'database',
+      voucher_code: session.voucher_code,
+      package_name: pkg?.name || 'Active Wi-Fi Pass',
+      package_id: tx?.package_id || 'pkg_24h',
+      amount_paid: tx?.amount || pkg?.amount || 40,
+      phone_masked: session.phone ? `${session.phone.slice(0, 4)}****${session.phone.slice(-3)}` : null,
+      valid_until: session.valid_until,
+      time_left: timeLeftStr,
+      seconds_remaining: Math.max(0, Math.floor(msRemaining / 1000))
+    });
+  } catch (err) {
+    return res.json({
+      active: true,
+      source: 'router',
+      message: 'Active router session'
+    });
+  }
+});
+
 // ─── POST /api/campusnet/pay/verify-code ───────────────────────────────────────
 // Manual fallback when STK is delayed or student paid via Till/Paybill
 router.post('/pay/verify-code', async (req, res) => {

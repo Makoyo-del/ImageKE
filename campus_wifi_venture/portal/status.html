@@ -3,62 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CampusNet Session Status — Makoyocart Ventures</title>
+    <title>Active Session Status — Makoyocart CampusNet</title>
+    <!-- Ultra-readable Modern Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-canvas: #0d0e12;
-            --bg-card: rgba(18, 20, 27, 0.9);
-            --brand-orange: #f15c22;
-            --brand-ember: #ff4500;
-            --brand-orange-glow: rgba(241, 92, 34, 0.45);
+            --bg-canvas: #090a0e;
+            --bg-card: rgba(17, 19, 26, 0.94);
+            --brand-orange: #ff5414;
+            --brand-orange-hover: #ff6f38;
+            --brand-orange-glow: rgba(255, 84, 20, 0.45);
+            --brand-ember: #e03a00;
             --profit-green: #00e676;
-            --profit-green-bg: rgba(0, 230, 118, 0.12);
-            --profit-green-border: rgba(0, 230, 118, 0.35);
-            --text-primary: #ffffff;
-            --text-secondary: #9ea3b0;
-            --text-muted: #646a7a;
-            --border-glass: rgba(255, 255, 255, 0.08);
-            --border-glass-strong: rgba(255, 255, 255, 0.14);
+            --profit-green-bg: rgba(0, 230, 118, 0.14);
+            --profit-green-border: rgba(0, 230, 118, 0.4);
+            --text-pure: #ffffff;
+            --text-high: #f1f5f9;
+            --text-mid: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-glass: rgba(255, 255, 255, 0.12);
+            --border-glass-strong: rgba(255, 255, 255, 0.2);
+            --card-inner: rgba(255, 255, 255, 0.04);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
         body {
             background-color: var(--bg-canvas);
             background-image: 
-                radial-gradient(circle at 80% 15%, rgba(241, 92, 34, 0.2) 0%, transparent 60%),
-                radial-gradient(circle at 15% 85%, rgba(0, 230, 118, 0.1) 0%, transparent 50%);
-            color: var(--text-primary);
+                radial-gradient(circle at 85% 10%, rgba(255, 84, 20, 0.22) 0%, transparent 60%),
+                radial-gradient(circle at 15% 90%, rgba(0, 230, 118, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(9, 10, 14, 0.85) 0%, transparent 100%);
+            color: var(--text-high);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px 16px;
+            padding: 24px 16px;
+            line-height: 1.6;
         }
 
         .card {
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             background: var(--bg-card);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid var(--border-glass);
-            border-radius: 24px;
-            padding: 28px 22px;
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 28px;
+            padding: 32px 24px;
             box-shadow: 
-                0 25px 50px -12px rgba(0, 0, 0, 0.8),
-                0 0 0 1px rgba(241, 92, 34, 0.12);
-            text-align: center;
+                0 30px 60px -15px rgba(0, 0, 0, 0.9),
+                0 0 0 1px rgba(255, 84, 20, 0.15);
             position: relative;
+            text-align: center;
         }
 
         .card::before {
@@ -67,166 +73,288 @@
             top: 0;
             left: 20%;
             right: 20%;
-            height: 2px;
+            height: 3px;
             background: linear-gradient(90deg, transparent, var(--brand-orange), transparent);
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* Status Badge */
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
         }
 
         .status-pill {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             background: var(--profit-green-bg);
-            border: 1px solid var(--profit-green-border);
+            border: 1.5px solid var(--profit-green-border);
             color: var(--profit-green);
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 11.5px;
+            padding: 5px 14px;
+            border-radius: 24px;
+            font-size: 12px;
             font-weight: 700;
-            letter-spacing: 0.4px;
-            margin-bottom: 14px;
+            letter-spacing: 0.3px;
         }
 
-        .dot {
-            width: 7px;
-            height: 7px;
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
             background-color: var(--profit-green);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--profit-green);
+            box-shadow: 0 0 10px var(--profit-green);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 230, 118, 0); }
+            70% { transform: scale(1); box-shadow: 0 0 0 7px rgba(0, 230, 118, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
         }
 
-        .brand-title {
-            font-size: 22px;
-            font-weight: 700;
+        .edition-tag {
+            background: var(--brand-orange);
             color: #ffffff;
-            margin-bottom: 3px;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 7px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
-        .brand-title .title-serif {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-style: italic;
+        /* Brand Title */
+        .brand-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-pure);
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-title span {
             color: var(--brand-orange);
         }
 
         .brand-sub {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-weight: 500;
         }
 
-        /* Hero Remaining Time Card */
+        /* Countdown Timer Hero Display */
         .timer-card {
-            background: rgba(241, 92, 34, 0.08);
-            border: 1.5px solid rgba(241, 92, 34, 0.35);
-            border-radius: 18px;
-            padding: 20px 16px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 25px -5px var(--brand-orange-glow);
+            background: rgba(255, 84, 20, 0.08);
+            border: 2px solid rgba(255, 84, 20, 0.4);
+            border-radius: 20px;
+            padding: 22px 18px;
+            margin-bottom: 22px;
+            box-shadow: 
+                0 0 30px -5px var(--brand-orange-glow),
+                inset 0 0 15px rgba(255, 84, 20, 0.05);
+            position: relative;
+        }
+
+        .timer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
         }
 
         .timer-label {
-            font-size: 11px;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.9px;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-mid);
+            font-weight: 700;
+        }
+
+        .package-badge {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass-strong);
+            color: var(--text-pure);
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-weight: 700;
         }
 
         .timer-val {
-            font-size: 32px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 34px;
             font-weight: 800;
-            color: #ffffff;
+            color: var(--text-pure);
             letter-spacing: -0.5px;
             text-shadow: 0 0 16px var(--brand-orange-glow);
+            margin: 4px 0;
+            word-break: break-word;
+        }
+
+        .timer-footer {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .timer-footer strong {
+            color: var(--text-high);
         }
 
         /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 22px;
+            gap: 12px;
+            margin-bottom: 24px;
             text-align: left;
         }
 
         .stat-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-glass);
-            border-radius: 14px;
-            padding: 12px 14px;
+            background: var(--card-inner);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 14px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .stat-box:hover {
+            border-color: rgba(255, 84, 20, 0.35);
         }
 
         .stat-box .title {
-            font-size: 11px;
+            font-size: 11.5px;
             color: var(--text-muted);
-            font-weight: 500;
-            margin-bottom: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
         }
 
         .stat-box .val {
             font-size: 15px;
             font-weight: 700;
-            color: #ffffff;
+            color: var(--text-pure);
+            word-break: break-all;
         }
 
         /* Action Buttons */
         .btn-group {
             display: flex;
+            flex-direction: column;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
         .btn {
-            flex: 1;
-            height: 48px;
-            border-radius: 12px;
-            font-size: 14px;
+            width: 100%;
+            height: 50px;
+            border-radius: 14px;
+            font-size: 15px;
             font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
             text-decoration: none;
             cursor: pointer;
             border: none;
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .btn-topup {
             background: linear-gradient(135deg, var(--brand-ember) 0%, var(--brand-orange) 100%);
             color: #ffffff;
-            box-shadow: 0 8px 20px -4px var(--brand-orange-glow);
+            box-shadow: 0 10px 25px -4px var(--brand-orange-glow);
         }
 
         .btn-topup:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 24px -3px rgba(241, 92, 34, 0.6);
+            background: linear-gradient(135deg, #ff5414 0%, var(--brand-orange-hover) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px -4px rgba(255, 84, 20, 0.6);
         }
 
         .btn-logout {
             background: rgba(239, 68, 68, 0.12);
-            border: 1px solid rgba(239, 68, 68, 0.35);
+            border: 1.5px solid rgba(239, 68, 68, 0.35);
             color: #fca5a5;
         }
 
         .btn-logout:hover {
-            background: rgba(239, 68, 68, 0.2);
+            background: rgba(239, 68, 68, 0.22);
             color: #ffffff;
+        }
+
+        /* Dedicated Support Box */
+        .support-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .support-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-mid);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .support-phone-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--brand-orange);
+            font-size: 18px;
+            font-weight: 800;
+            text-decoration: none;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            transition: color 0.2s;
+        }
+
+        .support-phone-link:hover {
+            color: var(--brand-orange-hover);
+            text-decoration: underline;
+        }
+
+        .support-sub-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .support-sub-row a {
+            color: var(--profit-green);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .support-sub-row a:hover {
+            text-decoration: underline;
         }
 
         .preview-badge {
             display: none;
             margin-top: 14px;
-            font-size: 10.5px;
+            font-size: 11px;
             color: var(--text-muted);
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-glass);
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 20px;
         }
     </style>
@@ -239,88 +367,227 @@
 <body>
 
 <div class="card">
-    <div class="status-pill">
-        <span class="dot"></span>
-        <span>Connected & Active</span>
+    <!-- Header Status Row -->
+    <div class="status-row">
+        <div class="status-pill">
+            <span class="pulse-dot"></span>
+            <span id="network-status">Online • 15 Mbps High-Speed</span>
+        </div>
+        <span class="edition-tag">THE 2026 EDITION</span>
     </div>
 
-    <h2 class="brand-title">Makoyocart <span class="title-serif">CampusNet</span></h2>
-    <p class="brand-sub">Makoyocart Ventures (BN-WLSP9KP9) • Kisii</p>
+    <h1 class="brand-title">Makoyocart <span>CampusNet</span></h1>
+    <p class="brand-sub">Makoyocart Ventures • Reg: BN-WLSP9KP9 • Kisii</p>
 
+    <!-- Real-time Dynamic Countdown Timer -->
     <div class="timer-card">
-        <div class="timer-label">Remaining Time</div>
-        <div class="timer-val" id="time-left-display">
-            <span id="mt-time-raw">$(if session-time-left)$(session-time-left)$(elif uptime-left)$(uptime-left)$(else)Active Unlimited$(endif)</span>
+        <div class="timer-header">
+            <span class="timer-label">Time Remaining</span>
+            <span class="package-badge" id="pkg-name-badge">Active Pass</span>
+        </div>
+        
+        <div class="timer-val" id="countdown-val">
+            <span id="mt-time-raw">$(if session-time-left)$(session-time-left)$(elif uptime-left)$(uptime-left)$(else)Unlimited Active$(endif)</span>
+        </div>
+
+        <div class="timer-footer">
+            Pass Expiry: <strong id="expiry-text">Calculating...</strong>
         </div>
     </div>
 
+    <!-- Live Connection Metrics -->
     <div class="stats-grid">
         <div class="stat-box">
-            <div class="title">Connected Since</div>
+            <div class="title">Connected Time</div>
             <div class="val" id="stat-uptime">$(uptime)</div>
         </div>
         <div class="stat-box">
-            <div class="title">Downloaded</div>
+            <div class="title">Data Downloaded</div>
             <div class="val" id="stat-bytes">$(bytes-out-nice)</div>
         </div>
         <div class="stat-box">
-            <div class="title">Your IP</div>
+            <div class="title">Your IP Address</div>
             <div class="val" id="stat-ip">$(ip)</div>
         </div>
         <div class="stat-box">
-            <div class="title">Your MAC</div>
-            <div class="val" id="stat-mac" style="font-size:12px; font-family:monospace;">$(mac)</div>
+            <div class="title">Device MAC</div>
+            <div class="val" id="stat-mac" style="font-size:12.5px; font-family:monospace;">$(mac)</div>
         </div>
     </div>
 
+    <!-- Action Buttons -->
     <div class="btn-group">
-        <a href="login.html" class="btn btn-topup">⚡ Extend Pass</a>
-        <a href="$(link-logout)" class="btn btn-logout">Disconnect</a>
+        <a href="login.html" class="btn btn-topup">
+            <span>⚡</span> Extend Pass / Top Up
+        </a>
+        <a id="btn-logout" href="$(link-logout)" class="btn btn-logout">
+            Disconnect Session
+        </a>
+    </div>
+
+    <!-- Official Verified Support Section -->
+    <div class="support-box">
+        <div class="support-header">24/7 Campus Support Helpline</div>
+        <a href="tel:0794877125" class="support-phone-link">
+            <span>📞</span> 0794877125
+        </a>
+        <div class="support-sub-row">
+            <span>Direct Call: <strong>0794877125</strong></span>
+            <span>•</span>
+            <a id="wa-link" href="https://wa.me/254794877125?text=Hello%20Makoyocart%20Support,%20I%20need%20help%20with%20my%20WiFi%20session" target="_blank">
+                💬 WhatsApp Chat
+            </a>
+        </div>
     </div>
 
     <div class="preview-badge" id="preview-badge">
-        👁️ Local Preview Mode (Serves real router metrics when connected)
+        👁️ Local Preview Mode (Live countdown simulation active)
     </div>
 </div>
 
 <script>
-    // Smart template variable handler for both Browser Preview and RouterOS live serving
-    (function() {
-        var timeEl = document.getElementById('mt-time-raw');
-        var isPreview = false;
+    // Configuration & Client Identification
+    const BACKEND_BASE = "https://imageke-api.onrender.com/api/campusnet";
+    const CLIENT_MAC = "$(mac)" || "";
+    const CLIENT_IP = "$(ip)" || "";
+    const CLIENT_USER = "$(username)" || "";
 
-        if (timeEl) {
-            var rawText = timeEl.innerText.trim();
-            if (rawText.indexOf('$(') !== -1 || rawText.startsWith('$(') || rawText === '') {
-                // We are opening this file locally in a browser without RouterOS compiling it
-                timeEl.innerText = '02h 45m 18s';
-                isPreview = true;
+    let remainingSeconds = 0;
+    let timerTicker = null;
+
+    // Helper: Parse RouterOS time strings like "1d04:22:15" or "02:15:30" or "45m20s"
+    function parseRouterTimeToSeconds(str) {
+        if (!str || str.indexOf('$(') !== -1) return 0;
+        let s = str.trim().toLowerCase();
+        let total = 0;
+
+        // Pattern 1: standard HH:MM:SS or DdHH:MM:SS
+        if (s.includes(':')) {
+            let parts = s.split(':');
+            if (parts.length === 3) {
+                let hours = parseInt(parts[0], 10) || 0;
+                let mins = parseInt(parts[1], 10) || 0;
+                let secs = parseInt(parts[2], 10) || 0;
+                return (hours * 3600) + (mins * 60) + secs;
             }
         }
 
-        var fields = [
-            { id: 'stat-uptime', preview: '1h 14m' },
-            { id: 'stat-bytes', preview: '482.5 MB' },
-            { id: 'stat-ip', preview: '192.168.88.254' },
-            { id: 'stat-mac', preview: '6C:29:95:A1:B2:C3' }
-        ];
+        // Pattern 2: 1d2h30m40s
+        let days = (s.match(/(\d+)d/) || [0, 0])[1];
+        let hours = (s.match(/(\d+)h/) || [0, 0])[1];
+        let mins = (s.match(/(\d+)m/) || [0, 0])[1];
+        let secs = (s.match(/(\d+)s/) || [0, 0])[1];
+        total = (parseInt(days, 10) * 86400) + 
+                (parseInt(hours, 10) * 3600) + 
+                (parseInt(mins, 10) * 60) + 
+                parseInt(secs, 10);
+        return total > 0 ? total : 0;
+    }
 
-        fields.forEach(function(item) {
-            var el = document.getElementById(item.id);
-            if (el) {
-                var val = el.innerText.trim();
-                if (val.indexOf('$(') !== -1 || val.startsWith('$(') || val === '') {
-                    el.innerText = item.preview;
-                    isPreview = true;
+    function formatSecondsToDisplay(sec) {
+        if (sec <= 0) return "Session Expired";
+        const d = Math.floor(sec / 86400);
+        const h = Math.floor((sec % 86400) / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+
+        if (d > 0) {
+            return `${d}d ${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+        }
+        return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+    }
+
+    function startLiveCountdown(seconds) {
+        remainingSeconds = seconds;
+        const display = document.getElementById('countdown-val');
+        if (timerTicker) clearInterval(timerTicker);
+
+        display.innerText = formatSecondsToDisplay(remainingSeconds);
+
+        timerTicker = setInterval(() => {
+            remainingSeconds--;
+            if (remainingSeconds <= 0) {
+                clearInterval(timerTicker);
+                display.innerText = "Session Expired";
+                display.style.color = "#fca5a5";
+                document.getElementById('network-status').innerText = "Session Expired • Please Top Up";
+            } else {
+                display.innerText = formatSecondsToDisplay(remainingSeconds);
+            }
+        }, 1000);
+    }
+
+    // Dynamic Live Backend Integration
+    async function loadDynamicSession() {
+        let isLocalPreview = false;
+        const timeEl = document.getElementById('mt-time-raw');
+        let initialTimeText = timeEl ? timeEl.innerText.trim() : "";
+
+        // Check if opened as local file or raw template
+        if (!initialTimeText || initialTimeText.indexOf('$(') !== -1 || initialTimeText.startsWith('$(')) {
+            isLocalPreview = true;
+            document.getElementById('stat-uptime').innerText = "1h 24m";
+            document.getElementById('stat-bytes').innerText = "524.8 MB";
+            document.getElementById('stat-ip').innerText = "192.168.88.254";
+            document.getElementById('stat-mac').innerText = "6C:29:95:A1:B2:C3";
+            document.getElementById('pkg-name-badge').innerText = "24 Hours Unlimited";
+            document.getElementById('preview-badge').style.display = "inline-block";
+            
+            // Set realistic mock expiry: 6 hours from now
+            const exp = new Date(Date.now() + 6 * 3600 * 1000);
+            document.getElementById('expiry-text').innerText = exp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' Today';
+            startLiveCountdown(6 * 3600 + 42 * 60 + 15);
+            return;
+        }
+
+        // We are live on MikroTik RouterOS!
+        // 1. First start timer using MikroTik router-provided time:
+        let parsedRouterSec = parseRouterTimeToSeconds(initialTimeText);
+        if (parsedRouterSec > 0) {
+            startLiveCountdown(parsedRouterSec);
+            const exp = new Date(Date.now() + parsedRouterSec * 1000);
+            document.getElementById('expiry-text').innerText = exp.toLocaleString();
+        } else {
+            document.getElementById('countdown-val').innerText = initialTimeText;
+            document.getElementById('expiry-text').innerText = "Active Unlimited";
+        }
+
+        // 2. Fetch real database subscription details from backend
+        try {
+            const queryParams = new URLSearchParams();
+            if (CLIENT_MAC && CLIENT_MAC.indexOf('$(') === -1) queryParams.append('mac', CLIENT_MAC);
+            if (CLIENT_USER && CLIENT_USER.indexOf('$(') === -1) queryParams.append('username', CLIENT_USER);
+
+            const res = await fetch(`${BACKEND_BASE}/session/status?` + queryParams.toString());
+            if (res.ok) {
+                const data = await res.json();
+                if (data.package_name) {
+                    document.getElementById('pkg-name-badge').innerText = data.package_name;
+                }
+                if (data.valid_until) {
+                    const expiryDate = new Date(data.valid_until);
+                    document.getElementById('expiry-text').innerText = expiryDate.toLocaleString();
+                    const liveSecRemaining = Math.floor((expiryDate.getTime() - Date.now()) / 1000);
+                    if (liveSecRemaining > 0) {
+                        startLiveCountdown(liveSecRemaining);
+                    }
                 }
             }
-        });
+        } catch (e) {
+            console.log("Using router native metrics");
+        }
+    }
 
-        if (isPreview) {
-            var pb = document.getElementById('preview-badge');
-            if (pb) pb.style.display = 'inline-block';
+    // Clean logout URL fallback
+    (function() {
+        const logoutBtn = document.getElementById('btn-logout');
+        const href = logoutBtn.getAttribute('href');
+        if (!href || href.indexOf('$(') !== -1) {
+            logoutBtn.setAttribute('href', 'login.html');
         }
     })();
+
+    window.onload = loadDynamicSession;
 </script>
 
 </body>
