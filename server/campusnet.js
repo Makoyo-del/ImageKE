@@ -512,15 +512,24 @@ router.get('/session/status', async (req, res) => {
       .eq('voucher_code', session.voucher_code)
       .maybeSingle();
 
-    const pkg = PACKAGES.find(p => p.id === tx?.package_id);
+    // Dynamically resolve package from transaction or voucher code prefix
+    let effectivePkgId = tx?.package_id;
+    if (!effectivePkgId && session.voucher_code) {
+      if (session.voucher_code.startsWith('M1H')) effectivePkgId = 'pkg_1h';
+      else if (session.voucher_code.startsWith('M3H')) effectivePkgId = 'pkg_3h';
+      else if (session.voucher_code.startsWith('M24H')) effectivePkgId = 'pkg_24h';
+      else if (session.voucher_code.startsWith('M7D')) effectivePkgId = 'pkg_7d';
+      else if (session.voucher_code.startsWith('M30D')) effectivePkgId = 'pkg_30d';
+    }
+    const pkg = PACKAGES.find(p => p.id === effectivePkgId) || PACKAGES[0];
 
     return res.json({
       active: isActive,
       source: 'database',
       voucher_code: session.voucher_code,
-      package_name: pkg?.name || 'Active Wi-Fi Pass',
-      package_id: tx?.package_id || 'pkg_24h',
-      amount_paid: tx?.amount || pkg?.amount || 40,
+      package_name: pkg.name,
+      package_id: pkg.id,
+      amount_paid: tx?.amount || pkg.amount,
       phone_masked: session.phone ? `${session.phone.slice(0, 4)}****${session.phone.slice(-3)}` : null,
       valid_until: session.valid_until,
       time_left: timeLeftStr,
@@ -576,7 +585,7 @@ router.post('/pay/verify-code', async (req, res) => {
       }
     }
 
-    if (!targetTx && cleanPhone && cleanPhone !== '254700000000') {
+    if (!targetTx && cleanPhone) {
       const { data: txByPhone } = await supabase
         .from('campusnet_transactions')
         .select('*')
@@ -590,7 +599,7 @@ router.post('/pay/verify-code', async (req, res) => {
 
     // 3. Determine the package: EXACT match from pending transaction, or requested package_id, or default to 1 HOUR (pkg_1h) - NEVER 24h!
     const effectivePackageId = targetTx?.package_id || package_id || 'pkg_1h';
-    const effectivePhone = cleanPhone || targetTx?.phone || '254700000000';
+    const effectivePhone = cleanPhone || targetTx?.phone || null;
     const effectiveMac = (clientMac && clientMac !== '00:00:00:00:00:00') ? clientMac : (targetTx?.mac_address || '00:00:00:00:00:00');
 
     // 4. Activate the voucher with exact package duration
