@@ -1397,6 +1397,13 @@ export default function AcademyDashboard({ onNavigate }) {
               >
                 Hot Seat Live ðŸ”´ ({hotseatSubmissions.filter(s => s.status === 'pending').length})
               </button>
+              <button 
+                className={`ac-tab-btn ${activeTab === 'jforce' ? 'active' : ''}`}
+                onClick={() => setActiveTab('jforce')}
+                style={{ color: activeTab === 'jforce' ? '#F68B1E' : 'inherit', fontWeight: 600 }}
+              >
+                JForce Monetizer ⚡
+              </button>
             </>
           )}
         </div>
