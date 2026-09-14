@@ -39,6 +39,15 @@ export const PACKAGES = [
     description: 'Continuous high-speed access'
   },
   {
+    id: 'pkg_3d',
+    name: '3 Days Weekend Pass',
+    amount: 80,
+    duration_hours: 72,
+    uptime_limit: '72h',
+    tag: 'Weekend Special ⚡',
+    description: 'Continuous 72h high-speed access'
+  },
+  {
     id: 'pkg_7d',
     name: '7 Days Unlimited',
     amount: 150,
@@ -86,6 +95,106 @@ router.get('/packages', (_req, res) => {
   });
 });
 
+
+// ─── POST /api/campusnet/promo/verify ──────────────────────────────────────────
+// Dynamic Seasonal Promo Validator (Zero-Code campaign management)
+// Enforces 1-time redemption per phone number & time expiry checks
+router.post('/promo/verify', async (req, res) => {
+  const { code, phone, package_id } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ valid: false, error: 'Promo code is required' });
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+  const pkg = PACKAGES.find(p => p.id === package_id) || PACKAGES.find(p => p.id === 'pkg_24h');
+  const baseAmount = pkg ? pkg.amount : 40;
+
+  try {
+    // 1. Query Supabase for active promo rule
+    const { data: promo, error } = await supabase
+      .from('campusnet_promos')
+      .select('*')
+      .eq('code', cleanCode)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    // Fallback if table not queried or offline
+    let promoRule = promo;
+    if (!promoRule && cleanCode === 'FRESHER2026') {
+      promoRule = { code: 'FRESHER2026', discount_percent: 25, discount_amount: 0, min_amount_kes: 10, max_uses_per_phone: 1, is_active: true };
+    } else if (!promoRule && cleanCode === 'EXAMNIGHT') {
+      promoRule = { code: 'EXAMNIGHT', discount_percent: 0, discount_amount: 15, min_amount_kes: 20, max_uses_per_phone: 1, is_active: true };
+    }
+
+    if (!promoRule) {
+      return res.json({ valid: false, error: 'Invalid or expired promo code.' });
+    }
+
+    const now = new Date();
+    if (promoRule.starts_at && new Date(promoRule.starts_at) > now) {
+      return res.json({ valid: false, error: 'This promo campaign has not started yet.' });
+    }
+    if (promoRule.expires_at && new Date(promoRule.expires_at) < now) {
+      return res.json({ valid: false, error: 'This promo code has expired.' });
+    }
+
+    // 2. Check 1-time redemption per phone number
+    if (phone && promoRule.max_uses_per_phone) {
+      const { clean: cleanPhone } = formatPhone(phone);
+      if (cleanPhone && cleanPhone.length === 12) {
+        const { count, error: countErr } = await supabase
+          .from('campusnet_transactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('phone', cleanPhone)
+          .eq('promo_code', cleanCode)
+          .eq('status', 'completed');
+
+        if (!countErr && count >= promoRule.max_uses_per_phone) {
+          return res.json({
+            valid: false,
+            error: `This promo code has already been redeemed for phone ${cleanPhone}. (Limit: ${promoRule.max_uses_per_phone} per student)`
+          });
+        }
+      }
+    }
+
+    // 3. Compute discount
+    let discountAmount = 0;
+    if (promoRule.discount_percent > 0) {
+      discountAmount = Math.round(baseAmount * (promoRule.discount_percent / 100));
+    } else if (promoRule.discount_amount > 0) {
+      discountAmount = Number(promoRule.discount_amount);
+    }
+
+    // Enforce minimum floor (passes do not discount below KSh 10)
+    const minFloor = Number(promoRule.min_amount_kes || 10);
+    const finalAmount = Math.max(minFloor, baseAmount - discountAmount);
+    const actualDiscount = baseAmount - finalAmount;
+
+    return res.json({
+      valid: true,
+      code: cleanCode,
+      description: promoRule.description || `${promoRule.discount_percent || 0}% Discount`,
+      baseAmount,
+      discountAmount: actualDiscount,
+      finalAmount,
+      message: actualDiscount > 0 
+        ? `Promo applied! Saved KSh ${actualDiscount} (Pay KSh ${finalAmount})` 
+        : `Promo active for your package.`
+    });
+  } catch (err) {
+    console.error('[CampusNet Promo Verify Error]', err);
+    // Graceful fallback so checkout never breaks
+    if (cleanCode === 'FRESHER2026') {
+      const discount = Math.round(baseAmount * 0.25);
+      const finalAmt = Math.max(10, baseAmount - discount);
+      return res.json({ valid: true, code: 'FRESHER2026', baseAmount, discountAmount: baseAmount - finalAmt, finalAmount: finalAmt, message: 'FRESHER2026 25% discount applied!' });
+    }
+    return res.json({ valid: false, error: 'Promo verification temporarily unavailable.' });
+  }
+});
+
 // ─── POST /api/campusnet/pay/stk ───────────────────────────────────────────────
 // Dispatches M-Pesa STK push via Paystack Mobile Money
 // [SECURITY AUDITED]: Client price tampering eliminated. Server strictly enforces package price.
@@ -106,10 +215,53 @@ router.post('/pay/stk', async (req, res) => {
     return res.status(404).json({ error: 'Selected package does not exist' });
   }
 
-  // SECURITY: Never allow client-supplied 'amount' to override server package pricing!
+  // SECURITY & DYNAMIC PROMOS: Calculate discount securely on server
   let finalAmount = pkg.amount;
-  if (promo_code && promo_code.trim().toUpperCase() === 'FRESHER2026') {
-    finalAmount = Math.max(10, Math.round(pkg.amount * 0.75)); // 25% verified fresher discount
+  let appliedPromoCode = null;
+  let promoDiscount = 0;
+
+  if (promo_code && typeof promo_code === 'string' && promo_code.trim()) {
+    const cleanPromo = promo_code.trim().toUpperCase();
+    try {
+      const { data: promoRule } = await supabase
+        .from('campusnet_promos')
+        .select('*')
+        .eq('code', cleanPromo)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      const rule = promoRule || (cleanPromo === 'FRESHER2026' ? { code: 'FRESHER2026', discount_percent: 25, min_amount_kes: 10, max_uses_per_phone: 1 } : null);
+
+      if (rule) {
+        // Check redemption count per phone
+        let allowed = true;
+        if (rule.max_uses_per_phone && cleanPhone) {
+          const { count } = await supabase
+            .from('campusnet_transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('phone', cleanPhone)
+            .eq('promo_code', cleanPromo)
+            .eq('status', 'completed');
+          if (count && count >= rule.max_uses_per_phone) allowed = false;
+        }
+
+        if (allowed) {
+          if (rule.discount_percent > 0) {
+            promoDiscount = Math.round(pkg.amount * (rule.discount_percent / 100));
+          } else if (rule.discount_amount > 0) {
+            promoDiscount = Number(rule.discount_amount);
+          }
+          const minFloor = Number(rule.min_amount_kes || 10);
+          finalAmount = Math.max(minFloor, pkg.amount - promoDiscount);
+          appliedPromoCode = cleanPromo;
+        }
+      }
+    } catch (e) {
+      if (cleanPromo === 'FRESHER2026') {
+        finalAmount = Math.max(10, Math.round(pkg.amount * 0.75));
+        appliedPromoCode = 'FRESHER2026';
+      }
+    }
   }
 
   const clientMac = (mac_address && mac_address !== '$(mac)') ? mac_address : '00:00:00:00:00:00';
@@ -124,7 +276,9 @@ router.post('/pay/stk', async (req, res) => {
       mac_address: clientMac,
       package_id: pkg.id,
       amount: finalAmount,
-      status: 'pending'
+      status: 'pending',
+      promo_code: appliedPromoCode,
+      discount_amount: (pkg.amount - finalAmount)
     });
 
     if (txErr) {
@@ -445,7 +599,9 @@ router.get('/pay/status/:reference', async (req, res) => {
       }
     }
 
-    return res.json({ status: 'pending' });
+    return res.json({ status: 'pending',
+      promo_code: appliedPromoCode,
+      discount_amount: (pkg.amount - finalAmount) });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to check status' });
   }
@@ -570,6 +726,7 @@ router.get('/session/status', async (req, res) => {
       if (session.voucher_code.startsWith('M1H')) effectivePkgId = 'pkg_1h';
       else if (session.voucher_code.startsWith('M3H')) effectivePkgId = 'pkg_3h';
       else if (session.voucher_code.startsWith('M24H')) effectivePkgId = 'pkg_24h';
+      else if (session.voucher_code.startsWith('M3D')) effectivePkgId = 'pkg_3d';
       else if (session.voucher_code.startsWith('M7D')) effectivePkgId = 'pkg_7d';
       else if (session.voucher_code.startsWith('M30D')) effectivePkgId = 'pkg_30d';
     }
