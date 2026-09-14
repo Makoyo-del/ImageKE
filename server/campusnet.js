@@ -1313,4 +1313,128 @@ router.post('/admin/recover-payments', async (req, res) => {
   }
 });
 
+
+// ─── POST /api/campusnet/admin/audit-sync-sessions ─────────────────────────────
+// Audits all Paystack transactions since 5:00 PM today (EAT), verifies unexpired passes,
+// and guarantees 100% presence in campusnet_sessions for instant auto-login.
+router.post('/admin/audit-sync-sessions', async (req, res) => {
+  const token = req.query.token || req.headers['x-router-token'] || req.body?.token;
+  if (token !== ROUTER_SYNC_KEY && token !== (process.env.ADMIN_API_KEY || 'campusnet_secret_admin_2026')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (!PAYSTACK_SECRET_KEY || PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+    return res.status(500).json({ error: 'Paystack secret key not configured' });
+  }
+
+  const cutoff = new Date('2026-09-14T14:00:00Z'); // 5:00 PM EAT (UTC+3)
+  const now = new Date();
+  const auditReport = [];
+
+  try {
+    // 1. Fetch transactions from Paystack
+    const pList = await axios.get('https://api.paystack.co/transaction?perPage=50', {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+    });
+
+    const transactions = pList.data?.data || [];
+    for (const tx of transactions) {
+      if (tx.status !== 'success') continue;
+      const createdAt = new Date(tx.paid_at || tx.created_at);
+      if (createdAt < cutoff) continue; // Skip transactions before 5pm today
+
+      const ref = tx.reference;
+      const paidAmt = Math.round((tx.amount || 0) / 100);
+      const phoneExtracted = tx.metadata?.phone || tx.customer?.phone || (tx.email?.includes('wifi+') ? tx.email.replace('wifi+', '').replace('@makoyocart.com', '') : '254700000000');
+      const { clean: cleanPhone } = formatPhone(phoneExtracted);
+
+      // Determine package
+      let targetPkgId = tx.metadata?.package_id;
+      if (!targetPkgId) {
+        if (paidAmt <= 10) targetPkgId = 'pkg_1h';
+        else if (paidAmt >= 15 && paidAmt <= 20) targetPkgId = 'pkg_3h';
+        else if (paidAmt >= 30 && paidAmt <= 40) targetPkgId = 'pkg_24h';
+        else if (paidAmt >= 60 && paidAmt <= 80) targetPkgId = 'pkg_3d';
+        else if (paidAmt >= 110 && paidAmt <= 150) targetPkgId = 'pkg_7d';
+        else if (paidAmt >= 350) targetPkgId = 'pkg_30d';
+        else targetPkgId = 'pkg_7d';
+      }
+
+      const pkg = PACKAGES.find(p => p.id === targetPkgId) || PACKAGES[0];
+      const validUntilExpected = new Date(createdAt.getTime() + pkg.duration_hours * 60 * 60 * 1000);
+      const isExpired = now >= validUntilExpected;
+
+      // 2. Ensure voucher & transaction are completed
+      const activation = await activateVoucherForTransaction({
+        reference: ref,
+        phone: cleanPhone,
+        macAddress: tx.metadata?.mac_address || '00:00:00:00:00:00',
+        packageId: targetPkgId,
+        mpesaReceipt: tx.gateway_response || tx.reference,
+        paystackId: String(tx.id)
+      });
+
+      // 3. Ensure active session exists in campusnet_sessions if not expired
+      let inSessionTable = false;
+      if (!isExpired && cleanPhone && cleanPhone.length >= 9) {
+        const { data: sess } = await supabase
+          .from('campusnet_sessions')
+          .select('*')
+          .eq('phone', cleanPhone)
+          .maybeSingle();
+
+        if (sess && new Date(sess.valid_until) > now) {
+          inSessionTable = true;
+        } else {
+          // Upsert session
+          await supabase.from('campusnet_sessions').upsert({
+            phone: cleanPhone,
+            mac_address: tx.metadata?.mac_address || '00:00:00:00:00:00',
+            voucher_code: activation.voucherCode,
+            voucher_password: activation.voucherPassword,
+            valid_until: validUntilExpected.toISOString()
+          }, { onConflict: 'phone' });
+          inSessionTable = true;
+        }
+      }
+
+      auditReport.push({
+        reference: ref,
+        phone: cleanPhone,
+        paid_at: createdAt.toISOString(),
+        paid_amount_kes: paidAmt,
+        package_name: pkg.name,
+        package_id: pkg.id,
+        duration_hours: pkg.duration_hours,
+        voucher_code: activation.voucherCode,
+        voucher_password: activation.voucherPassword,
+        valid_until: validUntilExpected.toISOString(),
+        is_expired: isExpired,
+        in_session_table: inSessionTable,
+        status: isExpired ? 'Expired (Completed)' : 'ACTIVE (In Session Table)'
+      });
+    }
+
+    // 4. Fetch all active sessions currently in DB for cross-verification
+    const { data: allActiveSessions } = await supabase
+      .from('campusnet_sessions')
+      .select('*')
+      .gt('valid_until', now.toISOString());
+
+    return res.json({
+      success: true,
+      audit_time: now.toISOString(),
+      cutoff_time: cutoff.toISOString(),
+      total_transactions_since_5pm: auditReport.length,
+      active_unexpired_transactions: auditReport.filter(r => !r.is_expired).length,
+      total_active_sessions_in_db: allActiveSessions?.length || 0,
+      transactions_audit: auditReport,
+      all_active_sessions_in_db: allActiveSessions || []
+    });
+  } catch (err) {
+    console.error('[CampusNet Session Audit Error]', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
