@@ -47,7 +47,7 @@
 
 # --- Step 7: Hotspot Server Profile & Server ---
 /ip hotspot profile add name=hsprof-campus hotspot-address=10.10.0.1 html-directory=hotspot
-/ip hotspot profile set [find name=hsprof-campus] dns-name=campusnet.local login-by=http-pap,cookie
+/ip hotspot profile set [find name=hsprof-campus] dns-name=campusnet.local login-by=http-pap,cookie http-cookie-lifetime=1h
 /ip hotspot add name=hs-campus interface=bridge-hotspot address-pool=hs-pool profile=hsprof-campus disabled=no
 
 # --- Step 8: Full 15 Mbps Bandwidth Speed Profile ---

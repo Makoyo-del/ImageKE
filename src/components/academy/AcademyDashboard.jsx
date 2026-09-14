@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { BookOpen, Award, CheckCircle2, AlertCircle, FileText, MessageSquare, PlusCircle, Check, LogOut, ArrowRight, UserCheck, Calendar, Lock, Mail, Eye, EyeOff, Loader2, Link2, Copy, ExternalLink, Share2, Sparkles, CheckCheck } from 'lucide-react';
 import './AcademyDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -126,6 +126,69 @@ export default function AcademyDashboard({ onNavigate }) {
   const [liveSessionError, setLiveSessionError] = useState('');
 
   const [editingSessionId, setEditingSessionId] = useState(null);
+
+  // ── JForce Affiliate Monetizer states ──
+  const [jforceUrl, setJforceUrl] = useState('');
+  const [jforceLoading, setJforceLoading] = useState(false);
+  const [jforceResult, setJforceResult] = useState(null);
+  const [jforceError, setJforceError] = useState('');
+  const [jforceCopied, setJforceCopied] = useState(null); // 'short' | 'direct' | 'copy'
+  const [jforceHistory, setJforceHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dunmak_jforce_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // ── JForce Monetizer Handlers ──
+  const handleGenerateJForceLink = async (e) => {
+    if (e) e.preventDefault();
+    setJforceError('');
+    setJforceResult(null);
+
+    const trimmed = jforceUrl.trim();
+    if (!trimmed) {
+      setJforceError('Please paste a Jumia product link.');
+      return;
+    }
+
+    setJforceLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/academy/mentor/jforce/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ url: trimmed })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate affiliate link.');
+      }
+
+      setJforceResult(data);
+      const updatedHistory = [data, ...jforceHistory.filter(h => h.cleanOriginalUrl !== data.cleanOriginalUrl)].slice(0, 15);
+      setJforceHistory(updatedHistory);
+      try {
+        localStorage.setItem('dunmak_jforce_history', JSON.stringify(updatedHistory));
+      } catch (e) {}
+    } catch (err) {
+      setJforceError(err.message || 'Error generating affiliate link.');
+    } finally {
+      setJforceLoading(false);
+    }
+  };
+
+  const copyJForceText = (text, fieldName) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setJforceCopied(fieldName);
+    setTimeout(() => setJforceCopied(null), 2500);
+  };
 
   const formatDatetimeForInput = (dateString) => {
     if (!dateString) return '';
@@ -2656,6 +2719,300 @@ export default function AcademyDashboard({ onNavigate }) {
                 )}
               </div>
 
+            </div>
+          )}
+
+          {/* MENTOR JFORCE AFFILIATE MONETIZER TAB */}
+          {state?.role === 'mentor' && activeTab === 'jforce' && (
+            <div className="ac-jforce-layout">
+              {/* Header Card */}
+              <div className="ac-card ac-jforce-hero-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span className="ac-jforce-badge">JForce Partner Token Active</span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>casid*06d596d2...</span>
+                    </div>
+                    <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                      Jumia JForce Affiliate Link Generator ⚡
+                    </h2>
+                    <p style={{ color: '#475569', fontSize: '0.88rem', margin: '4px 0 0 0' }}>
+                      Paste any Jumia product link (web or app). The system strips all referral junk, attaches your verified consultant tokens, and produces a short, commission-tracked deep link.
+                    </p>
+                  </div>
+                  <div style={{ background: '#FFF7ED', border: '1px solid #FFEDD5', borderRadius: '10px', padding: '10px 16px', textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#EA580C', textTransform: 'uppercase' }}>Tracking Mode</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#9A3412' }}>Adjust Deep Linking + Cookies</div>
+                  </div>
+                </div>
+
+                {/* URL Input Form */}
+                <form onSubmit={handleGenerateJForceLink} style={{ marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+                      <input 
+                        type="url"
+                        placeholder="Paste Jumia Kenya product URL (e.g. https://www.jumia.co.ke/generic-keyboard-325828002.html)..."
+                        value={jforceUrl}
+                        onChange={(e) => setJforceUrl(e.target.value)}
+                        required
+                        className="ac-jforce-input"
+                      />
+                      {jforceUrl && (
+                        <button
+                          type="button"
+                          onClick={() => { setJforceUrl(''); setJforceResult(null); }}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            color: '#94A3B8',
+                            cursor: 'pointer',
+                            fontSize: '1.1rem'
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={jforceLoading}
+                      className="ac-btn-primary ac-jforce-btn"
+                    >
+                      {jforceLoading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Monetizing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} />
+                          <span>Generate Affiliate Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {jforceError && (
+                  <div style={{ marginTop: '1rem', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', fontSize: '0.88rem' }}>
+                    ⚠️ {jforceError}
+                  </div>
+                )}
+              </div>
+
+              {/* Active Result Card */}
+              {jforceResult && (
+                <div className="ac-card ac-jforce-result-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>🛍️</span>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                        {jforceResult.productTitle}
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '4px 10px', borderRadius: '999px' }}>
+                      Ready to Share
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                    {/* Primary Short Link */}
+                    <div className="ac-jforce-link-box" style={{ borderColor: '#F97316', background: '#FFFBF7' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#EA580C', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          ⚡ Shortened Affiliate Link (Best for Bio & Status)
+                        </span>
+                        <a href={jforceResult.shortUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#EA580C', fontWeight: 600, textDecoration: 'none' }}>
+                          <span>Test</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                      <div className="ac-jforce-url-display">
+                        {jforceResult.shortUrl}
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => copyJForceText(jforceResult.shortUrl, 'short')}
+                        className="ac-jforce-copy-btn"
+                        style={{ background: jforceCopied === 'short' ? '#16A34A' : '#EA580C' }}
+                      >
+                        {jforceCopied === 'short' ? (
+                          <>
+                            <CheckCheck size={14} />
+                            <span>Copied to Clipboard!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            <span>Copy Short Link</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Full Direct Jumia Link */}
+                    <div className="ac-jforce-link-box">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          🔗 Direct Jumia Deep Link (Full Payload)
+                        </span>
+                        <a href={jforceResult.directAffiliateUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#3B82F6', fontWeight: 600, textDecoration: 'none' }}>
+                          <span>Test</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                      <div className="ac-jforce-url-display" style={{ color: '#64748B', fontSize: '0.78rem' }}>
+                        {jforceResult.directAffiliateUrl}
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => copyJForceText(jforceResult.directAffiliateUrl, 'direct')}
+                        className="ac-jforce-copy-btn"
+                        style={{ background: jforceCopied === 'direct' ? '#16A34A' : '#334155' }}
+                      >
+                        {jforceCopied === 'direct' ? (
+                          <>
+                            <CheckCheck size={14} />
+                            <span>Copied to Clipboard!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            <span>Copy Full Link</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pre-formatted Marketing Pitch Box */}
+                  <div style={{ marginTop: '1.25rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Share2 size={14} color="#EA580C" />
+                        <span>Pre-Formatted WhatsApp / Social Pitch</span>
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => copyJForceText(jforceResult.marketingCopy, 'copy')}
+                        style={{
+                          background: jforceCopied === 'copy' ? '#16A34A' : '#0F172A',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '5px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {jforceCopied === 'copy' ? <CheckCheck size={12} /> : <Copy size={12} />}
+                        <span>{jforceCopied === 'copy' ? 'Copied Pitch!' : 'Copy Pitch'}</span>
+                      </button>
+                    </div>
+                    <pre style={{
+                      margin: 0,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
+                      fontSize: '0.85rem',
+                      color: '#1E293B',
+                      background: '#FFFFFF',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      lineHeight: 1.5
+                    }}>
+                      {jforceResult.marketingCopy}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* History Table Card */}
+              {jforceHistory.length > 0 && (
+                <div className="ac-card" style={{ marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                      Recent Monetized Links ({jforceHistory.length})
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJforceHistory([]);
+                        localStorage.removeItem('dunmak_jforce_history');
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '0.75rem', cursor: 'pointer' }}
+                    >
+                      Clear History
+                    </button>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                          <th style={{ padding: '10px 14px', fontSize: '0.8rem', color: '#64748B' }}>Product</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.8rem', color: '#64748B' }}>Short Link</th>
+                          <th style={{ padding: '10px 14px', fontSize: '0.8rem', color: '#64748B', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {jforceHistory.map((item, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600, color: '#0F172A', fontSize: '0.88rem' }}>
+                              {item.productTitle}
+                            </td>
+                            <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#EA580C' }}>
+                              {item.shortUrl}
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '8px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => copyJForceText(item.shortUrl, `hist_${idx}`)}
+                                  style={{
+                                    background: jforceCopied === `hist_${idx}` ? '#16A34A' : '#F1F5F9',
+                                    color: jforceCopied === `hist_${idx}` ? '#fff' : '#0F172A',
+                                    border: '1px solid #CBD5E1',
+                                    borderRadius: '6px',
+                                    padding: '4px 10px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {jforceCopied === `hist_${idx}` ? 'Copied' : 'Copy'}
+                                </button>
+                                <a
+                                  href={item.shortUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '4px 8px',
+                                    color: '#64748B'
+                                  }}
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

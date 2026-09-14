@@ -929,3 +929,119 @@
 .mentor-theme select:focus {
   border-color: #0d9488 !important;
 }
+
+
+/* ─── JForce Affiliate Monetizer Styles ──────────────────────────────────────── */
+.ac-jforce-layout {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ac-jforce-hero-card {
+  padding: 1.75rem 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.ac-jforce-badge {
+  background: #DCFCE7;
+  color: #166534;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ac-jforce-input {
+  width: 100%;
+  padding: 0.85rem 2.5rem 0.85rem 1rem;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: #0F172A;
+  background: #F8FAFC;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.ac-jforce-input:focus {
+  outline: none;
+  border-color: #EA580C;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.ac-jforce-btn {
+  background: #EA580C !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  padding: 0.85rem 1.5rem !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+  transition: background 0.2s ease !important;
+}
+
+.ac-jforce-btn:hover {
+  background: #C2410C !important;
+}
+
+.ac-jforce-result-card {
+  padding: 1.75rem 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.ac-jforce-link-box {
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ac-jforce-url-display {
+  font-family: 'JetBrains Mono', monospace, Consolas;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0 10px 0;
+  word-break: break-all;
+  user-select: all;
+}
+
+.ac-jforce-copy-btn {
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

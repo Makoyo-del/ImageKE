@@ -1559,4 +1559,102 @@ router.delete('/mentor/templates/:id', authenticateUser, async (req, res) => {
   }
 });
 
+
+// ─── Route: Mentor JForce Affiliate Link Generator ────────────────────────────
+// Takes any raw Jumia product link, sanitizes it, attaches Duncan's JForce token,
+// and returns both a short link and a direct deep link with pre-formatted promo copy.
+router.post('/mentor/jforce/generate', authenticateUser, async (req, res) => {
+  const { url } = req.body;
+  const userId = req.user.id;
+
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return res.status(400).json({ error: 'Please provide a valid Jumia product URL.' });
+  }
+
+  try {
+    // 1. Verify user is mentor
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.role !== 'mentor') {
+      return res.status(403).json({ error: 'Forbidden: Mentor only route.' });
+    }
+
+    // 2. Validate and sanitize URL
+    let inputUrl = url.trim();
+    if (!inputUrl.startsWith('http://') && !inputUrl.startsWith('https://')) {
+      inputUrl = 'https://' + inputUrl;
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(inputUrl);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid URL format.' });
+    }
+
+    // Ensure it is a Jumia domain
+    const hostname = parsed.hostname.toLowerCase();
+    if (!hostname.includes('jumia.')) {
+      return res.status(400).json({ error: 'Invalid domain. Please paste an official Jumia product link (e.g. https://www.jumia.co.ke/...)' });
+    }
+
+    // 3. Strip all existing query parameters & hash fragments to eliminate junk
+    let cleanPath = parsed.pathname;
+    if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+      cleanPath = cleanPath.slice(0, -1);
+    }
+
+    const cleanBaseUrl = `${parsed.protocol}//${parsed.hostname}${cleanPath}`;
+
+    // 4. Extract readable product title from slug
+    let rawSlug = cleanPath.split('/').filter(Boolean).pop() || 'Product';
+    rawSlug = rawSlug.replace(/\.html$/i, '');
+    const titleWithoutSku = rawSlug.replace(/-[0-9]+$/, '');
+    const productTitle = titleWithoutSku
+      .split('-')
+      .filter(Boolean)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ') || 'Jumia Product';
+
+    // 5. Construct Direct Monetized Affiliate URL with Duncan's verified JForce tokens
+    // JForce Adjust tracking: casid*06d596d2-51ea-430a-ba4c-cabfacf8d8e1^type*jforce
+    const jforceQuery = 'utm_source=JFORCE&utm_medium=JF_Affiliate&utm_campaign=JF_Affiliate_KE&adj_label=casid*06d596d2-51ea-430a-ba4c-cabfacf8d8e1^type*jforce';
+    const directAffiliateUrl = `${cleanBaseUrl}?${jforceQuery}`;
+
+    // 6. Generate Shortened URL (TinyURL) for clean, high-converting social sharing
+    let shortUrl = directAffiliateUrl;
+    try {
+      const tinyApiUrl = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(directAffiliateUrl)}`;
+      const tinyResp = await axios.get(tinyApiUrl, { timeout: 4000 });
+      if (tinyResp.status === 200 && typeof tinyResp.data === 'string' && tinyResp.data.startsWith('http')) {
+        shortUrl = tinyResp.data.trim();
+      }
+    } catch (tinyErr) {
+      console.warn('[JForce Shortener Notice] TinyURL fallback used:', tinyErr.message);
+      shortUrl = directAffiliateUrl;
+    }
+
+    // 7. Generate pre-formatted promotional marketing copy
+    const marketingCopy = `🔥 Deal Alert: ${productTitle}\n\n🛒 Order directly on Jumia:\n👉 ${shortUrl}\n\n✅ Pay on Delivery / M-Pesa Available\n🚚 Fast Delivery Across Kenya`;
+
+    return res.json({
+      success: true,
+      productTitle,
+      shortUrl,
+      directAffiliateUrl,
+      cleanOriginalUrl: cleanBaseUrl,
+      marketingCopy,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[JForce Generate Error]', err.message);
+    res.status(500).json({ error: 'Failed to generate affiliate link.' });
+  }
+});
+
 export default router;
+
