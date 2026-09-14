@@ -1070,4 +1070,112 @@ router.post('/admin/prune', async (req, res) => {
 // Auto-run background pruning every 6 hours
 setInterval(pruneExpiredRecords, 6 * 60 * 60 * 1000);
 
+
+// ─── POST /api/campusnet/admin/setup-db ────────────────────────────────────────
+// Automated Database Seed & Migration Endpoint
+// Seeds missing 3-day vouchers and activates 24h FRESHER2026 promo in Supabase
+router.post('/admin/setup-db', async (req, res) => {
+  const token = req.query.token || req.headers['x-router-token'] || req.body?.token;
+  if (token !== ROUTER_SYNC_KEY && token !== (process.env.ADMIN_API_KEY || 'campusnet_secret_admin_2026')) {
+    return res.status(401).json({ error: 'Unauthorized admin key' });
+  }
+
+  const results = {
+    vouchers_3d_inserted: 0,
+    vouchers_3d_existing: 0,
+    promo_activated: false,
+    promo_details: null,
+    errors: []
+  };
+
+  const VOUCHERS_3D = [
+    { code: 'M3D_UXQ2Q', password: '882541', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_LEL5R', password: '857105', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_CPG88', password: '625922', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_QJYW4', password: '585950', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_7ENHT', password: '295188', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_AL5SA', password: '602237', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_X88ZP', password: '573978', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_LQ6JY', password: '655265', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_942S6', password: '811153', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_2KYKR', password: '743777', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_JBRB4', password: '478726', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_HJVUN', password: '437568', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_YYJTA', password: '239888', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_9XP9Q', password: '125772', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_68VV8', password: '646568', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_XAEXN', password: '170907', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_A6LT6', password: '490388', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_E74DR', password: '472160', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_KDH5M', password: '527538', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_34KZN', password: '604274', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_7FUZD', password: '185287', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_YT4A6', password: '387318', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_CDX9Z', password: '554398', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_7NFVU', password: '978157', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_VUEYT', password: '155221', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_USQBE', password: '263204', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_Q7A4S', password: '378207', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_NYLYG', password: '433584', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_FNX5V', password: '500637', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' },
+    { code: 'M3D_JA3DW', password: '392177', package_id: 'pkg_3d', duration_hours: 72, amount: 80, status: 'available' }
+  ];
+
+  try {
+    for (const v of VOUCHERS_3D) {
+      const { data: exist } = await supabase
+        .from('campusnet_vouchers')
+        .select('id')
+        .eq('code', v.code)
+        .maybeSingle();
+
+      if (!exist) {
+        const { error: insErr } = await supabase.from('campusnet_vouchers').insert(v);
+        if (!insErr) results.vouchers_3d_inserted++;
+        else results.errors.push(`Voucher ${v.code} insert error: ${insErr.message}`);
+      } else {
+        results.vouchers_3d_existing++;
+      }
+    }
+  } catch (vErr) {
+    results.errors.push(`Vouchers loop error: ${vErr.message}`);
+  }
+
+  // 2. Activate FRESHER2026 Promo for 24 hours
+  const now = new Date();
+  const expires24h = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const promoData = {
+      code: 'FRESHER2026',
+      description: 'Freshers 25% Launch Discount (24-Hour Active Campaign)',
+      discount_percent: 25,
+      discount_amount: 0,
+      min_amount_kes: 10,
+      max_uses_per_phone: 1,
+      starts_at: now.toISOString(),
+      expires_at: expires24h,
+      is_active: true
+    };
+
+    const { error: promoErr } = await supabase
+      .from('campusnet_promos')
+      .upsert(promoData, { onConflict: 'code' });
+
+    if (!promoErr) {
+      results.promo_activated = true;
+      results.promo_details = promoData;
+    } else {
+      results.errors.push(`Promo table upsert note: ${promoErr.message} (In-memory 24h fallback is active on backend)`);
+    }
+  } catch (pErr) {
+    results.errors.push(`Promo setup exception: ${pErr.message}`);
+  }
+
+  return res.json({
+    success: true,
+    message: 'Database setup and seeding completed.',
+    results
+  });
+});
+
 export default router;
