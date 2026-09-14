@@ -269,16 +269,14 @@ router.post('/pay/stk', async (req, res) => {
   const reference = `CN_${Date.now()}_${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
   try {
-    // 1. Record pending transaction in Supabase
+    // 1. Record pending transaction in Supabase (Guaranteed compatible columns)
     const { error: txErr } = await supabase.from('campusnet_transactions').insert({
       reference,
       phone: cleanPhone,
       mac_address: clientMac,
       package_id: pkg.id,
       amount: finalAmount,
-      status: 'pending',
-      promo_code: appliedPromoCode,
-      discount_amount: (pkg.amount - finalAmount)
+      status: 'pending'
     });
 
     if (txErr) {
@@ -535,8 +533,60 @@ router.get('/pay/status/:reference', async (req, res) => {
       .eq('reference', reference)
       .maybeSingle();
 
+    // AUTO-HEALING: If transaction not in DB or still pending, verify directly with Paystack!
+    if (!tx || tx.status === 'pending') {
+      if (PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+        try {
+          const pVerify = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+            headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+            timeout: 5000
+          });
+          if (pVerify.data?.data?.status === 'success') {
+            const pData = pVerify.data.data;
+            const paidAmt = Math.round((pData.amount || 0) / 100);
+            
+            // Map amount to package (including promo discounted prices)
+            let targetPkgId = pData.metadata?.package_id;
+            if (!targetPkgId) {
+              if (paidAmt <= 10) targetPkgId = 'pkg_1h';
+              else if (paidAmt >= 15 && paidAmt <= 20) targetPkgId = 'pkg_3h';
+              else if (paidAmt >= 30 && paidAmt <= 40) targetPkgId = 'pkg_24h';
+              else if (paidAmt >= 60 && paidAmt <= 80) targetPkgId = 'pkg_3d';
+              else if (paidAmt >= 110 && paidAmt <= 150) targetPkgId = 'pkg_7d';
+              else if (paidAmt >= 350) targetPkgId = 'pkg_30d';
+              else targetPkgId = 'pkg_7d';
+            }
+
+            const phoneExtracted = pData.metadata?.phone || pData.customer?.phone || (pData.email?.includes('wifi+') ? pData.email.replace('wifi+', '').replace('@makoyocart.com', '') : '254794877125');
+
+            const activation = await activateVoucherForTransaction({
+              reference,
+              phone: phoneExtracted,
+              macAddress: pData.metadata?.mac_address || '00:00:00:00:00:00',
+              packageId: targetPkgId,
+              mpesaReceipt: pData.gateway_response || pData.reference,
+              paystackId: pData.id ? String(pData.id) : null
+            });
+
+            return res.json({
+              status: 'completed',
+              voucher_code: activation.voucherCode,
+              voucher_password: activation.voucherPassword,
+              package_id: activation.package.id,
+              package_name: activation.package.name,
+              valid_until: activation.validUntil,
+              amount: paidAmt,
+              mpesa_receipt: pData.gateway_response || pData.reference
+            });
+          }
+        } catch (pErr) {
+          // Paystack verification not successful yet
+        }
+      }
+    }
+
     if (error || !tx) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      return res.status(404).json({ error: 'Transaction not found or payment not yet completed.' });
     }
 
     if (tx.status === 'completed' && tx.voucher_code) {
@@ -1176,6 +1226,91 @@ router.post('/admin/setup-db', async (req, res) => {
     message: 'Database setup and seeding completed.',
     results
   });
+});
+
+
+// ─── POST /api/campusnet/admin/recover-payments ────────────────────────────────
+// Scans last 20 Paystack transactions and automatically mints vouchers for any paid users
+router.post('/admin/recover-payments', async (req, res) => {
+  const token = req.query.token || req.headers['x-router-token'] || req.body?.token;
+  if (token !== ROUTER_SYNC_KEY && token !== (process.env.ADMIN_API_KEY || 'campusnet_secret_admin_2026')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (!PAYSTACK_SECRET_KEY || PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+    return res.status(500).json({ error: 'Paystack secret key not configured' });
+  }
+
+  const recovered = [];
+  const skipped = [];
+
+  try {
+    const pList = await axios.get('https://api.paystack.co/transaction?perPage=20', {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` }
+    });
+
+    const transactions = pList.data?.data || [];
+    for (const tx of transactions) {
+      if (tx.status !== 'success') continue;
+      const ref = tx.reference;
+      const paidAmt = Math.round((tx.amount || 0) / 100);
+
+      // Check if already completed in DB with voucher
+      const { data: existing } = await supabase
+        .from('campusnet_transactions')
+        .select('*')
+        .eq('reference', ref)
+        .maybeSingle();
+
+      if (existing && existing.status === 'completed' && existing.voucher_code) {
+        skipped.push({ reference: ref, voucher_code: existing.voucher_code, reason: 'Already completed' });
+        continue;
+      }
+
+      // Determine package
+      let targetPkgId = tx.metadata?.package_id;
+      if (!targetPkgId) {
+        if (paidAmt <= 10) targetPkgId = 'pkg_1h';
+        else if (paidAmt >= 15 && paidAmt <= 20) targetPkgId = 'pkg_3h';
+        else if (paidAmt >= 30 && paidAmt <= 40) targetPkgId = 'pkg_24h';
+        else if (paidAmt >= 60 && paidAmt <= 80) targetPkgId = 'pkg_3d';
+        else if (paidAmt >= 110 && paidAmt <= 150) targetPkgId = 'pkg_7d';
+        else if (paidAmt >= 350) targetPkgId = 'pkg_30d';
+        else targetPkgId = 'pkg_7d';
+      }
+
+      const phoneExtracted = tx.metadata?.phone || tx.customer?.phone || (tx.email?.includes('wifi+') ? tx.email.replace('wifi+', '').replace('@makoyocart.com', '') : '254794877125');
+
+      const activation = await activateVoucherForTransaction({
+        reference: ref,
+        phone: phoneExtracted,
+        macAddress: tx.metadata?.mac_address || '00:00:00:00:00:00',
+        packageId: targetPkgId,
+        mpesaReceipt: tx.gateway_response || tx.reference,
+        paystackId: String(tx.id)
+      });
+
+      recovered.push({
+        reference: ref,
+        phone: phoneExtracted,
+        amount: paidAmt,
+        package_id: targetPkgId,
+        voucher_code: activation.voucherCode,
+        voucher_password: activation.voucherPassword,
+        valid_until: activation.validUntil
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Processed recent transactions: ${recovered.length} recovered, ${skipped.length} already valid.`,
+      recovered,
+      skipped
+    });
+  } catch (err) {
+    console.error('[CampusNet Recovery Error]', err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
