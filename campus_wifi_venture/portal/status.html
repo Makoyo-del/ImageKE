@@ -357,6 +357,195 @@
             padding: 5px 12px;
             border-radius: 20px;
         }
+
+        /* ─── Gamification: Loyalty Stamp Card ─── */
+        .loyalty-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 18px 16px;
+            margin-bottom: 20px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loyalty-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .loyalty-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 179, 0, 0.15);
+            border: 1px solid rgba(255, 179, 0, 0.4);
+            color: #ffb300;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+
+        .loyalty-status-text {
+            font-size: 12px;
+            color: var(--text-mid);
+            font-weight: 600;
+        }
+
+        .stamp-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .stamp-slot {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px dashed rgba(255, 255, 255, 0.18);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .stamp-slot.earned {
+            background: linear-gradient(135deg, rgba(255, 179, 0, 0.2) 0%, rgba(255, 84, 20, 0.25) 100%);
+            border: 1.5px solid #ffb300;
+            color: #ffb300;
+            box-shadow: 0 0 14px rgba(255, 179, 0, 0.35);
+            transform: scale(1.04);
+        }
+
+        .stamp-slot.reward-slot {
+            border-color: var(--profit-green-border);
+            color: var(--profit-green);
+        }
+
+        .stamp-slot.reward-slot.earned {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.2) 0%, rgba(16, 185, 129, 0.35) 100%);
+            border: 1.5px solid var(--profit-green);
+            box-shadow: 0 0 16px rgba(0, 230, 118, 0.45);
+        }
+
+        .stamp-slot-num {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .stamp-slot.earned .stamp-slot-num {
+            color: #ffffff;
+        }
+
+        /* Reward Banner */
+        .reward-alert-card {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.15) 0%, rgba(16, 185, 129, 0.25) 100%);
+            border: 1.5px solid var(--profit-green);
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            margin-bottom: 12px;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(0, 230, 118, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+        }
+
+        .reward-alert-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--profit-green);
+            margin-bottom: 4px;
+        }
+
+        .reward-alert-sub {
+            font-size: 11.5px;
+            color: var(--text-high);
+            margin-bottom: 10px;
+        }
+
+        .btn-claim-reward {
+            width: 100%;
+            height: 42px;
+            background: var(--profit-green);
+            color: #000000;
+            border: none;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-claim-reward:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0, 230, 118, 0.4);
+        }
+
+        /* Roommate Referral Card */
+        .referral-share-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1.5px dashed var(--border-glass);
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .referral-share-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--brand-orange);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .referral-share-desc {
+            font-size: 11.5px;
+            color: var(--text-mid);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .btn-wa-referral {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #25d366;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .btn-wa-referral:hover {
+            background: #20ba59;
+            transform: translateY(-1px);
+        }
     </style>
     <script>
         $(if refresh-timeout)
@@ -415,6 +604,56 @@
         </div>
     </div>
 
+    <!-- ─── Gamification: Loyalty Stamp Card & Roommate Bounty ─── -->
+    <div class="loyalty-box" id="loyalty-section">
+        <div class="loyalty-header-row">
+            <span class="loyalty-tag">⭐ Loyalty Card</span>
+            <span class="loyalty-status-text" id="loyalty-stamp-summary">Loading stamps...</span>
+        </div>
+
+        <!-- 5 Stamp Slots -->
+        <div class="stamp-grid">
+            <div class="stamp-slot" id="slot-1">
+                <span>⭐</span>
+                <span class="stamp-slot-num">1</span>
+            </div>
+            <div class="stamp-slot" id="slot-2">
+                <span>⭐</span>
+                <span class="stamp-slot-num">2</span>
+            </div>
+            <div class="stamp-slot" id="slot-3">
+                <span>⭐</span>
+                <span class="stamp-slot-num">3</span>
+            </div>
+            <div class="stamp-slot" id="slot-4">
+                <span>⭐</span>
+                <span class="stamp-slot-num">4</span>
+            </div>
+            <div class="stamp-slot reward-slot" id="slot-5">
+                <span>🎁</span>
+                <span class="stamp-slot-num">FREE</span>
+            </div>
+        </div>
+
+        <!-- Unlocked Reward Alert Box (Hidden until 5 stamps achieved) -->
+        <div class="reward-alert-card" id="reward-banner" style="display:none;">
+            <div class="reward-alert-title" id="reward-banner-title">🎉 24-HOUR FREE PASS UNLOCKED!</div>
+            <p class="reward-alert-sub" id="reward-banner-sub">You earned 5 stamps! Claim your free unlimited 24-hour pass now.</p>
+            <button type="button" class="btn-claim-reward" id="btn-claim-action" onclick="claimActiveReward('free_24h')">
+                <span>⚡</span> Claim & Connect Free Now
+            </button>
+        </div>
+
+        <!-- Roommate Referral Card -->
+        <div class="referral-share-card">
+            <div class="referral-share-title">🎁 Roommate Bounty (Get 3 Days Free)</div>
+            <p class="referral-share-desc">Share your referral number with roommates. When 2 friends buy a pass, you automatically unlock a <strong>FREE 3-Day Pass</strong>!</p>
+            <a id="btn-wa-share-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-wa-referral">
+                <span>💬</span> Share Referral on WhatsApp
+            </a>
+        </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="btn-group">
         <a href="login.html" class="btn btn-topup">
@@ -434,7 +673,7 @@
         <div class="support-sub-row">
             <span>Direct Call: <strong>0794877125</strong></span>
             <span>•</span>
-            <a id="wa-link" href="https://wa.me/254794877125?text=Hello%20Makoyocart%20Support,%20I%20need%20help%20with%20my%20WiFi%20session" target="_blank">
+            <a id="wa-link" href="https://wa.me/254794877125?text=Hello%20Makoyocart%20Support,%20I%20need%20help%20with%20my%20WiFi%20session" target="_blank" rel="noopener noreferrer">
                 💬 WhatsApp Chat
             </a>
         </div>
@@ -454,14 +693,14 @@
 
     let remainingSeconds = 0;
     let timerTicker = null;
+    let activeClientPhone = "";
 
-    // Helper: Parse RouterOS time strings like "1d04:22:15" or "02:15:30" or "45m20s"
+    // Helper: Parse RouterOS time strings
     function parseRouterTimeToSeconds(str) {
         if (!str || str.indexOf('$(') !== -1) return 0;
         let s = str.trim().toLowerCase();
         let total = 0;
 
-        // Pattern 1: standard HH:MM:SS or DdHH:MM:SS
         if (s.includes(':')) {
             let parts = s.split(':');
             if (parts.length === 3) {
@@ -472,7 +711,6 @@
             }
         }
 
-        // Pattern 2: 1d2h30m40s
         let days = (s.match(/(\d+)d/) || [0, 0])[1];
         let hours = (s.match(/(\d+)h/) || [0, 0])[1];
         let mins = (s.match(/(\d+)m/) || [0, 0])[1];
@@ -533,15 +771,26 @@
             document.getElementById('pkg-name-badge').innerText = "24 Hours Unlimited";
             document.getElementById('preview-badge').style.display = "inline-block";
             
-            // Set realistic mock expiry: 6 hours from now
             const exp = new Date(Date.now() + 6 * 3600 * 1000);
             document.getElementById('expiry-text').innerText = exp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' Today';
             startLiveCountdown(6 * 3600 + 42 * 60 + 15);
+            
+            // Render demo stamps for local preview
+            renderLoyaltyUI({
+                stamps: 3,
+                stamps_needed: 2,
+                total_lifetime_purchases: 8,
+                rewards: { has_unclaimed_reward: false, available_24h_passes: 0 },
+                referrals: {
+                    referral_code: "0794877125",
+                    confirmed_friends_count: 1,
+                    whatsapp_share_text: "Hey! Connect to Makoyocart Ventures Wi-Fi at our campus hostel for fast internet."
+                }
+            });
             return;
         }
 
-        // We are live on MikroTik RouterOS!
-        // 1. First start timer using MikroTik router-provided time:
+        // Live RouterOS countdown initialization
         let parsedRouterSec = parseRouterTimeToSeconds(initialTimeText);
         if (parsedRouterSec > 0) {
             startLiveCountdown(parsedRouterSec);
@@ -552,7 +801,7 @@
             document.getElementById('expiry-text').innerText = "Active Unlimited";
         }
 
-        // 2. Fetch real database subscription details from backend
+        // Fetch real database subscription & phone number
         try {
             const queryParams = new URLSearchParams();
             if (CLIENT_MAC && CLIENT_MAC.indexOf('$(') === -1) queryParams.append('mac', CLIENT_MAC);
@@ -563,6 +812,10 @@
                 const data = await res.json();
                 if (data.package_name) {
                     document.getElementById('pkg-name-badge').innerText = data.package_name;
+                }
+                if (data.phone) {
+                    activeClientPhone = data.phone;
+                    fetchLoyaltyStats(activeClientPhone);
                 }
                 if (data.valid_until) {
                     const expiryDate = new Date(data.valid_until);
@@ -578,12 +831,126 @@
         }
     }
 
+    // Fetch Live Loyalty & Stamp Metrics from Backend
+    async function fetchLoyaltyStats(phone) {
+        if (!phone) return;
+        try {
+            const res = await fetch(`${BACKEND_BASE}/loyalty/status/${phone}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    renderLoyaltyUI(data);
+                }
+            }
+        } catch (err) {
+            console.error("Loyalty fetch error:", err);
+        }
+    }
+
+    // Render Loyalty Stamp Card & Referrals
+    function renderLoyaltyUI(data) {
+        const stamps = data.stamps || 0;
+        const targetStamps = data.target_stamps || 5;           // dynamic from server
+        const stampsNeeded = data.stamps_needed || (targetStamps - stamps);
+        const summaryEl = document.getElementById('loyalty-stamp-summary');
+
+        if (summaryEl) {
+            if (data.rewards?.has_unclaimed_reward) {
+                summaryEl.innerText = `🎉 ${targetStamps}/${targetStamps} STAMPS (Reward Ready!)`;
+                summaryEl.style.color = "#00e676";
+            } else {
+                summaryEl.innerText = `${stamps} / ${targetStamps} Stamps (${stampsNeeded} to next free day)`;
+            }
+        }
+
+        // Highlight Earned Stamp Slots — loop uses targetStamps from API
+        for (let i = 1; i <= targetStamps; i++) {
+            const slot = document.getElementById('slot-' + i);
+            if (slot) {
+                if (i <= stamps || (data.rewards?.has_unclaimed_reward && i === targetStamps)) {
+                    slot.classList.add('earned');
+                } else {
+                    slot.classList.remove('earned');
+                }
+            }
+        }
+
+        // Show Unclaimed Reward Alert — all text comes from API notification field
+        const rewardBanner = document.getElementById('reward-banner');
+        if (rewardBanner) {
+            if (data.rewards?.has_unclaimed_reward) {
+                rewardBanner.style.display = "block";
+                const days24 = data.rewards.days_until_expiry || 14;
+                document.getElementById('reward-banner-title').innerText = data.notification?.title || "🎉 24-HOUR FREE PASS UNLOCKED!";
+                document.getElementById('reward-banner-sub').innerText = data.notification?.body || `You earned ${targetStamps} stamps! Claim your free pass now (Valid for ${days24} more days).`;
+                document.getElementById('btn-claim-action').setAttribute('onclick', "claimActiveReward('free_24h')");
+            } else if (data.referrals?.has_unclaimed_referral_reward) {
+                rewardBanner.style.display = "block";
+                const days3d = data.referrals.days_until_expiry || 14;
+                document.getElementById('reward-banner-title').innerText = data.notification?.title || "🎉 3-DAY FREE PASS UNLOCKED!";
+                document.getElementById('reward-banner-sub').innerText = data.notification?.body || `You referred ${data.referrals.confirmed_friends_count || 2} roommates! Claim your free 3-Day pass now (Valid for ${days3d} more days).`;
+                document.getElementById('btn-claim-action').setAttribute('onclick', "claimActiveReward('free_3d')");
+            } else {
+                rewardBanner.style.display = "none";
+            }
+        }
+
+        // Configure WhatsApp Referral Share Link
+        const waShareBtn = document.getElementById('btn-wa-share-link');
+        if (waShareBtn && data.referrals) {
+            const refCode = data.referrals.referral_code || activeClientPhone;
+            const text = data.referrals.whatsapp_share_text || `Hey! Connect to Makoyocart Ventures Wi-Fi at our campus hostel for fast, non-buffering internet. Use my referral phone number (${refCode}) when paying at campusnet.local to get connected!`;
+            waShareBtn.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        }
+    }
+
+    // Redeem Loyalty Reward (1-Click Claim)
+    async function claimActiveReward(type) {
+        const btn = document.getElementById('btn-claim-action');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "Activating Free Pass...";
+        }
+
+        try {
+            const res = await fetch(`${BACKEND_BASE}/loyalty/redeem`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: activeClientPhone,
+                    mac_address: CLIENT_MAC,
+                    reward_type: type
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                alert(`🎉 ${result.message}\n\nVoucher: ${result.voucher_code}\nPIN: ${result.voucher_password}\n\nYour session has been extended automatically!`);
+                window.location.reload();
+            } else {
+                alert(result.error || "Failed to redeem reward. Please contact support.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "⚡ Claim & Connect Free Now";
+                }
+            }
+        } catch (err) {
+            alert("Network error while claiming reward. Please try again.");
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = "⚡ Claim & Connect Free Now";
+            }
+        }
+    }
+
     // Clean logout URL fallback
     (function() {
         const logoutBtn = document.getElementById('btn-logout');
-        const href = logoutBtn.getAttribute('href');
-        if (!href || href.indexOf('$(') !== -1) {
-            logoutBtn.setAttribute('href', 'login.html');
+        if (logoutBtn) {
+            const href = logoutBtn.getAttribute('href');
+            if (!href || href.indexOf('$(') !== -1) {
+                logoutBtn.setAttribute('href', 'login.html');
+            }
         }
     })();
 
@@ -592,3 +959,4 @@
 
 </body>
 </html>
+

@@ -83,7 +83,7 @@
         /* Brand Header */
         .brand-header {
             text-align: center;
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }
 
         .brand-pill-row {
@@ -91,7 +91,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
         }
 
@@ -167,7 +167,7 @@
             display: flex;
             justify-content: space-around;
             padding: 10px 8px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             background: rgba(255, 255, 255, 0.03);
             border: 1.5px solid var(--border-glass);
             border-radius: 14px;
@@ -231,7 +231,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin-bottom: 22px;
+            margin-bottom: 18px;
         }
 
         .pkg-card {
@@ -294,6 +294,13 @@
             box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
         }
 
+        .tag-cyan {
+            background: #00e5ff;
+            color: #090a0e;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(0, 229, 255, 0.3);
+        }
+
         .pkg-left {
             display: flex;
             flex-direction: column;
@@ -339,6 +346,71 @@
             color: var(--text-muted);
             text-transform: uppercase;
             font-weight: 700;
+        }
+
+        /* ─── Gamification: Loyalty Banner Card ─── */
+        .loyalty-banner-card {
+            background: linear-gradient(135deg, rgba(255, 179, 0, 0.08) 0%, rgba(255, 84, 20, 0.12) 100%);
+            border: 1.5px solid rgba(255, 179, 0, 0.35);
+            border-radius: 18px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .loyalty-banner-card:hover {
+            border-color: #ffb300;
+            background: linear-gradient(135deg, rgba(255, 179, 0, 0.14) 0%, rgba(255, 84, 20, 0.18) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 22px rgba(255, 179, 0, 0.2);
+        }
+
+        .loyalty-banner-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+        }
+
+        .loyalty-banner-badge {
+            font-size: 10px;
+            font-weight: 800;
+            color: #ffb300;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .loyalty-banner-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--text-pure);
+        }
+
+        .loyalty-banner-sub {
+            font-size: 11.5px;
+            color: var(--text-mid);
+        }
+
+        .btn-check-loyalty {
+            background: rgba(255, 179, 0, 0.18);
+            border: 1px solid #ffb300;
+            color: #ffb300;
+            font-size: 11.5px;
+            font-weight: 800;
+            padding: 6px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .btn-check-loyalty:hover {
+            background: #ffb300;
+            color: #090a0e;
         }
 
         /* Payment Inputs */
@@ -481,6 +553,8 @@
             margin-top: 18px;
             padding-top: 16px;
             border-top: 1px solid var(--border-glass);
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .action-link {
@@ -603,7 +677,7 @@
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.82);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             display: none;
@@ -618,8 +692,8 @@
             border: 1.5px solid var(--border-glass-strong);
             border-radius: 24px;
             width: 100%;
-            max-width: 390px;
-            padding: 28px 22px;
+            max-width: 410px;
+            padding: 24px 20px;
             text-align: center;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9);
             position: relative;
@@ -697,6 +771,149 @@
 
         .modal-close-btn:hover {
             color: #ef4444;
+        }
+
+        /* ─── Gamification Modal Elements ─── */
+        .stamp-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .stamp-slot {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px dashed rgba(255, 255, 255, 0.18);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .stamp-slot.earned {
+            background: linear-gradient(135deg, rgba(255, 179, 0, 0.2) 0%, rgba(255, 84, 20, 0.25) 100%);
+            border: 1.5px solid #ffb300;
+            color: #ffb300;
+            box-shadow: 0 0 14px rgba(255, 179, 0, 0.35);
+            transform: scale(1.04);
+        }
+
+        .stamp-slot.reward-slot {
+            border-color: var(--profit-green-border);
+            color: var(--profit-green);
+        }
+
+        .stamp-slot.reward-slot.earned {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.2) 0%, rgba(16, 185, 129, 0.35) 100%);
+            border: 1.5px solid var(--profit-green);
+            box-shadow: 0 0 16px rgba(0, 230, 118, 0.45);
+        }
+
+        .stamp-slot-num {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .stamp-slot.earned .stamp-slot-num {
+            color: #ffffff;
+        }
+
+        .reward-alert-card {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.15) 0%, rgba(16, 185, 129, 0.25) 100%);
+            border: 1.5px solid var(--profit-green);
+            border-radius: 16px;
+            padding: 14px;
+            text-align: left;
+            margin-bottom: 12px;
+        }
+
+        .reward-alert-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--profit-green);
+            margin-bottom: 4px;
+        }
+
+        .reward-alert-sub {
+            font-size: 12px;
+            color: var(--text-high);
+            margin-bottom: 10px;
+            line-height: 1.45;
+        }
+
+        .btn-claim-reward {
+            width: 100%;
+            height: 44px;
+            background: var(--profit-green);
+            color: #000000;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 230, 118, 0.3);
+        }
+
+        .btn-claim-reward:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 22px rgba(0, 230, 118, 0.5);
+        }
+
+        .referral-share-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1.5px dashed var(--border-glass);
+            border-radius: 16px;
+            padding: 14px;
+            text-align: left;
+        }
+
+        .referral-share-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--brand-orange);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .referral-share-desc {
+            font-size: 11.5px;
+            color: var(--text-mid);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .btn-wa-referral {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #25d366;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .btn-wa-referral:hover {
+            background: #20ba59;
+            transform: translateY(-1px);
         }
     </style>
 </head>
@@ -784,6 +1001,19 @@
             </div>
         </div>
 
+        <!-- 3 Days Pass -->
+        <div class="pkg-card" onclick="selectPackage('pkg_3d', 80, '3 Days Weekend Pass')" id="card-pkg_3d">
+            <span class="pkg-tag tag-cyan">Weekend Special ⚡</span>
+            <div class="pkg-left">
+                <span class="pkg-name">3 Days Weekend Pass</span>
+                <span class="pkg-desc">72 hours continuous high-speed study & streaming</span>
+            </div>
+            <div class="pkg-right">
+                <span class="pkg-price">KSh 80</span>
+                <span class="pkg-unit">3 Days</span>
+            </div>
+        </div>
+
         <!-- 7 Days Pass -->
         <div class="pkg-card" onclick="selectPackage('pkg_7d', 150, '7 Days Mega Pack')" id="card-pkg_7d">
             <span class="pkg-tag tag-green">Best Value 🚀</span>
@@ -811,6 +1041,16 @@
         </div>
     </div>
 
+    <!-- Loyalty Quick Banner -->
+    <div class="loyalty-banner-card" onclick="openLoyaltyModal()">
+        <div class="loyalty-banner-left">
+            <span class="loyalty-banner-badge">⭐ LOYALTY REWARDS & FREE PASSES</span>
+            <span class="loyalty-banner-title">Buy 5 Passes → Get 1 Free Day</span>
+            <span class="loyalty-banner-sub">Refer 2 Roommates → Get 3 Days Free!</span>
+        </div>
+        <button type="button" class="btn-check-loyalty">Check Rewards</button>
+    </div>
+
     <!-- M-Pesa Payment Form -->
     <form id="payment-form" onsubmit="handlePaymentSubmit(event)">
         <div class="input-group">
@@ -821,6 +1061,18 @@
             <div class="input-wrapper">
                 <span class="input-icon">📱</span>
                 <input type="tel" id="phone-input" class="input-box" placeholder="e.g. 07XXXXXXXX or 01XXXXXXXX" required autocomplete="tel">
+            </div>
+        </div>
+
+        <!-- Roommate Referral Phone (Optional) -->
+        <div class="input-group">
+            <div class="input-label">
+                <span>🎁 Roommate Referral Phone (Optional)</span>
+                <span class="sub">Help a friend earn 3 days free</span>
+            </div>
+            <div class="input-wrapper">
+                <span class="input-icon">👥</span>
+                <input type="tel" id="referral-phone-input" class="input-box" placeholder="Friend's phone: e.g. 07XXXXXXXX" autocomplete="off">
             </div>
         </div>
 
@@ -836,6 +1088,9 @@
 
     <!-- Sub Actions -->
     <div class="footer-actions">
+        <button type="button" class="action-link" onclick="openLoyaltyModal()">
+            <span>⭐</span> Loyalty & Rewards
+        </button>
         <button type="button" class="action-link" onclick="openRestoreModal()">
             <span>🔄</span> Restore Session
         </button>
@@ -851,7 +1106,7 @@
             <span>📞 Helpline:</span>
             <a href="tel:0794877125">0794877125</a>
             <span>•</span>
-            <a href="https://wa.me/254794877125?text=Hello%20Makoyocart%20Support,%20I%20need%20help%20with%20WiFi%20login" target="_blank">WhatsApp</a>
+            <a href="https://wa.me/254794877125?text=Hello%20Makoyocart%20Support,%20I%20need%20help%20with%20WiFi%20login" target="_blank" rel="noopener noreferrer">💬 WhatsApp (0794877125)</a>
         </div>
     </div>
 </div>
@@ -883,6 +1138,65 @@
     </div>
 </div>
 
+<!-- Modal: Loyalty & Free Pass Rewards -->
+<div class="modal-overlay" id="loyalty-modal">
+    <div class="modal-card" style="max-width: 410px; text-align: left;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 class="modal-title" style="margin-bottom:0;">⭐ Loyalty & Rewards</h3>
+            <span class="edition-badge" style="font-size:10px;">14-Day Validity</span>
+        </div>
+        
+        <p class="modal-msg" style="margin-bottom:12px; text-align:left;">
+            Enter your phone number to check your stamp card, claim unlocked free passes, and see roommate referrals.
+        </p>
+
+        <div class="input-wrapper" style="margin-bottom:12px;">
+            <span class="input-icon">📱</span>
+            <input type="tel" id="loyalty-phone-input" class="input-box" placeholder="Enter phone (e.g. 07XXXXXXXX)">
+        </div>
+
+        <button type="button" id="btn-check-rewards" class="btn-cta" style="height:46px; font-size:14px; margin-bottom:14px;" onclick="checkLoyaltyStatus()">
+            <span>🔍</span> Check Stamps & Rewards
+        </button>
+
+        <!-- Results Container (Populated via API) -->
+        <div id="loyalty-results-box" style="display:none;">
+            <!-- 5-Stamp Slots -->
+            <div class="stamp-grid" style="margin-bottom:12px;">
+                <div class="stamp-slot" id="lm-slot-1"><span>⭐</span><span class="stamp-slot-num">1</span></div>
+                <div class="stamp-slot" id="lm-slot-2"><span>⭐</span><span class="stamp-slot-num">2</span></div>
+                <div class="stamp-slot" id="lm-slot-3"><span>⭐</span><span class="stamp-slot-num">3</span></div>
+                <div class="stamp-slot" id="lm-slot-4"><span>⭐</span><span class="stamp-slot-num">4</span></div>
+                <div class="stamp-slot reward-slot" id="lm-slot-5"><span>🎁</span><span class="stamp-slot-num">FREE</span></div>
+            </div>
+
+            <!-- Notification & Claim Card -->
+            <div class="reward-alert-card" id="lm-notification-card">
+                <div class="reward-alert-title" id="lm-notif-title">⭐ 0/5 Stamps</div>
+                <p class="reward-alert-sub" id="lm-notif-body">Loading your loyalty status...</p>
+                <p id="lm-notif-guide" style="font-size:11.5px; color:#cbd5e1; margin-bottom:10px; line-height:1.45;"></p>
+                <button type="button" class="btn-claim-reward" id="lm-btn-claim" style="display:none;" onclick="claimRewardFromModal()">
+                    <span>⚡</span> Claim & Connect Free Now
+                </button>
+            </div>
+
+            <!-- Referral Share Box -->
+            <div class="referral-share-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span class="referral-share-title">🎁 Roommate Bounty</span>
+                    <span id="lm-ref-count" style="font-size:11px; color:#00e676; font-weight:700;">0/2 Friends</span>
+                </div>
+                <p class="referral-share-desc" style="margin-bottom:8px;">Refer 2 roommates to earn a <strong>FREE 3-Day Pass</strong>!</p>
+                <a id="lm-wa-share" href="#" target="_blank" class="btn-wa-referral" style="width:100%; box-sizing:border-box;">
+                    <span>💬</span> Share on WhatsApp
+                </a>
+            </div>
+        </div>
+
+        <button type="button" class="modal-close-btn" style="width:100%; text-align:center; margin-top:14px;" onclick="closeLoyaltyModal()">Close</button>
+    </div>
+</div>
+
 <!-- Modal: Session Restore -->
 <div class="modal-overlay" id="restore-modal">
     <div class="modal-card">
@@ -909,8 +1223,10 @@
     let pollInterval = null;
     let countdownInterval = null;
     let secondsLeft = 40;
+    let activeLoyaltyRewardType = 'free_24h';
+    let currentLoyaltyPhone = '';
 
-    // Clean error display handler (hides unparsed template tags in local browser preview)
+    // Clean error display handler
     (function() {
         var rawErr = document.getElementById('mt-raw-error');
         if (rawErr) {
@@ -939,25 +1255,57 @@
     }
 
     // Promo Code Handler
-    function applyPromoCode() {
+    async function applyPromoCode() {
         const code = document.getElementById('promo-input').value.trim().toUpperCase();
+        const phone = document.getElementById('phone-input').value.trim();
+
         if (!code) {
             showToast('info', 'Promo Code', 'Please enter a promo code first.');
             return;
         }
 
+        try {
+            const res = await fetch(`${BACKEND_BASE_URL}/promo/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code,
+                    phone,
+                    package_id: selectedPackageId || 'pkg_24h'
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.valid) {
+                    appliedDiscount = data.discountAmount || 0;
+                    selectedAmount = data.finalAmount || Math.max(10, baseAmount - appliedDiscount);
+                    document.getElementById('btn-amount-display').innerText = selectedAmount;
+                    document.getElementById('fb-amount').innerText = selectedAmount;
+                    showToast('success', 'Promo Applied!', data.message || `${code} active: Saved KSh ${appliedDiscount}!`);
+                    return;
+                } else {
+                    showToast('error', 'Promo Error', data.error || 'Invalid or expired promo code.');
+                    return;
+                }
+            }
+        } catch (err) {
+            console.log('Backend promo verify offline, using local verification fallback');
+        }
+
+        // Local fallback
         if (code === 'FRESHER2026') {
             appliedDiscount = Math.round(baseAmount * 0.25);
-            selectedAmount = Math.max(1, baseAmount - appliedDiscount);
+            selectedAmount = Math.max(10, baseAmount - appliedDiscount);
             document.getElementById('btn-amount-display').innerText = selectedAmount;
             document.getElementById('fb-amount').innerText = selectedAmount;
             showToast('success', 'Promo Applied!', `FRESHER2026 active: 25% OFF (Saved KSh ${appliedDiscount})!`);
         } else if (code === 'EXAMNIGHT') {
-            appliedDiscount = 15;
-            selectedAmount = Math.max(1, baseAmount - appliedDiscount);
+            appliedDiscount = Math.min(15, baseAmount - 10);
+            selectedAmount = Math.max(10, baseAmount - appliedDiscount);
             document.getElementById('btn-amount-display').innerText = selectedAmount;
             document.getElementById('fb-amount').innerText = selectedAmount;
-            showToast('success', 'Promo Applied!', `EXAMNIGHT active: KSh 15 discount applied!`);
+            showToast('success', 'Promo Applied!', `EXAMNIGHT active: Saved KSh ${appliedDiscount}!`);
         } else {
             showToast('error', 'Invalid Code', 'Promo code not recognized or expired.');
         }
@@ -983,7 +1331,7 @@
         }, d);
     }
 
-    // Dynamic Packages Fetch from Live Backend
+    // Dynamic Packages Fetch
     async function loadDynamicPackages() {
         try {
             const res = await fetch(`${BACKEND_BASE_URL}/packages`, { method: 'GET' });
@@ -1013,6 +1361,7 @@
                 let tagClass = 'tag-orange';
                 if (p.tag.toLowerCase().includes('save')) tagClass = 'tag-green';
                 if (p.tag.toLowerCase().includes('sprint')) tagClass = 'tag-amber';
+                if (p.tag.toLowerCase().includes('weekend')) tagClass = 'tag-cyan';
                 tagHtml = `<span class="pkg-tag ${tagClass}">${p.tag}</span>`;
             }
 
@@ -1044,6 +1393,7 @@
         hideError();
         const phone = document.getElementById('phone-input').value.trim();
         const promo = document.getElementById('promo-input').value.trim();
+        const referralPhone = document.getElementById('referral-phone-input') ? document.getElementById('referral-phone-input').value.trim() : '';
 
         if (!phone || phone.length < 9) {
             showError("Please enter a valid M-Pesa phone number (e.g. 0794877125).");
@@ -1068,7 +1418,8 @@
                     ip_address: CLIENT_IP,
                     package_id: selectedPackageId,
                     amount: selectedAmount,
-                    promo_code: promo
+                    promo_code: promo,
+                    referral_phone: referralPhone
                 })
             });
             clearTimeout(timeoutId);
@@ -1083,7 +1434,6 @@
                 showModalError(result.error || result.detail || "Failed to initiate M-Pesa prompt. Try manual code below.");
             }
         } catch (err) {
-            // Even if network blipped, prompt was likely dispatched by backend
             document.getElementById('modal-heading').innerText = "Check Your Phone";
             document.getElementById('modal-subtext').innerText = "If the M-Pesa prompt appears on your phone, enter your PIN. Otherwise use the manual code below.";
             document.getElementById('modal-fallback').style.display = 'block';
@@ -1116,7 +1466,7 @@
                 if (data.status === 'completed' || data.status === 'success') {
                     clearInterval(pollInterval);
                     clearInterval(countdownInterval);
-                    handlePaymentSuccess(data.username, data.password);
+                    handlePaymentSuccess(data.username || data.voucher_code, data.password || data.voucher_password);
                 }
             } catch (e) {
                 // Ignore transient network blips
@@ -1124,12 +1474,12 @@
         }, 2000);
     }
 
-    // Auto-login to MikroTik once payment confirmed
+    // Auto-login to MikroTik once payment confirmed or reward claimed
     function handlePaymentSuccess(username, password) {
         document.getElementById('modal-spinner').style.display = 'none';
-        document.getElementById('modal-heading').innerText = "✓ Payment Confirmed!";
+        document.getElementById('modal-heading').innerText = "✓ Access Granted!";
         document.getElementById('modal-heading').style.color = "#00e676";
-        document.getElementById('modal-subtext').innerText = "Access granted! Connecting your device to high-speed internet...";
+        document.getElementById('modal-subtext').innerText = "Connecting your device to high-speed internet...";
         document.getElementById('timer-display').style.display = 'none';
         document.getElementById('modal-fallback').style.display = 'none';
 
@@ -1141,6 +1491,148 @@
         setTimeout(() => {
             document.sendin.submit();
         }, 1200);
+    }
+
+    // ─── Gamification: Loyalty & Free Pass Redemption ───
+    function openLoyaltyModal() {
+        const modal = document.getElementById('loyalty-modal');
+        modal.style.display = 'flex';
+        
+        const mainPhone = document.getElementById('phone-input').value.trim();
+        const loyaltyPhoneInput = document.getElementById('loyalty-phone-input');
+        if (mainPhone && !loyaltyPhoneInput.value) {
+            loyaltyPhoneInput.value = mainPhone;
+            checkLoyaltyStatus();
+        }
+    }
+
+    function closeLoyaltyModal() {
+        document.getElementById('loyalty-modal').style.display = 'none';
+    }
+
+    async function checkLoyaltyStatus() {
+        const phone = document.getElementById('loyalty-phone-input').value.trim();
+        if (!phone || phone.length < 9) {
+            showToast('error', 'Phone Required', 'Enter a valid phone number (e.g. 07XXXXXXXX).');
+            return;
+        }
+
+        currentLoyaltyPhone = phone;
+        const btnCheck = document.getElementById('btn-check-rewards');
+        btnCheck.disabled = true;
+        btnCheck.innerText = 'Checking Stamps & Rewards...';
+
+        try {
+            const res = await fetch(`${BACKEND_BASE_URL}/loyalty/status/${phone}`);
+            const data = await res.json();
+            btnCheck.disabled = false;
+            btnCheck.innerText = '🔍 Check Stamps & Rewards';
+
+            if (res.ok && data.valid) {
+                renderLoyaltyModalUI(data);
+            } else {
+                showToast('error', 'Notice', data.error || 'Could not fetch loyalty profile.');
+            }
+        } catch (err) {
+            btnCheck.disabled = false;
+            btnCheck.innerText = '🔍 Check Stamps & Rewards';
+            showToast('error', 'Network Error', 'Could not reach rewards server. Try again shortly.');
+        }
+    }
+
+    function renderLoyaltyModalUI(data) {
+        document.getElementById('loyalty-results-box').style.display = 'block';
+        const stamps = data.stamps || 0;
+        const targetStamps = data.target_stamps || 5;  // dynamic from server config
+
+        // Render stamp slots — count driven by targetStamps from API (not hard-coded)
+        for (let i = 1; i <= targetStamps; i++) {
+            const slot = document.getElementById('lm-slot-' + i);
+            if (slot) {
+                if (i <= stamps || (data.rewards?.has_unclaimed_reward && i === targetStamps)) {
+                    slot.classList.add('earned');
+                } else {
+                    slot.classList.remove('earned');
+                }
+            }
+        }
+
+        // Notification & Claim Button — all text from server API (data.notification.*)
+        const notifTitle = document.getElementById('lm-notif-title');
+        const notifBody = document.getElementById('lm-notif-body');
+        const notifGuide = document.getElementById('lm-notif-guide');
+        const btnClaim = document.getElementById('lm-btn-claim');
+
+        if (data.rewards?.has_unclaimed_reward) {
+            activeLoyaltyRewardType = 'free_24h';
+            notifTitle.innerText = data.notification?.title || "🎉 FREE 24-HOUR PASS READY!";
+            notifTitle.style.color = "#00e676";
+            notifBody.innerText = data.notification?.body || "You completed all stamps! Claim your free 24-hour pass now.";
+            notifGuide.innerText = data.notification?.how_to_redeem || "Tap 'Claim & Connect Free' below to connect immediately.";
+            btnClaim.style.display = "flex";
+            btnClaim.innerText = "⚡ Claim 24-Hour Free Pass & Connect";
+        } else if (data.referrals?.has_unclaimed_referral_reward) {
+            activeLoyaltyRewardType = 'free_3d';
+            notifTitle.innerText = data.notification?.title || "🎉 FREE 3-DAY PASS READY!";
+            notifTitle.style.color = "#00e676";
+            notifBody.innerText = data.notification?.body || "Your roommates used your referral! Claim your free 3-Day pass now.";
+            notifGuide.innerText = data.notification?.how_to_redeem || "Tap 'Claim & Connect Free' below to connect immediately.";
+            btnClaim.style.display = "flex";
+            btnClaim.innerText = "⚡ Claim 3-Day Free Pass & Connect";
+        } else {
+            // In-progress: use server notification text entirely — no hard-coded fallback numbers
+            notifTitle.innerText = data.notification?.title || `⭐ ${stamps}/${targetStamps} Stamps Collected`;
+            notifTitle.style.color = "#ffb300";
+            notifBody.innerText = data.notification?.body || `Buy ${data.stamps_needed || 1} more pass to get 1 Free 24-Hour Pass!`;
+            notifGuide.innerText = data.notification?.how_to_redeem || "Stamps accumulate automatically every time you buy a pass.";
+            btnClaim.style.display = "none";
+        }
+
+        // Referral Box — friend count comes from confirmed_friends_count, not hard-coded
+        const refCount = document.getElementById('lm-ref-count');
+        const waShare = document.getElementById('lm-wa-share');
+        if (refCount && data.referrals) {
+            const friendsCount = data.referrals.confirmed_friends_count || 0;
+            const referralsTarget = data.referrals.referrals_required || 2;
+            refCount.innerText = `${friendsCount}/${referralsTarget} Friends`;
+        }
+        if (waShare && data.referrals) {
+            const shareText = data.referrals.whatsapp_share_text || `Hey! Connect to Makoyocart Ventures Wi-Fi at our campus hostel. Use my referral phone (${currentLoyaltyPhone}) to get high-speed internet!`;
+            waShare.href = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+        }
+    }
+
+    async function claimRewardFromModal() {
+        const btn = document.getElementById('lm-btn-claim');
+        btn.disabled = true;
+        btn.innerText = 'Activating Free Pass...';
+
+        try {
+            const res = await fetch(`${BACKEND_BASE_URL}/loyalty/redeem`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: currentLoyaltyPhone,
+                    mac_address: CLIENT_MAC,
+                    reward_type: activeLoyaltyRewardType
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeLoyaltyModal();
+                openStkModal(currentLoyaltyPhone);
+                handlePaymentSuccess(data.voucher_code, data.voucher_password);
+            } else {
+                btn.disabled = false;
+                btn.innerText = '⚡ Claim & Connect Free Now';
+                showToast('error', 'Redemption Notice', data.error || 'Failed to claim reward. Please contact support.');
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerText = '⚡ Claim & Connect Free Now';
+            showToast('error', 'Error', 'Failed to reach rewards server. Try again.');
+        }
     }
 
     // Session Restore
@@ -1161,9 +1653,10 @@
             if (res.ok && data.success) {
                 closeRestoreModal();
                 showToast('success', 'Session Restored!', `Active pass found for ${phone}. Connecting...`);
+                openStkModal(phone);
                 handlePaymentSuccess(data.username, data.password);
             } else {
-                showToast('error', 'Not Found', data.detail || 'No active pass found for this phone number.');
+                showToast('error', 'Not Found', data.detail || data.error || 'No active pass found for this phone number.');
             }
         } catch (e) {
             showToast('error', 'Connection Error', 'Could not reach session server. Try again shortly.');
@@ -1178,7 +1671,7 @@
             return;
         }
 
-        const phoneVal = (document.getElementById('phone-input') ? document.getElementById('phone-input').value.trim() : '') || localStorage.getItem('cn_phone') || '';
+        const phoneVal = (document.getElementById('phone-input') ? document.getElementById('phone-input').value.trim() : '') || currentLoyaltyPhone || '';
         const pkgId = selectedPackageId || 'pkg_1h';
 
         try {

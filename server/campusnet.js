@@ -1617,7 +1617,7 @@ export async function getLoyaltyProfile(phone) {
   } else if (expired24hCount > 0 && currentStamps === 0) {
     notificationType = 'expired';
     notificationTitle = '⚠️ Previous Reward Expired';
-    notificationBody = 'Your previous unclaimed reward reached the 14-day limit. Keep buying passes to earn your next free day!';
+    notificationBody = `Your previous unclaimed reward reached the ${rewardValidityDays}-day limit. Keep buying passes to earn your next free day!`;
   }
 
   return {
@@ -1643,7 +1643,8 @@ export async function getLoyaltyProfile(phone) {
       referral_code: cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone,
       full_referral_id: `REF_${cleanPhone}`,
       confirmed_friends_count: confirmedReferralsCount,
-      friends_needed_for_next_reward: Math.max(0, 2 - (confirmedReferralsCount % 2)),
+      referrals_required: referralsRequired,
+      friends_needed_for_next_reward: Math.max(0, referralsRequired - (confirmedReferralsCount % referralsRequired)),
       available_3d_passes: validUnclaimed3dCount,
       total_3d_earned: total3dMilestonesEarned,
       redeemed_3d_count: redeemed3dCount,
