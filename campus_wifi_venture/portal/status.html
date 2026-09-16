@@ -863,11 +863,10 @@
             }
         }
 
-        // Highlight Earned Stamp Slots — loop uses targetStamps from API
         for (let i = 1; i <= targetStamps; i++) {
             const slot = document.getElementById('slot-' + i);
             if (slot) {
-                if (i <= stamps || (data.rewards?.has_unclaimed_reward && i === targetStamps)) {
+                if (data.rewards?.has_unclaimed_reward || i <= stamps) {
                     slot.classList.add('earned');
                 } else {
                     slot.classList.remove('earned');

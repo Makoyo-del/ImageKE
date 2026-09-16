@@ -1545,11 +1545,10 @@
         const stamps = data.stamps || 0;
         const targetStamps = data.target_stamps || 5;  // dynamic from server config
 
-        // Render stamp slots — count driven by targetStamps from API (not hard-coded)
         for (let i = 1; i <= targetStamps; i++) {
             const slot = document.getElementById('lm-slot-' + i);
             if (slot) {
-                if (i <= stamps || (data.rewards?.has_unclaimed_reward && i === targetStamps)) {
+                if (data.rewards?.has_unclaimed_reward || i <= stamps) {
                     slot.classList.add('earned');
                 } else {
                     slot.classList.remove('earned');

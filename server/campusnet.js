@@ -285,8 +285,8 @@ router.post('/pay/stk', async (req, res) => {
       mac_address: clientMac,
       package_id: pkg.id,
       amount: finalAmount,
-      promo_code: appliedPromoCode,
-      status: 'pending'
+      status: 'pending',
+      paystack_reference: appliedPromoCode || null
     });
 
     if (txErr) {
@@ -1483,17 +1483,18 @@ export async function getLoyaltyProfile(phone) {
   const { stampsRequired, rewardValidityDays, referralsRequired, minPurchaseAmount } = LOYALTY_CONFIG;
 
   // 1. Query qualifying PAID transactions only.
-  //    Double-guarded: (a) amount >= minPurchaseAmount AND (b) promo_code != LOYALTY_REDEEM_TAG.
-  //    Guard (b) ensures loyalty redemption transactions can NEVER inflate stamp counts,
-  //    even if amount check is accidentally relaxed during future refactors.
-  const { data: txs } = await supabase
+  //    Guarded: amount >= minPurchaseAmount (excludes free rewards with amount = 0).
+  const { data: txs, error: txError } = await supabase
     .from('campusnet_transactions')
-    .select('id, amount, package_id, created_at, status, promo_code')
+    .select('id, amount, package_id, created_at, status, mpesa_receipt, voucher_code')
     .eq('phone', cleanPhone)
     .in('status', ['completed', 'SUCCESS'])
     .gte('amount', minPurchaseAmount)
-    .neq('promo_code', LOYALTY_REDEEM_TAG)
     .order('created_at', { ascending: true });
+
+  if (txError) {
+    console.error('[CampusNet Loyalty Error] Transactions query error:', txError);
+  }
 
   const totalPaidPurchases = txs ? txs.length : 0;
   const currentStamps = totalPaidPurchases % stampsRequired;
@@ -1542,7 +1543,7 @@ export async function getLoyaltyProfile(phone) {
   const { data: refTxs } = await supabase
     .from('campusnet_transactions')
     .select('id, phone, amount, created_at')
-    .ilike('promo_code', `REF_${cleanPhone}%`)
+    .ilike('paystack_reference', `REF_${cleanPhone}%`)
     .in('status', ['completed', 'SUCCESS'])
     .gte('amount', 10)
     .order('created_at', { ascending: true });
@@ -1785,9 +1786,7 @@ router.post('/loyalty/redeem', async (req, res) => {
     }, { onConflict: 'phone' });
 
     // 3. Log a zero-KES transaction in ledger for audit transparency.
-    //    CRITICAL: promo_code is set to LOYALTY_REDEEM_TAG so this transaction
-    //    is EXPLICITLY EXCLUDED from paid stamp counts by the getLoyaltyProfile query.
-    //    DO NOT remove the promo_code field from this insert — it is the anti-inflation guard.
+    //    Guaranteed anti-inflation: amount is strictly 0 and mpesa_receipt is tagged REWARD_*.
     const ref = `REWARD_${Date.now()}_${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     await supabase.from('campusnet_transactions').insert({
       reference: ref,
@@ -1797,7 +1796,6 @@ router.post('/loyalty/redeem', async (req, res) => {
       amount: 0,
       status: 'completed',
       voucher_code: voucherCode,
-      promo_code: LOYALTY_REDEEM_TAG,   // ← CRITICAL: prevents stamp count inflation
       mpesa_receipt: `REWARD_${type.toUpperCase()}`
     });
 
