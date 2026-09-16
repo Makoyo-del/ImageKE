@@ -1451,11 +1451,26 @@ router.post('/admin/audit-sync-sessions', async (req, res) => {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 🎮 MAKOYOCART VENTURES: GAMIFICATION & LOYALTY ENGINE
-// 1. Digital 5-Stamp Card (Buy 5 passes -> Earn 1 Free 24-Hour Pass, Valid 14 Days)
-// 2. Roommate Referral Engine (Refer 2 paying friends -> Earn 1 Free 3-Day Pass, Valid 14 Days)
+// 1. Digital Stamp Card (Buy N passes -> Earn 1 Free 24-Hour Pass, Valid X Days)
+// 2. Roommate Referral Engine (Refer M paying friends -> Earn 1 Free 3-Day Pass, Valid X Days)
 // ══════════════════════════════════════════════════════════════════════════════
 
-const REWARD_VALIDITY_DAYS = 14; // Unredeemed loyalty passes expire after 14 days
+// ── LOYALTY CONFIG (change via .env — no server redeploy needed) ──────────────
+// Set LOYALTY_STAMPS_REQUIRED=5 in .env to require 5 purchases per free pass.
+// Set LOYALTY_REWARD_VALIDITY_DAYS=14 in .env to set expiry window.
+// Set LOYALTY_REFERRALS_REQUIRED=2 in .env to set referrals needed per 3-Day pass.
+// Set LOYALTY_MIN_PURCHASE_KES=10 in .env for minimum qualifying purchase amount.
+const LOYALTY_CONFIG = {
+  stampsRequired:     parseInt(process.env.LOYALTY_STAMPS_REQUIRED, 10)      || 5,
+  rewardValidityDays: parseInt(process.env.LOYALTY_REWARD_VALIDITY_DAYS, 10) || 14,
+  referralsRequired:  parseInt(process.env.LOYALTY_REFERRALS_REQUIRED, 10)   || 2,
+  minPurchaseAmount:  parseInt(process.env.LOYALTY_MIN_PURCHASE_KES, 10)     || 10,
+};
+
+// INTERNAL TAG stamped on all loyalty redemption transactions.
+// This EXPLICITLY EXCLUDES free redemptions from being counted as paid stamps.
+// NEVER remove this tag from redemption inserts — it is the anti-inflation guard.
+const LOYALTY_REDEEM_TAG = 'LOYALTY_REDEEM';
 
 // Helper: Fetch full loyalty & referral metrics for any phone number with milestone expiration
 export async function getLoyaltyProfile(phone) {
@@ -1465,22 +1480,28 @@ export async function getLoyaltyProfile(phone) {
   }
 
   const now = new Date();
+  const { stampsRequired, rewardValidityDays, referralsRequired, minPurchaseAmount } = LOYALTY_CONFIG;
 
-  // 1. Query all completed transactions for this phone (minimum KSh 10)
+  // 1. Query qualifying PAID transactions only.
+  //    Double-guarded: (a) amount >= minPurchaseAmount AND (b) promo_code != LOYALTY_REDEEM_TAG.
+  //    Guard (b) ensures loyalty redemption transactions can NEVER inflate stamp counts,
+  //    even if amount check is accidentally relaxed during future refactors.
   const { data: txs } = await supabase
     .from('campusnet_transactions')
-    .select('id, amount, package_id, created_at, status')
+    .select('id, amount, package_id, created_at, status, promo_code')
     .eq('phone', cleanPhone)
     .in('status', ['completed', 'SUCCESS'])
-    .gte('amount', 10)
+    .gte('amount', minPurchaseAmount)
+    .neq('promo_code', LOYALTY_REDEEM_TAG)
     .order('created_at', { ascending: true });
 
   const totalPaidPurchases = txs ? txs.length : 0;
-  const currentStamps = totalPaidPurchases % 5;
-  const stampsNeeded = (5 - currentStamps) % 5 === 0 && currentStamps === 0 && totalPaidPurchases > 0 ? 0 : (5 - currentStamps);
-  const total24hMilestonesEarned = Math.floor(totalPaidPurchases / 5);
+  const currentStamps = totalPaidPurchases % stampsRequired;
+  const stampsToNext = currentStamps === 0 && totalPaidPurchases > 0 ? 0 : (stampsRequired - currentStamps);
+  const total24hMilestonesEarned = Math.floor(totalPaidPurchases / stampsRequired);
 
-  // 2. Query redeemed loyalty vouchers for this phone (amount = 0 or tagged)
+  // 2. Query redeemed loyalty vouchers for this phone
+  //    These are vouchers that were granted for FREE (amount = 0) via the loyalty system.
   const { data: claimed24hVouchers } = await supabase
     .from('campusnet_vouchers')
     .select('id, code, password, activated_at, expires_at, created_at')
@@ -1496,13 +1517,14 @@ export async function getLoyaltyProfile(phone) {
   let expired24hCount = 0;
 
   for (let k = 1; k <= total24hMilestonesEarned; k++) {
-    const milestoneIndex = k * 5 - 1;
+    // Milestone k is reached at the (k * stampsRequired)th purchase (e.g. 5th, 10th, 15th)
+    const milestoneIndex = k * stampsRequired - 1;
     const milestoneTx = txs[milestoneIndex];
     if (milestoneTx) {
       const milestoneTime = new Date(milestoneTx.created_at).getTime();
-      const expiryDate = new Date(milestoneTime + REWARD_VALIDITY_DAYS * 24 * 3600 * 1000);
-      
-      // If this milestone index has not yet been redeemed
+      const expiryDate = new Date(milestoneTime + rewardValidityDays * 24 * 3600 * 1000);
+
+      // Has this milestone been redeemed? Assumes redemptions clear oldest unclaimed first.
       if (k > redeemed24hCount) {
         if (now <= expiryDate) {
           validUnclaimed24hCount++;
@@ -1536,7 +1558,7 @@ export async function getLoyaltyProfile(phone) {
 
   const refereeArray = Array.from(distinctReferees.entries()).map(([refPhone, time]) => ({ phone: refPhone, time }));
   const confirmedReferralsCount = refereeArray.length;
-  const total3dMilestonesEarned = Math.floor(confirmedReferralsCount / 2);
+  const total3dMilestonesEarned = Math.floor(confirmedReferralsCount / referralsRequired);
 
   const { data: claimed3dVouchers } = await supabase
     .from('campusnet_vouchers')
@@ -1552,11 +1574,12 @@ export async function getLoyaltyProfile(phone) {
   let expired3dCount = 0;
 
   for (let r = 1; r <= total3dMilestonesEarned; r++) {
-    const refereeMilestoneIndex = r * 2 - 1;
+    // Referral milestone r is reached at the (r * referralsRequired)th confirmed referral
+    const refereeMilestoneIndex = r * referralsRequired - 1;
     const refereeEntry = refereeArray[refereeMilestoneIndex];
     if (refereeEntry) {
       const milestoneTime = new Date(refereeEntry.time).getTime();
-      const expiryDate = new Date(milestoneTime + REWARD_VALIDITY_DAYS * 24 * 3600 * 1000);
+      const expiryDate = new Date(milestoneTime + rewardValidityDays * 24 * 3600 * 1000);
 
       if (r > redeemed3dCount) {
         if (now <= expiryDate) {
@@ -1577,9 +1600,9 @@ export async function getLoyaltyProfile(phone) {
 
   // Construct student notification & instructions
   let notificationType = 'in_progress';
-  let notificationTitle = `⭐ ${currentStamps} of 5 Stamps Collected`;
-  let notificationBody = `Buy ${stampsNeeded} more pass${stampsNeeded > 1 ? 'es' : ''} to unlock a Free 24-Hour Pass!`;
-  let howToRedeem = 'Stamps are credited automatically to your number when you buy passes. Once 5 stamps are reached, tap "Claim Free Pass" to connect with zero payment.';
+  let notificationTitle = `⭐ ${currentStamps} of ${stampsRequired} Stamps Collected`;
+  let notificationBody = `Buy ${stampsToNext} more pass${stampsToNext > 1 ? 'es' : ''} to unlock a Free 24-Hour Pass!`;
+  let howToRedeem = `Stamps are credited automatically to your number when you buy passes. Once ${stampsRequired} stamps are reached, tap "Claim Free Pass" to connect with zero payment.`;
 
   if (validUnclaimed24hCount > 0) {
     notificationType = 'reward_24h_ready';
@@ -1602,9 +1625,9 @@ export async function getLoyaltyProfile(phone) {
     phone: cleanPhone,
     formatted_phone: formattedPhone,
     stamps: currentStamps,
-    target_stamps: 5,
-    stamps_needed: stampsNeeded,
-    progress_percent: (currentStamps / 5) * 100,
+    target_stamps: stampsRequired,
+    stamps_needed: stampsToNext,
+    progress_percent: (currentStamps / stampsRequired) * 100,
     total_lifetime_purchases: totalPaidPurchases,
     rewards: {
       available_24h_passes: validUnclaimed24hCount,
@@ -1760,7 +1783,10 @@ router.post('/loyalty/redeem', async (req, res) => {
       valid_until: validUntil.toISOString()
     }, { onConflict: 'phone' });
 
-    // 3. Log a zero-KES transaction in ledger for audit transparency
+    // 3. Log a zero-KES transaction in ledger for audit transparency.
+    //    CRITICAL: promo_code is set to LOYALTY_REDEEM_TAG so this transaction
+    //    is EXPLICITLY EXCLUDED from paid stamp counts by the getLoyaltyProfile query.
+    //    DO NOT remove the promo_code field from this insert — it is the anti-inflation guard.
     const ref = `REWARD_${Date.now()}_${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     await supabase.from('campusnet_transactions').insert({
       reference: ref,
@@ -1770,6 +1796,7 @@ router.post('/loyalty/redeem', async (req, res) => {
       amount: 0,
       status: 'completed',
       voucher_code: voucherCode,
+      promo_code: LOYALTY_REDEEM_TAG,   // ← CRITICAL: prevents stamp count inflation
       mpesa_receipt: `REWARD_${type.toUpperCase()}`
     });
 
