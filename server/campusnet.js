@@ -199,7 +199,7 @@ router.post('/promo/verify', async (req, res) => {
 // Dispatches M-Pesa STK push via Paystack Mobile Money
 // [SECURITY AUDITED]: Client price tampering eliminated. Server strictly enforces package price.
 router.post('/pay/stk', async (req, res) => {
-  const { phone, mac_address, ip_address, package_id, promo_code } = req.body;
+  const { phone, mac_address, ip_address, package_id, promo_code, referral_phone } = req.body;
 
   if (!phone || !package_id) {
     return res.status(400).json({ error: 'Phone number and package are required' });
@@ -215,9 +215,18 @@ router.post('/pay/stk', async (req, res) => {
     return res.status(404).json({ error: 'Selected package does not exist' });
   }
 
+  // Clean and validate optional referral phone (Anti-self-referral rule)
+  let refCode = null;
+  if (referral_phone && typeof referral_phone === 'string' && referral_phone.trim()) {
+    const { clean: cleanRefPhone } = formatPhone(referral_phone);
+    if (cleanRefPhone && cleanRefPhone.length === 12 && cleanRefPhone !== cleanPhone) {
+      refCode = `REF_${cleanRefPhone}`;
+    }
+  }
+
   // SECURITY & DYNAMIC PROMOS: Calculate discount securely on server
   let finalAmount = pkg.amount;
-  let appliedPromoCode = null;
+  let appliedPromoCode = refCode;
   let promoDiscount = 0;
 
   if (promo_code && typeof promo_code === 'string' && promo_code.trim()) {
@@ -276,6 +285,7 @@ router.post('/pay/stk', async (req, res) => {
       mac_address: clientMac,
       package_id: pkg.id,
       amount: finalAmount,
+      promo_code: appliedPromoCode,
       status: 'pending'
     });
 
@@ -649,9 +659,11 @@ router.get('/pay/status/:reference', async (req, res) => {
       }
     }
 
-    return res.json({ status: 'pending',
-      promo_code: appliedPromoCode,
-      discount_amount: (pkg.amount - finalAmount) });
+    return res.json({
+      status: 'pending',
+      promo_code: tx?.promo_code || null,
+      amount: tx?.amount || 0
+    });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to check status' });
   }
@@ -1437,4 +1449,371 @@ router.post('/admin/audit-sync-sessions', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 🎮 MAKOYOCART VENTURES: GAMIFICATION & LOYALTY ENGINE
+// 1. Digital 5-Stamp Card (Buy 5 passes -> Earn 1 Free 24-Hour Pass, Valid 14 Days)
+// 2. Roommate Referral Engine (Refer 2 paying friends -> Earn 1 Free 3-Day Pass, Valid 14 Days)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const REWARD_VALIDITY_DAYS = 14; // Unredeemed loyalty passes expire after 14 days
+
+// Helper: Fetch full loyalty & referral metrics for any phone number with milestone expiration
+export async function getLoyaltyProfile(phone) {
+  const { clean: cleanPhone, formatted: formattedPhone } = formatPhone(phone);
+  if (!cleanPhone || cleanPhone.length !== 12) {
+    return { valid: false, error: 'Invalid phone number format. Use 07XXXXXXXX or 01XXXXXXXX.' };
+  }
+
+  const now = new Date();
+
+  // 1. Query all completed transactions for this phone (minimum KSh 10)
+  const { data: txs } = await supabase
+    .from('campusnet_transactions')
+    .select('id, amount, package_id, created_at, status')
+    .eq('phone', cleanPhone)
+    .in('status', ['completed', 'SUCCESS'])
+    .gte('amount', 10)
+    .order('created_at', { ascending: true });
+
+  const totalPaidPurchases = txs ? txs.length : 0;
+  const currentStamps = totalPaidPurchases % 5;
+  const stampsNeeded = (5 - currentStamps) % 5 === 0 && currentStamps === 0 && totalPaidPurchases > 0 ? 0 : (5 - currentStamps);
+  const total24hMilestonesEarned = Math.floor(totalPaidPurchases / 5);
+
+  // 2. Query redeemed loyalty vouchers for this phone (amount = 0 or tagged)
+  const { data: claimed24hVouchers } = await supabase
+    .from('campusnet_vouchers')
+    .select('id, code, password, activated_at, expires_at, created_at')
+    .eq('assigned_phone', cleanPhone)
+    .eq('package_id', 'pkg_24h')
+    .eq('amount', 0);
+
+  const redeemed24hCount = claimed24hVouchers ? claimed24hVouchers.length : 0;
+
+  // Compute 24h milestone expiration per earned batch
+  let validUnclaimed24hCount = 0;
+  let nextExpiring24hDate = null;
+  let expired24hCount = 0;
+
+  for (let k = 1; k <= total24hMilestonesEarned; k++) {
+    const milestoneIndex = k * 5 - 1;
+    const milestoneTx = txs[milestoneIndex];
+    if (milestoneTx) {
+      const milestoneTime = new Date(milestoneTx.created_at).getTime();
+      const expiryDate = new Date(milestoneTime + REWARD_VALIDITY_DAYS * 24 * 3600 * 1000);
+      
+      // If this milestone index has not yet been redeemed
+      if (k > redeemed24hCount) {
+        if (now <= expiryDate) {
+          validUnclaimed24hCount++;
+          if (!nextExpiring24hDate || expiryDate < nextExpiring24hDate) {
+            nextExpiring24hDate = expiryDate;
+          }
+        } else {
+          expired24hCount++;
+        }
+      }
+    }
+  }
+
+  // 3. Query Roommate Referrals
+  const { data: refTxs } = await supabase
+    .from('campusnet_transactions')
+    .select('id, phone, amount, created_at')
+    .ilike('promo_code', `REF_${cleanPhone}%`)
+    .in('status', ['completed', 'SUCCESS'])
+    .gte('amount', 10)
+    .order('created_at', { ascending: true });
+
+  const distinctReferees = new Map();
+  if (refTxs) {
+    refTxs.forEach(t => {
+      if (t.phone && t.phone !== cleanPhone && !distinctReferees.has(t.phone)) {
+        distinctReferees.set(t.phone, t.created_at);
+      }
+    });
+  }
+
+  const refereeArray = Array.from(distinctReferees.entries()).map(([refPhone, time]) => ({ phone: refPhone, time }));
+  const confirmedReferralsCount = refereeArray.length;
+  const total3dMilestonesEarned = Math.floor(confirmedReferralsCount / 2);
+
+  const { data: claimed3dVouchers } = await supabase
+    .from('campusnet_vouchers')
+    .select('id, code, password, activated_at, expires_at, created_at')
+    .eq('assigned_phone', cleanPhone)
+    .eq('package_id', 'pkg_3d')
+    .eq('amount', 0);
+
+  const redeemed3dCount = claimed3dVouchers ? claimed3dVouchers.length : 0;
+
+  let validUnclaimed3dCount = 0;
+  let nextExpiring3dDate = null;
+  let expired3dCount = 0;
+
+  for (let r = 1; r <= total3dMilestonesEarned; r++) {
+    const refereeMilestoneIndex = r * 2 - 1;
+    const refereeEntry = refereeArray[refereeMilestoneIndex];
+    if (refereeEntry) {
+      const milestoneTime = new Date(refereeEntry.time).getTime();
+      const expiryDate = new Date(milestoneTime + REWARD_VALIDITY_DAYS * 24 * 3600 * 1000);
+
+      if (r > redeemed3dCount) {
+        if (now <= expiryDate) {
+          validUnclaimed3dCount++;
+          if (!nextExpiring3dDate || expiryDate < nextExpiring3dDate) {
+            nextExpiring3dDate = expiryDate;
+          }
+        } else {
+          expired3dCount++;
+        }
+      }
+    }
+  }
+
+  // Calculate days remaining for notification
+  let daysUntil24hExpiry = nextExpiring24hDate ? Math.max(1, Math.ceil((nextExpiring24hDate.getTime() - now.getTime()) / (24 * 3600 * 1000))) : 0;
+  let daysUntil3dExpiry = nextExpiring3dDate ? Math.max(1, Math.ceil((nextExpiring3dDate.getTime() - now.getTime()) / (24 * 3600 * 1000))) : 0;
+
+  // Construct student notification & instructions
+  let notificationType = 'in_progress';
+  let notificationTitle = `⭐ ${currentStamps} of 5 Stamps Collected`;
+  let notificationBody = `Buy ${stampsNeeded} more pass${stampsNeeded > 1 ? 'es' : ''} to unlock a Free 24-Hour Pass!`;
+  let howToRedeem = 'Stamps are credited automatically to your number when you buy passes. Once 5 stamps are reached, tap "Claim Free Pass" to connect with zero payment.';
+
+  if (validUnclaimed24hCount > 0) {
+    notificationType = 'reward_24h_ready';
+    notificationTitle = '🎉 FREE 24-HOUR PASS UNLOCKED!';
+    notificationBody = `You have ${validUnclaimed24hCount} unclaimed 24-Hour Free Pass! Valid for ${daysUntil24hExpiry} more day${daysUntil24hExpiry > 1 ? 's' : ''} (Expires ${nextExpiring24hDate.toLocaleDateString()}).`;
+    howToRedeem = 'Tap "Claim & Connect Free" below to activate your 24-hour pass immediately without paying.';
+  } else if (validUnclaimed3dCount > 0) {
+    notificationType = 'reward_3d_ready';
+    notificationTitle = '🎉 FREE 3-DAY PASS UNLOCKED!';
+    notificationBody = `2 roommates joined with your referral! Valid for ${daysUntil3dExpiry} more day${daysUntil3dExpiry > 1 ? 's' : ''} (Expires ${nextExpiring3dDate.toLocaleDateString()}).`;
+    howToRedeem = 'Tap "Claim & Connect Free" below to activate your 3-Day pass immediately without paying.';
+  } else if (expired24hCount > 0 && currentStamps === 0) {
+    notificationType = 'expired';
+    notificationTitle = '⚠️ Previous Reward Expired';
+    notificationBody = 'Your previous unclaimed reward reached the 14-day limit. Keep buying passes to earn your next free day!';
+  }
+
+  return {
+    valid: true,
+    phone: cleanPhone,
+    formatted_phone: formattedPhone,
+    stamps: currentStamps,
+    target_stamps: 5,
+    stamps_needed: stampsNeeded,
+    progress_percent: (currentStamps / 5) * 100,
+    total_lifetime_purchases: totalPaidPurchases,
+    rewards: {
+      available_24h_passes: validUnclaimed24hCount,
+      total_24h_earned: total24hMilestonesEarned,
+      redeemed_24h_count: redeemed24hCount,
+      expired_24h_count: expired24hCount,
+      has_unclaimed_reward: validUnclaimed24hCount > 0,
+      reward_expires_at: nextExpiring24hDate ? nextExpiring24hDate.toISOString() : null,
+      days_until_expiry: daysUntil24hExpiry,
+      is_reward_expired: expired24hCount > 0 && validUnclaimed24hCount === 0
+    },
+    referrals: {
+      referral_code: cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone,
+      full_referral_id: `REF_${cleanPhone}`,
+      confirmed_friends_count: confirmedReferralsCount,
+      friends_needed_for_next_reward: Math.max(0, 2 - (confirmedReferralsCount % 2)),
+      available_3d_passes: validUnclaimed3dCount,
+      total_3d_earned: total3dMilestonesEarned,
+      redeemed_3d_count: redeemed3dCount,
+      expired_3d_count: expired3dCount,
+      has_unclaimed_referral_reward: validUnclaimed3dCount > 0,
+      reward_expires_at: nextExpiring3dDate ? nextExpiring3dDate.toISOString() : null,
+      days_until_expiry: daysUntil3dExpiry,
+      whatsapp_share_text: `Hey! I use Makoyocart Ventures Wi-Fi at our campus hostel for fast, non-buffering internet. Use my referral phone number (${cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone}) when paying at campusnet.local to get connected!`
+    },
+    notification: {
+      type: notificationType,
+      title: notificationTitle,
+      body: notificationBody,
+      how_to_redeem: howToRedeem
+    }
+  };
+}
+
+// ─── GET /api/campusnet/loyalty/status/:phone ─────────────────────────────────
+// Returns live stamp card, milestone rewards, and roommate referral stats
+router.get('/loyalty/status/:phone', async (req, res) => {
+  const { phone } = req.params;
+  try {
+    const profile = await getLoyaltyProfile(phone);
+    if (!profile.valid) {
+      return res.status(400).json({ success: false, error: profile.error });
+    }
+    return res.json({ success: true, ...profile });
+  } catch (err) {
+    console.error('[CampusNet Loyalty Status Error]', err);
+    return res.status(500).json({ success: false, error: 'Failed to fetch loyalty status' });
+  }
+});
+
+// ─── POST /api/campusnet/loyalty/redeem ────────────────────────────────────────
+// Redeems an unlocked Loyalty 24-Hour Pass or Roommate 3-Day Pass
+router.post('/loyalty/redeem', async (req, res) => {
+  const { phone, mac_address, reward_type } = req.body;
+  
+  if (!phone) {
+    return res.status(400).json({ success: false, error: 'Phone number is required to redeem reward.' });
+  }
+
+  const { clean: cleanPhone } = formatPhone(phone);
+  const clientMac = (mac_address && mac_address !== '$(mac)') ? mac_address : '00:00:00:00:00:00';
+  const type = reward_type === 'free_3d' ? 'free_3d' : 'free_24h';
+  const targetPkgId = type === 'free_3d' ? 'pkg_3d' : 'pkg_24h';
+  const durationHours = type === 'free_3d' ? 72 : 24;
+
+  try {
+    const profile = await getLoyaltyProfile(cleanPhone);
+    if (!profile.valid) {
+      return res.status(400).json({ success: false, error: 'Invalid phone number format.' });
+    }
+
+    if (type === 'free_24h' && profile.rewards.available_24h_passes <= 0) {
+      if (profile.rewards.expired_24h_count > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Your loyalty 24-Hour pass has expired (rewards must be claimed within 14 days). Keep buying passes to earn your next free reward!'
+        });
+      }
+      return res.status(400).json({ 
+        success: false, 
+        error: `You do not have any unclaimed 24-Hour Free Passes available. (Current stamps: ${profile.stamps}/5)` 
+      });
+    }
+
+    if (type === 'free_3d' && profile.referrals.available_3d_passes <= 0) {
+      if (profile.referrals.expired_3d_count > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Your referral 3-Day pass has expired (rewards must be claimed within 14 days). Share your referral number with more roommates to earn another!'
+        });
+      }
+      return res.status(400).json({ 
+        success: false, 
+        error: `You need 2 confirmed roommate referrals to unlock a Free 3-Day Pass. (Current referrals: ${profile.referrals.confirmed_friends_count})` 
+      });
+    }
+
+    // 1. Fetch available voucher from Supabase pool
+    const { data: voucher, error: vErr } = await supabase
+      .from('campusnet_vouchers')
+      .select('*')
+      .eq('package_id', targetPkgId)
+      .eq('status', 'available')
+      .limit(1)
+      .maybeSingle();
+
+    let voucherCode = null;
+    let voucherPassword = null;
+    const now = new Date();
+    const validUntil = new Date(now.getTime() + durationHours * 3600 * 1000);
+
+    if (voucher && !vErr) {
+      voucherCode = voucher.code;
+      voucherPassword = voucher.password;
+
+      await supabase
+        .from('campusnet_vouchers')
+        .update({
+          status: 'assigned',
+          assigned_phone: cleanPhone,
+          assigned_mac: clientMac,
+          amount: 0, // Mark as free loyalty reward
+          activated_at: now.toISOString(),
+          expires_at: validUntil.toISOString()
+        })
+        .eq('id', voucher.id);
+    } else {
+      // Dynamic generation fallback
+      const suffix = cleanPhone.slice(-4);
+      voucherCode = `FREE_${type === 'free_3d' ? '3D' : '24H'}_${suffix}_${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+      voucherPassword = crypto.randomBytes(3).toString('hex');
+
+      await supabase.from('campusnet_vouchers').insert({
+        code: voucherCode,
+        password: voucherPassword,
+        package_id: targetPkgId,
+        duration_hours: durationHours,
+        amount: 0,
+        status: 'assigned',
+        assigned_phone: cleanPhone,
+        assigned_mac: clientMac,
+        activated_at: now.toISOString(),
+        expires_at: validUntil.toISOString()
+      });
+    }
+
+    // 2. Register Active Session for Auto-Login on MikroTik
+    await supabase.from('campusnet_sessions').upsert({
+      phone: cleanPhone,
+      mac_address: clientMac,
+      voucher_code: voucherCode,
+      voucher_password: voucherPassword,
+      valid_until: validUntil.toISOString()
+    }, { onConflict: 'phone' });
+
+    // 3. Log a zero-KES transaction in ledger for audit transparency
+    const ref = `REWARD_${Date.now()}_${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+    await supabase.from('campusnet_transactions').insert({
+      reference: ref,
+      phone: cleanPhone,
+      mac_address: clientMac,
+      package_id: targetPkgId,
+      amount: 0,
+      status: 'completed',
+      voucher_code: voucherCode,
+      mpesa_receipt: `REWARD_${type.toUpperCase()}`
+    });
+
+    console.log(`[CampusNet Loyalty Reward Redeemed] Granted ${durationHours}h Free Pass to ${cleanPhone} (Voucher: ${voucherCode})`);
+
+    return res.json({
+      success: true,
+      reward_type: type,
+      duration_hours: durationHours,
+      voucher_code: voucherCode,
+      voucher_password: voucherPassword,
+      valid_until: validUntil.toISOString(),
+      message: `🎉 Congratulations! Your ${type === 'free_3d' ? '3-Day' : '24-Hour'} Free Pass has been activated!`
+    });
+  } catch (err) {
+    console.error('[CampusNet Loyalty Redeem Error]', err);
+    return res.status(500).json({ success: false, error: 'Failed to redeem reward. Please try again.' });
+  }
+});
+
+// ─── POST /api/campusnet/referrals/verify ─────────────────────────────────────
+// Verifies if a referrer phone number is valid and not self
+router.post('/referrals/verify', (req, res) => {
+  const { referral_phone, current_phone } = req.body;
+  if (!referral_phone) {
+    return res.json({ valid: false, error: 'Referral phone is required' });
+  }
+  const { clean: cleanRef } = formatPhone(referral_phone);
+  const { clean: cleanCurrent } = formatPhone(current_phone);
+
+  if (cleanRef.length !== 12 || !cleanRef.startsWith('254')) {
+    return res.json({ valid: false, error: 'Invalid Kenyan phone number for referrer.' });
+  }
+
+  if (cleanRef === cleanCurrent) {
+    return res.json({ valid: false, error: 'You cannot use your own phone number as a referral code.' });
+  }
+
+  return res.json({
+    valid: true,
+    referrer_phone: cleanRef,
+    message: `Referral applied! Your friend (0${cleanRef.slice(3)}) will earn points toward a Free 3-Day Pass.`
+  });
+});
+
 export default router;
+
