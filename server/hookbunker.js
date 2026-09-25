@@ -186,17 +186,27 @@ const parsePayload = (payload, gateway) => {
 
 // Helper: Async Webhook Forwarding Job
 const forwardWebhookAsync = async (webhookId, targetUrl, payload, customHeaders = {}) => {
-  const attempt_number = 1;
   const startTime = Date.now();
   let response_status = null;
   let response_body = null;
   let error_message = null;
   let status = 'failed';
 
+  // Count existing deliveries for accurate attempt number
+  const { count: prevAttempts } = await supabase
+    .from('deliveries')
+    .select('*', { count: 'exact', head: true })
+    .eq('webhook_id', webhookId);
+  const attempt_number = (prevAttempts || 0) + 1;
+
+  const hookbunkerSecret = process.env.PING_SECRET || '277720e688e81de86c3e6664a3a3053354ef33c9594d57b835e70485146d012d';
+
   try {
     const response = await axios.post(targetUrl, payload, {
       headers: { 
         'Content-Type': 'application/json',
+        'x-hookbunker-forwarded': 'true',
+        'x-hookbunker-secret': hookbunkerSecret,
         ...customHeaders
       },
       timeout: 8000,

@@ -145,7 +145,7 @@ export function BunkerLayout({ children, onNavigate }) {
                 fontWeight: 600
               }}
             >
-              ← CV Builder
+              ← Back to Ventures
             </button>
           </nav>
         </div>

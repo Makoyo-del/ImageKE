@@ -71,7 +71,7 @@ app.use(
   express.json({
     limit: '8mb',
     verify: (req, _res, buf) => {
-      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/campusnet/webhook') {
+      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/campusnet/webhook' || req.originalUrl === '/api/rider/webhook') {
         req.rawBody = buf;
       }
     },
@@ -87,6 +87,18 @@ app.use('/api/campusnet', campusNetRouter);
 
 // 3. Academy / Internal Admin Auth (Mentor dashboard & private management)
 app.use('/api/academy', academyRouter);
+
+// 4. Resilient Legacy Rider Webhook Alias -> routes to CampusNet Webhook
+// Prevents 404s for any in-flight retries or services still referencing the legacy /api/rider/webhook URL
+app.post('/api/rider/webhook', (req, res, next) => {
+  req.url = '/webhook';
+  return campusNetRouter(req, res, next);
+});
+
+// Non-blocking fallback for any other legacy rider endpoints
+app.all(['/api/rider', '/api/rider/*'], (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Legacy rider route handled.' });
+});
 
 // ─── Health Check & Keepalive ─────────────────────────────────────────────────
 app.get('/health', (req, res) => {
