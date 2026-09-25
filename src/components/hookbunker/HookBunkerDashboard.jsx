@@ -1828,26 +1828,109 @@ func main() {
 
             {/* Raw JSON Payload */}
             <div>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>Raw Payload JSON</h3>
-              <pre className="hb-code-box" style={{ maxHeight: '200px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMuted, textTransform: 'uppercase', margin: 0, letterSpacing: '0.05em' }}>
+                  Raw Payload JSON
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(selectedLog.payload, null, 2));
+                    showToast('Payload copied to clipboard.', 'success');
+                  }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: `1px solid ${theme.border}`,
+                    color: theme.textMuted,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontWeight: 600
+                  }}
+                >
+                  <Copy size={12} /> Copy JSON
+                </button>
+              </div>
+              <pre
+                className="hb-code-box"
+                style={{
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  overflowX: 'auto',
+                  background: 'rgba(5, 8, 22, 0.95)',
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  fontSize: '0.8rem',
+                  lineHeight: 1.5,
+                  color: '#34d399',
+                  boxSizing: 'border-box',
+                  margin: 0
+                }}
+              >
                 {JSON.stringify(selectedLog.payload, null, 2)}
               </pre>
             </div>
 
             {/* Action buttons: Redeliver + Delete */}
-            <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '1.25rem', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{
+              borderTop: `1px solid ${theme.border}`,
+              paddingTop: '1.25rem',
+              marginTop: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              flexShrink: 0
+            }}>
               <button 
+                type="button"
                 onClick={() => handleForceRedeliver(selectedLog.id)}
-                style={{ width: '100%', background: theme.primary, color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{
+                  width: '100%',
+                  background: theme.primary,
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(43, 91, 255, 0.35)',
+                  transition: 'opacity 0.2s'
+                }}
               >
-                <RefreshCw size={14} /> Force Manual Redeliver
+                <RefreshCw size={15} /> Force Manual Redeliver
               </button>
               <button 
+                type="button"
                 onClick={() => handleDeleteWebhook(selectedLog.id)}
-                style={{ width: '100%', background: 'rgba(239,68,68,0.1)', color: theme.danger, border: `1px solid rgba(239,68,68,0.25)`, padding: '0.75rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{
+                  width: '100%',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s'
+                }}
                 title="Permanently delete this log and stop all future retries"
               >
-                <Trash2 size={14} /> Delete Log &amp; Stop Retries
+                <Trash2 size={15} /> Delete Log &amp; Stop Retries
               </button>
             </div>
           </div>

@@ -132,15 +132,34 @@
 
 .hb-drawer-body {
   width: 100%;
-  max-width: 550px;
+  max-width: 560px;
+  height: 100vh;
+  box-sizing: border-box;
   background: #060b16;
   border-left: 1px solid var(--hb-border);
-  padding: 2.5rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
   overflow-y: auto;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.hb-code-box {
+  background: rgba(5, 8, 22, 0.95);
+  border: 1px solid var(--hb-border);
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #34d399;
+  word-break: normal;
+  white-space: pre;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Logs Table UI */
