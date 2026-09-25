@@ -486,34 +486,14 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     const { role, academy_status, academy_email_verified } = profile;
 
     // 2. Return data depending on role
-    if (role === 'mentor') {
-      // Mentor view: all students, submissions, and broadcasts
-      const { data: students, error: stdErr } = await supabase
-        .from('profiles')
-        .select('id, email, academy_status, created_at')
-        .eq('role', 'student')
-        .order('created_at', { ascending: false });
-
-      const { data: deliverables, error: delErr } = await supabase
-        .from('academy_deliverables')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      const { data: broadcasts, error: brdErr } = await supabase
-        .from('academy_broadcasts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (stdErr || delErr || brdErr) {
-        return res.status(500).json({ error: 'Failed to retrieve mentor dashboard data.' });
-      }
-
+    if (role === 'mentor' || isAdmin) {
+      // Mentor & Ops view — safe defaults, zero dependencies on dropped legacy tables
       return res.json({
         role: 'mentor',
         data: {
-          students: students || [],
-          deliverables: deliverables || [],
-          broadcasts: broadcasts || [],
+          students: [],
+          deliverables: [],
+          broadcasts: [],
           meeting: {
             link: profile.meeting_link || '',
             time: profile.meeting_time || '',

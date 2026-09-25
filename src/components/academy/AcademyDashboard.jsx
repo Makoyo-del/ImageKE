@@ -20,7 +20,7 @@ export default function AcademyDashboard({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
   const [state, setState] = useState(null); // Backend state response
-  const [activeTab, setActiveTab] = useState('overview'); // student: overview | sprints | feedback. mentor: overview | students | submissions | broadcast
+  const [activeTab, setActiveTab] = useState('hookbunker'); // student: overview | sprints | feedback. mentor: overview | students | submissions | broadcast
   const [error, setError] = useState('');
   
   // Student Submission state

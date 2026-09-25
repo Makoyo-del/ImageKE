@@ -660,17 +660,15 @@ export default function ServicesPage({ onNavigateToPath }) {
             <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>Terms</button>
             <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>Privacy</button>
             <a href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" style={{ color: '#00e676', textDecoration: 'none', fontWeight: 700 }}>WhatsApp</a>
-            <button onClick={() => window.location.hash = '#/academy/dashboard'} style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              color: '#f1f5f9',
-              border: '1px solid rgba(255, 255, 255, 0.16)',
-              borderRadius: '6px',
-              padding: '0.4rem 0.75rem',
-              fontSize: '0.78rem',
-              fontWeight: 600,
+            <button onClick={() => window.location.hash = '#/academy'} style={{
+              background: 'none',
+              color: '#475569',
+              border: 'none',
+              padding: '0.2rem',
+              fontSize: '0.75rem',
               cursor: 'pointer'
-            }}>
-              Internal Ops Login
+            }} title="Portal">
+              &bull;
             </button>
           </div>
         </div>

@@ -5,7 +5,7 @@ import './AcademyAuth.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 
-export default function AcademyAuth({ onAuthSuccess }) {
+export default function AcademyAuth({ onAuthSuccess, onNavigate }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -51,6 +51,8 @@ export default function AcademyAuth({ onAuthSuccess }) {
         });
         if (error) throw error;
         if (onAuthSuccess) onAuthSuccess();
+        if (onNavigate) onNavigate('academy-dashboard');
+        window.location.hash = '#/academy/dashboard';
       } else {
         // Registration is handled entirely on the backend.
         // This bypasses Supabase's own email template (which is branded for HookBunker)
@@ -87,12 +89,12 @@ export default function AcademyAuth({ onAuthSuccess }) {
       <div className="ac-auth-card">
         <div className="ac-auth-header">
           <h2 className="ac-auth-title">
-            {authMode === 'login' ? 'Academy Sign In' : 'Academy Register'}
+            {authMode === 'login' ? 'Venture Portal Sign In' : 'Portal Registration'}
           </h2>
           <p className="ac-auth-subtitle">
             {authMode === 'login' 
-              ? 'Access your outcomes-focused learning dashboard' 
-              : 'Create an account to begin your career accelerator'
+              ? 'Authorized access to Makoyocart infrastructure & HookBunker gateway' 
+              : 'Create an authorized administrative account'
             }
           </p>
         </div>

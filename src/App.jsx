@@ -473,10 +473,16 @@ function App() {
         {currentPath === 'privacy' && renderPrivacy()}
 
         {currentPath === 'academy-auth' && (
-          <AcademyAuth onNavigate={(path) => {
-            setCurrentPath(path);
-            window.location.hash = `#/${path}`;
-          }} />
+          <AcademyAuth 
+            onAuthSuccess={() => {
+              setCurrentPath('academy-dashboard');
+              window.location.hash = '#/academy/dashboard';
+            }}
+            onNavigate={(path) => {
+              setCurrentPath(path);
+              window.location.hash = `#/${path}`;
+            }} 
+          />
         )}
 
         {currentPath === 'academy-dashboard' && (
