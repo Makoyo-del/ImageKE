@@ -275,7 +275,7 @@ function App() {
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: July 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
         <h3 style={{ color: 'var(--text)', marginBottom: '0.5rem' }}>1. Acceptance of Terms</h3>
-        <p>By accessing or using the website at duncanmakoyo.com ("the Site"), and any associated media utilities (ImageKE Photo &amp; Video Studio), career development services, ATS resume auditing simulator, The Resume Hot Seat live teardowns, LinkedIn Scorecard, HookBunker proxy, Career Academy, AI Masterclasses, Resume Vault, or digital presence consulting (collectively, "the Services"), you confirm that you are at least 18 years of age (or have parental/guardian consent) and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Services immediately.</p>
+        <p>By accessing or using the website at duncanmakoyo.com ("the Site"), operated by MAKOYOCART VENTURES (Registration No: BN-WLSP9KP9) and founder Duncan Makoyo, and any associated media utilities (ImageKE Photo &amp; Video Studio), career development services, ATS resume auditing simulator, The Resume Hot Seat live teardowns, LinkedIn Scorecard, HookBunker proxy, Career Academy, AI Masterclasses, Resume Vault, or digital presence consulting (collectively, "the Services"), you confirm that you are at least 18 years of age (or have parental/guardian consent) and agree to be legally bound by these Terms of Use. If you do not agree, please discontinue use of the Services immediately.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>2. Scope and Description of All Products &amp; Services</h3>
         <p>We provide a comprehensive suite of digital, media, developer, and career solutions, including:</p>
@@ -341,7 +341,7 @@ function App() {
       <h1>Privacy Policy</h1>
       <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Last Updated: July 2026</p>
       <div style={{ marginTop: '2rem', lineHeight: 1.8, color: 'var(--text-muted)' }}>
-        <p>This Privacy Policy describes how we collect, process, and protect your personal information across all products offered on duncanmakoyo.com ("the Site"), including ImageKE media tools, ATS Simulator, The Resume Hot Seat live streams, LinkedIn Scorecard, HookBunker developer proxy, and Career Academy programs.</p>
+        <p>This Privacy Policy describes how MAKOYOCART VENTURES (Registration No: BN-WLSP9KP9, operating duncanmakoyo.com) and founder Duncan Makoyo collect, process, and protect your personal information across all products offered on the Site, including ImageKE media tools, ATS Simulator, The Resume Hot Seat live streams, LinkedIn Scorecard, HookBunker developer proxy, and Career Academy programs.</p>
 
         <h3 style={{ color: 'var(--text)', marginTop: '2rem', marginBottom: '0.5rem' }}>1. Browser-Native Processing (Zero Server Transmission)</h3>
         <p>For the ImageKE Photo and Video editing tools (including compressor, aspect cropper, watermarker, and frame extractors), **all rendering is conducted locally in your web browser using WebAssembly and canvas technologies**. Your uploaded photos, logo overlays, and video streams never leave your device and are never sent to our servers.</p>
@@ -508,7 +508,8 @@ function App() {
             </div>
             <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
               <div className="container">
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} <strong>MAKOYOCART VENTURES</strong> (Duncan Makoyo). All rights reserved.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>Registration: BN-WLSP9KP9 &bull; Mwamosioma, Kisii-Kilgoris Road, Darajambili, P.O. Box 54, Kisii, Kenya</p>
               </div>
             </footer>
           </>

@@ -159,7 +159,7 @@ export function BunkerLayout({ children, onNavigate }) {
       {/* Main Footer (Reused across website under the same domain) */}
       <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: `1px solid ${theme.border}`, background: 'rgba(13, 18, 54, 0.4)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
-          <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+          <p style={{ color: theme.textMuted, fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} MAKOYOCART VENTURES (Duncan Makoyo). All rights reserved.</p>
           <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
             <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: theme.textMuted, fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'inherit' }}>Terms of Use</button>
             <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: theme.textMuted, fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'inherit' }}>Privacy Policy</button>

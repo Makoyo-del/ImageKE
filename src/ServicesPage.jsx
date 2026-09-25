@@ -1581,7 +1581,12 @@ export default function ServicesPage({ onNavigateToTools, onNavigateToPath }) {
           </div>
 
           <div className="dm-footer-bottom">
-            <span>© {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span>© {new Date().getFullYear()} <strong>MAKOYOCART VENTURES</strong>. All rights reserved.</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Operated by Duncan Makoyo | Reg: BN-WLSP9KP9 | Mwamosioma, Kisii-Kilgoris Road, Darajambili, P.O. Box 54, Kisii, Kenya
+              </span>
+            </div>
             <span>
               Also try our free tools:{' '}
               {onNavigateToTools ? (

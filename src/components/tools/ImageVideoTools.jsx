@@ -2025,7 +2025,7 @@ export default function ImageVideoTools({ currentPath, currentTab, setCurrentPat
 
               <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)', background: 'var(--card-bg)' }}>
                 <div className="container">
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} Duncan Makoyo. All rights reserved.</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>&copy; {new Date().getFullYear()} <strong>MAKOYOCART VENTURES</strong> (Duncan Makoyo). All rights reserved.</p>
                   <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
                     <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Terms of Use</button>
                     <button onClick={() => window.location.hash = '#/rider-login'} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}>Rider Portal</button>
