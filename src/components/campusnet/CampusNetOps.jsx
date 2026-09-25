@@ -33,7 +33,7 @@ export function CampusNetOps({ onNavigate }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   
-  // Tabs: 'sessions' | 'loyalty' | 'hotline' | 'stock'
+  // Tabs: 'sessions' | 'loyalty' | 'hotline'
   const [activeTab, setActiveTab] = useState('sessions');
   const [sessionFilter, setSessionFilter] = useState('active'); // 'active' | 'all'
   const [loyaltyFilter, setLoyaltyFilter] = useState('unclaimed'); // 'all' | 'unclaimed' | 'near_reward'
@@ -74,7 +74,7 @@ export function CampusNetOps({ onNavigate }) {
       setData(res.data);
     } catch (err) {
       console.error('Fetch overview error:', err);
-      setError(err.response?.data?.error || 'Failed to load CampusNet live operations data.');
+      setError(err.response?.data?.error || 'Failed to load live operations data from server.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -83,13 +83,13 @@ export function CampusNetOps({ onNavigate }) {
 
   useEffect(() => {
     fetchOverview();
-    // Auto-poll every 30 seconds
+    // Auto-poll live database every 30 seconds
     const poll = setInterval(() => fetchOverview(true), 30000);
     return () => clearInterval(poll);
   }, []);
 
   const handlePrune = async () => {
-    if (!window.confirm('Prune expired sessions older than the 2-hour dispute window?')) return;
+    if (!window.confirm('Prune expired sessions older than the 2-hour dispute window from Supabase?')) return;
     setPruning(true);
     setPruneResult(null);
     try {
@@ -164,7 +164,7 @@ export function CampusNetOps({ onNavigate }) {
     return (
       <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
         <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 1rem', display: 'block', color: '#ff5414' }} />
-        <p style={{ fontWeight: 600 }}>Connecting to CampusNet core telemetry...</p>
+        <p style={{ fontWeight: 600 }}>Querying live Supabase sessions & vouchers...</p>
       </div>
     );
   }
@@ -225,32 +225,32 @@ export function CampusNetOps({ onNavigate }) {
 
       {/* 4 Stat Cards Row */}
       <div className="cn-stat-grid">
-        {/* Card 1: Active Sessions */}
+        {/* Card 1: Active Subscriptions */}
         <div className="cn-stat-card cn-card-green">
           <div className="cn-stat-header">
-            <span className="cn-stat-title">Active Students Online</span>
+            <span className="cn-stat-title">Active Subscriptions</span>
             <span className="cn-pulse-dot" />
           </div>
           <div className="cn-stat-value">
             {stats.active_sessions_count || 0}
             <span style={{ fontSize: '0.9rem', color: '#94a3b8', fontWeight: 500 }}>
-              / {stats.total_sessions_count || 0} logged
+              valid / {stats.total_sessions_count || 0} in DB
             </span>
           </div>
           <div className="cn-stat-subtext">
-            Devices currently authorized on MikroTik L009
+            {stats.active_sessions_count || 0} unexpired student passes currently active ({(stats.total_sessions_count || 0) - (stats.active_sessions_count || 0)} expired rows awaiting prune)
           </div>
         </div>
 
         {/* Card 2: Voucher Stock */}
         <div className="cn-stat-card cn-card-orange">
           <div className="cn-stat-header">
-            <span className="cn-stat-title">Voucher Pool Stock</span>
+            <span className="cn-stat-title">Live Voucher Pool</span>
             <Layers size={18} color="#ff5414" />
           </div>
           <div className="cn-stat-value">
             {stats.available_vouchers_count || 0}
-            <span style={{ fontSize: '0.85rem', color: '#00e676', fontWeight: 600 }}>Ready</span>
+            <span style={{ fontSize: '0.85rem', color: '#00e676', fontWeight: 600 }}>Available</span>
           </div>
           <div className="cn-chips-row">
             <span className="cn-stock-chip">1H: {stats.vouchers_by_package?.pkg_1h || 0}</span>
@@ -265,7 +265,7 @@ export function CampusNetOps({ onNavigate }) {
           <div className="cn-stat-header">
             <span className="cn-stat-title">Today's Revenue (EAT)</span>
             <span style={{ fontSize: '0.75rem', color: '#00d4ff', fontWeight: 700 }}>
-              {stats.today_transactions_count || 0} payments
+              {stats.today_transactions_count || 0} paid today
             </span>
           </div>
           <div className="cn-stat-value">
@@ -287,7 +287,7 @@ export function CampusNetOps({ onNavigate }) {
             <span style={{ fontSize: '0.85rem', color: '#ffb703', fontWeight: 600 }}>Students</span>
           </div>
           <div className="cn-stat-subtext">
-            {stats.total_customers_count || 0} total registered student numbers
+            Out of {stats.total_customers_count || 0} total registered student phone numbers
           </div>
         </div>
       </div>
@@ -324,7 +324,7 @@ export function CampusNetOps({ onNavigate }) {
             className="cn-action-btn"
             onClick={() => fetchOverview(true)}
             disabled={refreshing}
-            title="Refresh telemetry"
+            title="Refresh live telemetry from Supabase"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             {refreshing ? 'Syncing...' : 'Refresh'}
@@ -355,13 +355,13 @@ export function CampusNetOps({ onNavigate }) {
                 className={`cn-pill-btn ${sessionFilter === 'active' ? 'active' : ''}`}
                 onClick={() => setSessionFilter('active')}
               >
-                Active Online ({stats.active_sessions_count || 0})
+                Active Only ({stats.active_sessions_count || 0})
               </button>
               <button 
                 className={`cn-pill-btn ${sessionFilter === 'all' ? 'active' : ''}`}
                 onClick={() => setSessionFilter('all')}
               >
-                All Sessions ({sessions.length})
+                All in DB ({sessions.length})
               </button>
             </div>
 
@@ -382,8 +382,8 @@ export function CampusNetOps({ onNavigate }) {
             </div>
           )}
 
-          {/* Sessions Table */}
-          <div className="cn-table-card">
+          {/* DESKTOP TABLE VIEW (Visible on screens > 768px) */}
+          <div className="cn-table-card cn-desktop-table">
             <div className="cn-table-wrapper">
               <table className="cn-data-table">
                 <thead>
@@ -498,6 +498,79 @@ export function CampusNetOps({ onNavigate }) {
               </table>
             </div>
           </div>
+
+          {/* MOBILE CARDS VIEW (Visible on phone screens <= 768px) */}
+          <div className="cn-mobile-cards">
+            {filteredSessions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', background: 'rgba(17,24,39,0.7)', borderRadius: '12px' }}>
+                No sessions match current filter.
+              </div>
+            ) : (
+              filteredSessions.map(s => {
+                const validUntilMs = new Date(s.valid_until).getTime();
+                const msLeft = validUntilMs - currentTime;
+                const isActive = msLeft > 0;
+
+                let dynamicTimeLeft = 'Expired';
+                if (isActive) {
+                  const totalSec = Math.floor(msLeft / 1000);
+                  const hours = Math.floor(totalSec / 3600);
+                  const mins = Math.floor((totalSec % 3600) / 60);
+                  const secs = totalSec % 60;
+                  if (hours >= 24) {
+                    const d = Math.floor(hours / 24);
+                    const h = hours % 24;
+                    dynamicTimeLeft = `${d}d ${h}h left`;
+                  } else {
+                    dynamicTimeLeft = `${hours}h ${mins}m ${secs}s`;
+                  }
+                }
+
+                return (
+                  <div className="cn-mobile-card" key={s.id || s.phone}>
+                    <div className="cn-mcard-header">
+                      <div>
+                        <span className="cn-mcard-phone">{s.local_phone || s.phone}</span>
+                        <div className="cn-mcard-pkg">{s.package_name}</div>
+                      </div>
+                      <span className={`cn-status-badge ${isActive ? 'cn-badge-active' : 'cn-badge-expired'}`}>
+                        {isActive ? '● ACTIVE' : 'EXPIRED'}
+                      </span>
+                    </div>
+
+                    <div className="cn-mcard-body">
+                      <div className="cn-mcard-code-row">
+                        <span className="cn-mcard-code">{s.voucher_code}</span>
+                        <button onClick={() => copyToClipboard(s.voucher_code)} className="cn-copy-mini-btn">
+                          {copiedCode === s.voucher_code ? <Check size={13} color="#00e676" /> : <Copy size={13} />}
+                        </button>
+                        {s.voucher_password && <span className="cn-mcard-pin">PIN: {s.voucher_password}</span>}
+                      </div>
+
+                      <div className="cn-mcard-time-row">
+                        <Clock size={13} color={isActive ? '#00e676' : '#94a3b8'} />
+                        <span style={{ color: isActive ? '#00e676' : '#94a3b8', fontWeight: 800, fontFamily: 'monospace' }}>
+                          {dynamicTimeLeft}
+                        </span>
+                        <span className="cn-mcard-exp-date">
+                          (Exp: {new Date(s.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="cn-mcard-actions">
+                      <a href={s.tel_link} className="cn-mcard-action-btn cn-btn-tel">
+                        <Phone size={14} /> Call Student
+                      </a>
+                      <a href={s.whatsapp_link} target="_blank" rel="noopener noreferrer" className="cn-mcard-action-btn cn-btn-wa">
+                        <MessageSquare size={14} /> WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
@@ -530,7 +603,7 @@ export function CampusNetOps({ onNavigate }) {
                 className={`cn-pill-btn ${loyaltyFilter === 'near_reward' ? 'active' : ''}`}
                 onClick={() => setLoyaltyFilter('near_reward')}
               >
-                ⭐ 4/5 Stars Near Reward ({loyalty.filter(c => c.is_near_reward).length})
+                ⭐ 4/5 Stars Near ({loyalty.filter(c => c.is_near_reward).length})
               </button>
               <button 
                 className={`cn-pill-btn ${loyaltyFilter === 'all' ? 'active' : ''}`}
@@ -541,8 +614,8 @@ export function CampusNetOps({ onNavigate }) {
             </div>
           </div>
 
-          {/* Loyalty Table */}
-          <div className="cn-table-card">
+          {/* DESKTOP TABLE VIEW */}
+          <div className="cn-table-card cn-desktop-table">
             <div className="cn-table-wrapper">
               <table className="cn-data-table">
                 <thead>
@@ -647,6 +720,79 @@ export function CampusNetOps({ onNavigate }) {
               </table>
             </div>
           </div>
+
+          {/* MOBILE CARDS VIEW (Visible on phone screens <= 768px) */}
+          <div className="cn-mobile-cards">
+            {filteredLoyalty.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', background: 'rgba(17,24,39,0.7)', borderRadius: '12px' }}>
+                No customers match current filter.
+              </div>
+            ) : (
+              filteredLoyalty.map(cust => {
+                const starsCount = cust.stamps || 0;
+                return (
+                  <div className="cn-mobile-card cn-loyalty-mcard" key={cust.phone}>
+                    <div className="cn-mcard-header">
+                      <div>
+                        <span className="cn-mcard-phone">{cust.local_phone || cust.phone}</span>
+                        <div className="cn-mcard-sub">{cust.total_purchases} lifetime passes bought</div>
+                      </div>
+                      {cust.has_unclaimed_reward ? (
+                        <span className="cn-status-badge cn-badge-unclaimed">
+                          🎁 {cust.unclaimed_24h}x FREE PASS
+                        </span>
+                      ) : cust.is_near_reward ? (
+                        <span className="cn-status-badge cn-badge-near">
+                          ⚡ 1 to Free Pass
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="cn-mcard-body">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div className="cn-stars-row">
+                          {[1, 2, 3, 4, 5].map(starIdx => (
+                            <span key={starIdx} className={starIdx <= starsCount ? '' : 'cn-star-empty'}>★</span>
+                          ))}
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, marginLeft: '6px', color: '#ffb703' }}>
+                            {starsCount}/5 Stars
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          Last: {cust.last_active ? new Date(cust.last_active).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', month: 'short', day: 'numeric' }) : 'Recent'}
+                        </span>
+                      </div>
+
+                      {cust.has_unclaimed_reward && (
+                        <div className="cn-mcard-reward-box">
+                          <strong>🎉 24-Hour Free Pass Ready!</strong>
+                          <p>Student has not claimed yet. Call or WhatsApp to surprise them!</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="cn-mcard-actions">
+                      <a href={cust.tel_link} className="cn-mcard-action-btn cn-btn-tel">
+                        <Phone size={13} /> Call
+                      </a>
+                      <a href={cust.whatsapp_link} target="_blank" rel="noopener noreferrer" className="cn-mcard-action-btn cn-btn-wa">
+                        <MessageSquare size={13} /> WhatsApp
+                      </a>
+                      {cust.has_unclaimed_reward && (
+                        <button 
+                          className="cn-mcard-action-btn cn-btn-claim"
+                          onClick={() => handleClaimReward(cust.phone)}
+                          disabled={claimingPhone === cust.phone}
+                        >
+                          <Sparkles size={13} /> {claimingPhone === cust.phone ? 'Granting...' : 'Grant Free Pass'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
@@ -655,18 +801,18 @@ export function CampusNetOps({ onNavigate }) {
       ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'hotline' && (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <div className="cn-table-card" style={{ padding: '2rem' }}>
+          <div className="cn-table-card" style={{ padding: '1.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem' }}>
               <Zap size={22} color="#ff5414" />
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Hotline Phone Activation Tool</h3>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
                   Use this when a student calls helpline (0794877125) or pays via cash to immediately grant Wi-Fi access.
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleHotlineDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handleHotlineDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
                   Student Phone Number
@@ -729,7 +875,7 @@ export function CampusNetOps({ onNavigate }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  marginTop: '0.5rem'
+                  marginTop: '0.35rem'
                 }}
               >
                 <Zap size={16} />

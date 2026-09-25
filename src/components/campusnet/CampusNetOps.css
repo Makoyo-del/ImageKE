@@ -2,13 +2,15 @@
 .cn-ops-container {
   color: #f1f5f9;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Stat Cards Grid */
 .cn-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1.15rem;
   margin-bottom: 2rem;
 }
 
@@ -18,7 +20,7 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.35rem;
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -47,7 +49,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
 }
 
 .cn-stat-title {
@@ -59,19 +61,21 @@
 }
 
 .cn-stat-value {
-  font-size: 2rem;
+  font-size: 1.85rem;
   font-weight: 800;
   color: #ffffff;
-  line-height: 1.1;
-  margin-bottom: 0.5rem;
+  line-height: 1.15;
+  margin-bottom: 0.45rem;
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .cn-stat-subtext {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #94a3b8;
+  line-height: 1.4;
 }
 
 .cn-pulse-dot {
@@ -94,24 +98,18 @@
 .cn-chips-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.6rem;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
 }
 
 .cn-stock-chip {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: #cbd5e1;
-}
-
-.cn-chip-low {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
 }
 
 /* Nav Subtabs */
@@ -121,22 +119,30 @@
   margin-bottom: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 0.75rem;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.cn-nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .cn-nav-btn {
   background: transparent;
   border: 1px solid transparent;
   color: #94a3b8;
-  padding: 0.6rem 1.25rem;
+  padding: 0.6rem 1.15rem;
   border-radius: 10px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .cn-nav-btn:hover {
@@ -153,7 +159,7 @@
 .cn-badge-count {
   background: #ff5414;
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
   padding: 1px 7px;
   border-radius: 12px;
@@ -162,7 +168,7 @@
 .cn-badge-gold {
   background: #ffb703;
   color: #090a0e;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
   padding: 1px 7px;
   border-radius: 12px;
@@ -173,7 +179,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
@@ -187,15 +193,16 @@
   align-items: center;
   gap: 8px;
   flex: 1;
-  min-width: 240px;
-  max-width: 400px;
+  min-width: 220px;
+  max-width: 380px;
+  box-sizing: border-box;
 }
 
 .cn-search-input {
   background: transparent;
   border: none;
   color: #fff;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   outline: none;
   width: 100%;
 }
@@ -203,18 +210,27 @@
 .cn-filter-pills {
   display: flex;
   gap: 0.4rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cn-filter-pills::-webkit-scrollbar {
+  display: none;
 }
 
 .cn-pill-btn {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #94a3b8;
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .cn-pill-btn.active {
@@ -227,15 +243,16 @@
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.25);
   color: #f87171;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.9rem;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .cn-prune-btn:hover:not(:disabled) {
@@ -248,7 +265,7 @@
   cursor: not-allowed;
 }
 
-/* Data Tables */
+/* Desktop Data Tables */
 .cn-table-card {
   background: rgba(17, 24, 39, 0.7);
   backdrop-filter: blur(16px);
@@ -268,13 +285,13 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 .cn-data-table th {
   background: rgba(255, 255, 255, 0.02);
   color: #94a3b8;
-  padding: 0.9rem 1.25rem;
+  padding: 0.85rem 1.15rem;
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.7rem;
@@ -284,7 +301,7 @@
 }
 
 .cn-data-table td {
-  padding: 1rem 1.25rem;
+  padding: 0.9rem 1.15rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
   color: #cbd5e1;
@@ -298,12 +315,13 @@
 .cn-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
+  gap: 5px;
+  padding: 3px 9px;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .cn-badge-active {
@@ -323,6 +341,12 @@
   border: 1px solid rgba(255, 183, 3, 0.4);
   color: #ffb703;
   animation: cn-gold-pulse 2s infinite;
+}
+
+.cn-badge-near {
+  background: rgba(255, 84, 20, 0.15);
+  border: 1px solid rgba(255, 84, 20, 0.35);
+  color: #ff5414;
 }
 
 @keyframes cn-gold-pulse {
@@ -354,29 +378,28 @@
 }
 
 .cn-btn-wa {
-  background: rgba(37, 211, 102, 0.12);
-  border-color: rgba(37, 211, 102, 0.3);
-  color: #25d366;
+  background: rgba(37, 211, 102, 0.12) !important;
+  border-color: rgba(37, 211, 102, 0.3) !important;
+  color: #25d366 !important;
 }
 
 .cn-btn-wa:hover {
-  background: rgba(37, 211, 102, 0.25);
-  color: #25d366;
+  background: rgba(37, 211, 102, 0.25) !important;
 }
 
 .cn-btn-claim {
-  background: #ff5414;
-  border-color: #ff5414;
-  color: #ffffff;
+  background: #ff5414 !important;
+  border-color: #ff5414 !important;
+  color: #ffffff !important;
 }
 
 .cn-btn-claim:hover {
-  background: #ff6f38;
+  background: #ff6f38 !important;
 }
 
 /* Stars Visual */
 .cn-stars-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 2px;
   color: #ffb703;
@@ -387,16 +410,233 @@
   color: rgba(255, 255, 255, 0.15);
 }
 
-/* Banner Alert */
+/* Alert Banner */
 .cn-alert-banner {
   background: linear-gradient(90deg, rgba(255, 183, 3, 0.15), rgba(255, 84, 20, 0.15));
   border: 1.5px solid rgba(255, 183, 3, 0.4);
   border-radius: 14px;
-  padding: 1.25rem 1.5rem;
+  padding: 1.15rem 1.35rem;
   margin-bottom: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE CARDS (Phone-Optimized Layout)
+   Replaces cramped tables on mobile screens <= 768px
+══════════════════════════════════════════════════════════════════════════════ */
+.cn-mobile-cards {
+  display: none;
+}
+
+.cn-desktop-table {
+  display: block;
+}
+
+.cn-mobile-card {
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cn-mcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cn-mcard-phone {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: monospace;
+}
+
+.cn-mcard-pkg {
+  font-size: 0.8rem;
+  color: #ff5414;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.cn-mcard-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.cn-mcard-body {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cn-mcard-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.cn-mcard-code {
+  font-family: monospace;
+  font-weight: 800;
+  color: #ff5414;
+}
+
+.cn-mcard-pin {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.cn-copy-mini-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cn-mcard-time-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.cn-mcard-exp-date {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.cn-mcard-reward-box {
+  background: rgba(255, 183, 3, 0.1);
+  border: 1px dashed rgba(255, 183, 3, 0.35);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.cn-mcard-reward-box strong {
+  color: #ffb703;
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+
+.cn-mcard-reward-box p {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.cn-mcard-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.cn-mcard-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.cn-btn-tel {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MEDIA QUERIES FOR PHONES & TABLETS
+══════════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .cn-desktop-table {
+    display: none !important;
+  }
+
+  .cn-mobile-cards {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  .cn-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .cn-search-box {
+    max-width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .cn-filter-pills {
+    width: 100%;
+    padding-bottom: 4px;
+  }
+
+  .cn-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .cn-stat-card {
+    padding: 1rem;
+  }
+
+  .cn-stat-value {
+    font-size: 1.5rem;
+  }
+
+  .cn-alert-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .cn-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .cn-mcard-actions {
+    grid-template-columns: 1fr;
+  }
 }

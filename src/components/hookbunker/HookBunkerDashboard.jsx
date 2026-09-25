@@ -788,7 +788,7 @@ export function HookBunkerDashboard({ onNavigate }) {
       )}
 
       {/* Segmented Top-Level Ops Switcher */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '14px', border: `1px solid ${theme.border}`, width: 'fit-content', flexWrap: 'wrap' }}>
+      <div className="hb-ops-switcher">
         <button
           onClick={() => { setActiveOpsModule('campusnet'); localStorage.setItem('makoyocart_active_ops_module', 'campusnet'); }}
           style={{

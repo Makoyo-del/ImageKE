@@ -291,3 +291,34 @@
     font-size: 0.8rem;
   }
 }
+
+/* Responsive Operations Module Switcher */
+.hb-ops-switcher {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .hb-ops-switcher {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    padding: 4px !important;
+    box-sizing: border-box !important;
+    margin-bottom: 1.25rem !important;
+  }
+  .hb-ops-switcher button {
+    padding: 0.65rem 0.4rem !important;
+    font-size: 0.78rem !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+}
