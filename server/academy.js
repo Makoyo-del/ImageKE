@@ -228,16 +228,19 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: msg });
     }
 
-    // Verify user has academy_access set to true in profiles
+    // Verify user has workspace/HookBunker access or is admin
+    const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+    const isAdmin = adminEmails.includes(trimmedEmail.toLowerCase());
+
     const { data: profile, error: profileErr } = await supabase
       .from('profiles')
-      .select('academy_access')
+      .select('academy_access, hookbunker_access')
       .eq('id', data.user.id)
-      .single();
+      .maybeSingle();
 
-    if (profileErr || !profile || !profile.academy_access) {
-      console.warn('[Academy Login Forbidden - No Access]', trimmedEmail);
-      return res.status(403).json({ error: 'Access denied. This account does not have Academy access.' });
+    if (!isAdmin && (profileErr || !profile || (!profile.academy_access && !profile.hookbunker_access))) {
+      console.warn('[Login Forbidden - No Access]', trimmedEmail);
+      return res.status(403).json({ error: 'Access denied. This account does not have workspace access.' });
     }
 
     res.json({ success: true, session: data.session });
@@ -521,21 +524,9 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
         });
       }
 
-      // Fetch active student specific data
-      const { data: deliverables, error: delErr } = await supabase
-        .from('academy_deliverables')
-        .select('*')
-        .eq('student_id', userId)
-        .order('created_at', { ascending: false });
-
-      const { data: broadcasts, error: brdErr } = await supabase
-        .from('academy_broadcasts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (delErr || brdErr) {
-        return res.status(500).json({ error: 'Failed to retrieve student dashboard data.' });
-      }
+      // Career services retired — return safe empty defaults without querying dropped tables
+      const deliverables = [];
+      const broadcasts = [];
 
       // Retrieve the meeting details from the mentor profile
       const { data: mentorProfile } = await supabase
