@@ -5,6 +5,8 @@ import ServicesPage from './ServicesPage';
 
 const AcademyAuth = lazy(() => import('./components/academy/AcademyAuth'));
 const AcademyDashboard = lazy(() => import('./components/academy/AcademyDashboard'));
+const HookBunkerDocs = lazy(() => import('./components/hookbunker/HookBunkerDocs').then(m => ({ default: m.HookBunkerDocs })));
+const HookBunkerLanding = lazy(() => import('./components/hookbunker/HookBunkerLanding').then(m => ({ default: m.HookBunkerLanding })));
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 
@@ -40,6 +42,8 @@ const getPathFromHash = () => {
 
   if (hash === '#/terms') return 'terms';
   if (hash === '#/privacy') return 'privacy';
+  if (hash === '#/hookbunker/docs') return 'hookbunker-docs';
+  if (hash === '#/hookbunker' || hash === '#/hookbunker/landing') return 'hookbunker-landing';
   if (hash === '#/admin' || hash === '#/academy/dashboard' || hash === '#/hookbunker/dashboard') return 'academy-dashboard';
   if (hash === '#/login' || hash === '#/academy') return 'academy-auth';
 
@@ -483,6 +487,20 @@ function App() {
               window.location.hash = `#/${path}`;
             }} 
           />
+        )}
+
+        {currentPath === 'hookbunker-docs' && (
+          <HookBunkerDocs onNavigate={(path) => {
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
+        )}
+
+        {currentPath === 'hookbunker-landing' && (
+          <HookBunkerLanding onNavigate={(path) => {
+            setCurrentPath(path);
+            window.location.hash = `#/${path}`;
+          }} />
         )}
 
         {currentPath === 'academy-dashboard' && (
