@@ -11,11 +11,18 @@ node_modules
 server/node_modules
 *.local
 
-# Environment files — NEVER commit real secrets
-.env
-.env.local
-.env.*.local
-server/.env
+# Environment files & Secrets — NEVER commit real secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+*.pem
+*.key
+*.cert
+*.crt
+service-account*.json
+credentials*.json
+*.lnk
 
 # Editor directories and files
 .vscode/*
