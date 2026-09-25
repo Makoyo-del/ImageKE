@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { 
-  Shield, 
+  Shield,
+  Wifi, 
   Terminal, 
   Database, 
   Mail, 
@@ -33,6 +34,7 @@ import {
 import axios from 'axios';
 import { BunkerLayout, theme } from './theme';
 import { HookBunkerAuth } from './HookBunkerAuth';
+import { CampusNetOps } from '../campusnet/CampusNetOps';
 import './HookBunkerDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -49,6 +51,9 @@ export function HookBunkerDashboard({ onNavigate }) {
   // Dashboard data states
   const [projects, setProjects] = useState([]);
   const [selectedProj, setSelectedProj] = useState(null);
+  const [activeOpsModule, setActiveOpsModule] = useState(() => {
+    return localStorage.getItem('makoyocart_active_ops_module') || 'campusnet';
+  });
   const [activeProjTab, setActiveProjTab] = useState('logs'); // 'logs' | 'integration' | 'settings' | 'billing'
   const [selectedLang, setSelectedLang] = useState('node'); // 'node' | 'python' | 'php' | 'go'
   const [logs, setLogs] = useState([]);
@@ -749,10 +754,10 @@ export function HookBunkerDashboard({ onNavigate }) {
   return (
     <BunkerLayout onNavigate={onNavigate}>
       {/* Dashboard Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', borderBottom: `1px solid ${theme.border}`, paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <span style={{ fontSize: '0.85rem', color: theme.primary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Developer Workspace</span>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '4px 0 0' }}>Welcome, {user.email}</h1>
+          <span style={{ fontSize: '0.85rem', color: '#ff5414', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Makoyocart Operations Center</span>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '4px 0 0' }}>Duncan Makoyo Workspace</h1>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button 
@@ -782,7 +787,56 @@ export function HookBunkerDashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* RENDER VIEW 1: Overview Dashboard (selectedProj is null) */}
+      {/* Segmented Top-Level Ops Switcher */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '14px', border: `1px solid ${theme.border}`, width: 'fit-content', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => { setActiveOpsModule('campusnet'); localStorage.setItem('makoyocart_active_ops_module', 'campusnet'); }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.65rem 1.4rem',
+            borderRadius: '10px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            background: activeOpsModule === 'campusnet' ? '#ff5414' : 'transparent',
+            color: activeOpsModule === 'campusnet' ? '#ffffff' : theme.textMuted,
+            transition: 'all 0.2s ease',
+            boxShadow: activeOpsModule === 'campusnet' ? '0 4px 15px rgba(255,84,20,0.35)' : 'none'
+          }}
+        >
+          <Wifi size={17} /> 📶 CampusNet Wi-Fi Operations
+        </button>
+
+        <button
+          onClick={() => { setActiveOpsModule('hookbunker'); localStorage.setItem('makoyocart_active_ops_module', 'hookbunker'); }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.65rem 1.4rem',
+            borderRadius: '10px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            background: activeOpsModule === 'hookbunker' ? theme.primary : 'transparent',
+            color: activeOpsModule === 'hookbunker' ? '#ffffff' : theme.textMuted,
+            transition: 'all 0.2s ease',
+            boxShadow: activeOpsModule === 'hookbunker' ? '0 4px 15px rgba(43,91,255,0.35)' : 'none'
+          }}
+        >
+          <Shield size={17} /> 🛡️ HookBunker Webhook Engine
+        </button>
+      </div>
+
+      {activeOpsModule === 'campusnet' ? (
+        <CampusNetOps onNavigate={onNavigate} />
+      ) : (
+        <div>
+          {/* RENDER VIEW 1: Overview Dashboard (selectedProj is null) */}
       {!selectedProj ? (
         <div>
           {/* Top Bar slots progress and new creation button */}
@@ -1935,6 +1989,9 @@ func main() {
             </div>
           </div>
         </div>
+      )}
+
+      </div>
       )}
 
       {/* ── Feedback / Feature Request Modal ── */}

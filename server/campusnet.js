@@ -1179,6 +1179,359 @@ router.post('/admin/prune', async (req, res) => {
 // Auto-run background pruning every 6 hours
 setInterval(pruneExpiredRecords, 6 * 60 * 60 * 1000);
 
+// Helper: Authenticate Duncan Makoyo Admin requests (via Supabase JWT or Admin Key)
+const authenticateAdmin = async (req, res, next) => {
+  const token = req.query.key || req.headers['authorization'] || '';
+  if (token === ROUTER_SYNC_KEY || token === `Bearer ${process.env.ADMIN_API_KEY || 'campusnet_secret_admin_2026'}`) {
+    return next();
+  }
+  if (token.startsWith('Bearer ')) {
+    const jwt = token.split(' ')[1];
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(jwt);
+      if (!error && user) {
+        const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+        if (adminEmails.includes(user.email?.toLowerCase())) {
+          req.adminUser = user;
+          return next();
+        }
+      }
+    } catch (e) {}
+  }
+  return res.status(401).json({ error: 'Unauthorized admin access' });
+};
+
+// ─── GET /api/campusnet/admin/overview ─────────────────────────────────────────
+// Master Real-Time Console Endpoint:
+// Provides active sessions, voucher pool stock, today's revenue, and full loyalty stars leaderboard
+router.get('/admin/overview', authenticateAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+    const nowIso = now.toISOString();
+
+    // 1. Fetch all live sessions from campusnet_sessions
+    const { data: sessions, error: sessErr } = await supabase
+      .from('campusnet_sessions')
+      .select('*')
+      .order('valid_until', { ascending: false });
+
+    // 2. Fetch all vouchers to calculate real-time pool stock
+    const { data: vouchers, error: vErr } = await supabase
+      .from('campusnet_vouchers')
+      .select('package_id, status, amount, assigned_phone');
+
+    // 3. Fetch completed transactions
+    const { data: txs, error: txErr } = await supabase
+      .from('campusnet_transactions')
+      .select('id, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code')
+      .in('status', ['completed', 'SUCCESS'])
+      .order('created_at', { ascending: false });
+
+    // Voucher stock tally
+    const voucherStock = {
+      pkg_1h: 0,
+      pkg_3h: 0,
+      pkg_12h: 0,
+      pkg_24h: 0,
+      pkg_3d: 0,
+      pkg_7d: 0,
+      pkg_30d: 0,
+      total_available: 0
+    };
+    (vouchers || []).forEach(v => {
+      if (v.status === 'available') {
+        voucherStock.total_available++;
+        if (voucherStock[v.package_id] !== undefined) {
+          voucherStock[v.package_id]++;
+        }
+      }
+    });
+
+    // Today's revenue calculation (Nairobi EAT = UTC+3)
+    const eatOffset = 3 * 60 * 60 * 1000;
+    const todayEatStr = new Date(now.getTime() + eatOffset).toISOString().slice(0, 10);
+    let todayRevenue = 0;
+    let todayTxCount = 0;
+    let totalRevenue = 0;
+
+    (txs || []).forEach(t => {
+      const amt = Number(t.amount || 0);
+      totalRevenue += amt;
+      const tEatStr = new Date(new Date(t.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
+      if (tEatStr === todayEatStr) {
+        todayRevenue += amt;
+        todayTxCount++;
+      }
+    });
+
+    // Format sessions with active status and human-readable countdowns
+    const formattedSessions = (sessions || []).map(s => {
+      const validUntil = new Date(s.valid_until);
+      const msLeft = validUntil.getTime() - now.getTime();
+      const isActive = msLeft > 0;
+      
+      let timeLeftStr = 'Expired';
+      if (isActive) {
+        const totalSec = Math.floor(msLeft / 1000);
+        const hours = Math.floor(totalSec / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        if (hours >= 24) {
+          const days = Math.floor(hours / 24);
+          const remHours = hours % 24;
+          timeLeftStr = `${days}d ${remHours}h left`;
+        } else {
+          timeLeftStr = `${hours}h ${mins}m left`;
+        }
+      }
+
+      let pkgName = 'Standard Pass';
+      if (s.voucher_code) {
+        if (s.voucher_code.startsWith('M1H')) pkgName = '1 Hour Flash Pass';
+        else if (s.voucher_code.startsWith('M3H')) pkgName = '3 Hours Browsing';
+        else if (s.voucher_code.startsWith('M12H')) pkgName = '12 Hours Pass';
+        else if (s.voucher_code.startsWith('M24H')) pkgName = '24 Hours Unlimited';
+        else if (s.voucher_code.startsWith('M3D')) pkgName = '3 Days Weekend Pass';
+        else if (s.voucher_code.startsWith('M7D')) pkgName = '7 Days Unlimited';
+        else if (s.voucher_code.startsWith('M30D')) pkgName = '30 Days VIP Resident';
+      }
+
+      const cleanPhone = (s.phone || '').replace(/\D/g, '');
+      const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
+
+      return {
+        ...s,
+        phone: cleanPhone,
+        local_phone: localPhone,
+        is_active: isActive,
+        ms_left: msLeft,
+        time_left_str: timeLeftStr,
+        package_name: pkgName,
+        tel_link: `tel:${localPhone}`,
+        whatsapp_link: `https://wa.me/${cleanPhone}`
+      };
+    });
+
+    const activeSessionsCount = formattedSessions.filter(s => s.is_active).length;
+
+    // Batch calculate loyalty profiles (instant in-memory aggregation)
+    const txsByPhone = {};
+    (txs || []).forEach(t => {
+      if (!t.phone || Number(t.amount || 0) < 10) return;
+      if (!txsByPhone[t.phone]) txsByPhone[t.phone] = [];
+      txsByPhone[t.phone].push(t);
+    });
+
+    const claimedFreeByPhone = {};
+    (vouchers || []).forEach(v => {
+      if (v.amount === 0 && v.assigned_phone) {
+        claimedFreeByPhone[v.assigned_phone] = (claimedFreeByPhone[v.assigned_phone] || 0) + 1;
+      }
+    });
+
+    const rewardValidityDays = 14;
+    const stampsRequired = 5;
+    const loyaltyList = [];
+    let totalUnclaimedRewards = 0;
+
+    for (const [phone, pTxs] of Object.entries(txsByPhone)) {
+      const totalPaid = pTxs.length;
+      const currentStamps = totalPaid % stampsRequired;
+      const totalEarned24h = Math.floor(totalPaid / stampsRequired);
+      const claimedCount = claimedFreeByPhone[phone] || 0;
+      
+      let unclaimed24h = 0;
+      for (let k = 1; k <= totalEarned24h; k++) {
+        const mTx = pTxs[k * stampsRequired - 1];
+        if (mTx && k > claimedCount) {
+          const exp = new Date(new Date(mTx.created_at).getTime() + rewardValidityDays * 24 * 3600 * 1000);
+          if (now <= exp) unclaimed24h++;
+        }
+      }
+
+      if (unclaimed24h > 0) totalUnclaimedRewards += unclaimed24h;
+      const hasReward = unclaimed24h > 0;
+      const displayStamps = hasReward ? 5 : currentStamps;
+
+      const cleanPhone = phone.replace(/\D/g, '');
+      const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
+      
+      const whatsappMsg = hasReward
+        ? `Hello! This is Duncan from Makoyocart Ventures Wifi. Congratulations! 🎉 You have earned 5 stars and unlocked a FREE 24-Hour Wi-Fi Pass on CampusNet! You can claim it now at campusnet.local or let me know and I will activate it for you right now.`
+        : `Hello! This is Duncan from Makoyocart Ventures Wifi. You currently have ${currentStamps}/5 stars on your CampusNet stamp card! Buy ${stampsRequired - currentStamps} more pass${(stampsRequired - currentStamps) > 1 ? 'es' : ''} to unlock a Free 24-Hour Pass!`;
+
+      loyaltyList.push({
+        phone: cleanPhone,
+        local_phone: localPhone,
+        stamps: displayStamps,
+        total_purchases: totalPaid,
+        unclaimed_24h: unclaimed24h,
+        has_unclaimed_reward: hasReward,
+        is_near_reward: !hasReward && currentStamps === 4,
+        last_active: pTxs[0]?.created_at,
+        whatsapp_link: `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMsg)}`,
+        tel_link: `tel:${localPhone}`
+      });
+    }
+
+    loyaltyList.sort((a, b) => {
+      if (b.has_unclaimed_reward !== a.has_unclaimed_reward) {
+        return b.has_unclaimed_reward ? 1 : -1;
+      }
+      if (b.is_near_reward !== a.is_near_reward) {
+        return b.is_near_reward ? 1 : -1;
+      }
+      return b.stamps - a.stamps || b.total_purchases - a.total_purchases;
+    });
+
+    return res.json({
+      success: true,
+      stats: {
+        active_sessions_count: activeSessionsCount,
+        total_sessions_count: formattedSessions.length,
+        available_vouchers_count: voucherStock.total_available,
+        vouchers_by_package: voucherStock,
+        today_revenue_kes: todayRevenue,
+        today_transactions_count: todayTxCount,
+        total_revenue_kes: totalRevenue,
+        total_customers_count: Object.keys(txsByPhone).length,
+        unclaimed_rewards_count: totalUnclaimedRewards
+      },
+      sessions: formattedSessions,
+      loyalty: loyaltyList,
+      packages: PACKAGES,
+      timestamp: nowIso
+    });
+  } catch (err) {
+    console.error('[CampusNet Admin Overview Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── POST /api/campusnet/admin/manual-activate ────────────────────────────────
+// Hotline power tool: Instantly activate a pass for a student who calls Duncan
+router.post('/admin/manual-activate', authenticateAdmin, async (req, res) => {
+  const { phone, package_id, note } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+  const { clean: cleanPhone } = formatPhone(phone);
+  const pkgId = package_id || 'pkg_24h';
+  const pkg = PACKAGES.find(p => p.id === pkgId) || PACKAGES[2];
+
+  try {
+    const activation = await activateVoucherForTransaction({
+      reference: `HOTLINE_${Date.now()}_${cleanPhone.slice(-4)}`,
+      phone: cleanPhone,
+      macAddress: '00:00:00:00:00:00',
+      packageId: pkg.id,
+      mpesaReceipt: note || 'HOTLINE_MANUAL_DISPATCH',
+      paystackId: null
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully granted ${pkg.name} to ${cleanPhone}`,
+      ...activation
+    });
+  } catch (err) {
+    console.error('[CampusNet Manual Activate Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── POST /api/campusnet/admin/claim-reward ───────────────────────────────────
+// 1-Click action: Duncan grants an unlocked loyalty reward directly to a student
+router.post('/admin/claim-reward', authenticateAdmin, async (req, res) => {
+  const { phone, reward_type } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+  const { clean: cleanPhone } = formatPhone(phone);
+  const type = reward_type === 'free_3d' ? 'free_3d' : 'free_24h';
+  const targetPkgId = type === 'free_3d' ? 'pkg_3d' : 'pkg_24h';
+  const durationHours = type === 'free_3d' ? 72 : 24;
+
+  try {
+    const profile = await getLoyaltyProfile(cleanPhone);
+    if (!profile.valid) {
+      return res.status(400).json({ success: false, error: 'Invalid phone format' });
+    }
+
+    if (type === 'free_24h' && profile.rewards.available_24h_passes <= 0) {
+      return res.status(400).json({ success: false, error: 'Student has no unclaimed 24H passes.' });
+    }
+
+    // Assign free voucher from pool
+    const now = new Date();
+    const validUntil = new Date(now.getTime() + durationHours * 3600 * 1000);
+
+    const { data: voucher } = await supabase
+      .from('campusnet_vouchers')
+      .select('*')
+      .eq('package_id', targetPkgId)
+      .eq('status', 'available')
+      .limit(1)
+      .maybeSingle();
+
+    let voucherCode = voucher ? voucher.code : `LOYALTY_${cleanPhone.slice(-4)}_${Date.now().toString().slice(-4)}`;
+    let voucherPassword = voucher ? voucher.password : '123456';
+
+    if (voucher) {
+      await supabase
+        .from('campusnet_vouchers')
+        .update({
+          status: 'assigned',
+          assigned_phone: cleanPhone,
+          amount: 0,
+          activated_at: now.toISOString(),
+          expires_at: validUntil.toISOString()
+        })
+        .eq('id', voucher.id);
+    } else {
+      await supabase.from('campusnet_vouchers').insert({
+        code: voucherCode,
+        password: voucherPassword,
+        package_id: targetPkgId,
+        duration_hours: durationHours,
+        amount: 0,
+        status: 'assigned',
+        assigned_phone: cleanPhone,
+        activated_at: now.toISOString(),
+        expires_at: validUntil.toISOString()
+      });
+    }
+
+    // Upsert session
+    await supabase.from('campusnet_sessions').upsert({
+      phone: cleanPhone,
+      mac_address: '00:00:00:00:00:00',
+      voucher_code: voucherCode,
+      voucher_password: voucherPassword,
+      valid_until: validUntil.toISOString()
+    }, { onConflict: 'phone' });
+
+    // Record zero-amount loyalty redemption transaction
+    await supabase.from('campusnet_transactions').insert({
+      reference: `REWARD_${Date.now()}_${cleanPhone.slice(-4)}`,
+      phone: cleanPhone,
+      mac_address: '00:00:00:00:00:00',
+      package_id: targetPkgId,
+      amount: 0,
+      status: 'completed',
+      mpesa_receipt: `REWARD_ADMIN_${type.toUpperCase()}`,
+      voucher_code: voucherCode
+    });
+
+    return res.json({
+      success: true,
+      message: `Granted free ${durationHours}h pass to ${cleanPhone}`,
+      voucherCode,
+      voucherPassword,
+      validUntil: validUntil.toISOString()
+    });
+  } catch (err) {
+    console.error('[CampusNet Claim Reward Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 
 // ─── POST /api/campusnet/admin/setup-db ────────────────────────────────────────
 // Automated Database Seed & Migration Endpoint
