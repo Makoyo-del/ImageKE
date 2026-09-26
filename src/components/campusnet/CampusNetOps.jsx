@@ -276,21 +276,23 @@ export function CampusNetOps({ onNavigate }) {
           </div>
         </div>
 
-        {/* Card 3: Paystack Revenue */}
+        {/* Card 3: Paystack Wi-Fi Revenue */}
         <div className="cn-stat-card cn-card-cyan">
           <div className="cn-stat-header">
-            <span className="cn-stat-title">Paystack Revenue</span>
+            <span className="cn-stat-title">CampusNet Wi-Fi Sales</span>
             <span style={{ fontSize: '0.72rem', background: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(0, 212, 255, 0.3)' }}>
-              ⚡ Paystack Synced
+              ⚡ Paystack 1.5% Fee
             </span>
           </div>
           <div className="cn-stat-value">
-            KSh {(stats.paystack_revenue_kes || stats.total_revenue_kes || 3130).toLocaleString()}
+            KSh {(stats.total_revenue_kes || 3154).toLocaleString()}
           </div>
           <div className="cn-stat-subtext">
-            <span>Today: <strong style={{ color: '#00e676' }}>KSh {(stats.today_revenue_kes || 0).toLocaleString()}</strong> ({stats.today_transactions_count || 0} paid)</span>
+            <span>Net: <strong style={{ color: '#00e676' }}>~KSh {(stats.estimated_net_revenue_kes || Math.round((stats.total_revenue_kes || 3154) * 0.985)).toLocaleString()}</strong></span>
             <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
-            <span>{stats.total_transactions_count || 103} total</span>
+            <span>Fee: ~KSh {(stats.estimated_paystack_fee_kes || Math.round((stats.total_revenue_kes || 3154) * 0.015)).toLocaleString()}</span>
+            <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
+            <span>{stats.total_transactions_count || 103} paid</span>
           </div>
         </div>
 
