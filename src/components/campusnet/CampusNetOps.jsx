@@ -68,7 +68,7 @@ export function CampusNetOps({ onNavigate }) {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
       
-      const res = await axios.get(`${API_URL}/api/campusnet/admin/overview?key=makoyocart_sync_secret_2026`, {
+      const res = await axios.get(`${API_URL}/api/campusnet/admin/overview`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setData(res.data);
@@ -95,7 +95,7 @@ export function CampusNetOps({ onNavigate }) {
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/prune?key=makoyocart_sync_secret_2026`, {}, {
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/prune`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setPruneResult(res.data);
@@ -113,7 +113,7 @@ export function CampusNetOps({ onNavigate }) {
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/claim-reward?key=makoyocart_sync_secret_2026`, {
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/claim-reward`, {
         phone,
         reward_type: 'free_24h'
       }, {
@@ -136,7 +136,7 @@ export function CampusNetOps({ onNavigate }) {
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/manual-activate?key=makoyocart_sync_secret_2026`, {
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/manual-activate`, {
         phone: hotlinePhone,
         package_id: hotlinePkg,
         note: hotlineNote || 'HOTLINE_MANUAL_DISPATCH'
