@@ -1117,6 +1117,8 @@ router.get('/stats', async (req, res) => {
       available_vouchers: availableVouchers || 0,
       active_sessions: activeSessions || 0,
       total_revenue_kes: totalRevenue,
+        paystack_verified_revenue_kes: paystackVerifiedRevenue,
+        total_transactions_count: (txs || []).length,
       transactions_count: txs?.length || 0
     });
   } catch (err) {
@@ -1190,8 +1192,25 @@ const authenticateAdmin = async (req, res, next) => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser(jwt);
       if (!error && user) {
-        const adminEmails = ['duncanmakoyo@gmail.com', 'makoyoduncan@gmail.com'];
+        const adminEmails = [
+          'duncanmakoyo@gmail.com', 
+          'makoyoduncan@gmail.com',
+          'duncan@duncanmakoyo.com',
+          'duncanmakoyo30@gmail.com',
+          'duncan@duncanmakoyo30.com'
+        ];
         if (adminEmails.includes(user.email?.toLowerCase())) {
+          req.adminUser = user;
+          return next();
+        }
+        // Also check hookbunker_access in profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('hookbunker_access')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.hookbunker_access) {
           req.adminUser = user;
           return next();
         }
@@ -1223,7 +1242,7 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
     // 3. Fetch completed transactions
     const { data: txs, error: txErr } = await supabase
       .from('campusnet_transactions')
-      .select('id, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code')
+      .select('id, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code, paystack_reference')
       .in('status', ['completed', 'SUCCESS'])
       .order('created_at', { ascending: false });
 
@@ -1253,16 +1272,42 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
     let todayRevenue = 0;
     let todayTxCount = 0;
     let totalRevenue = 0;
+    let paystackVerifiedRevenue = 0;
 
     (txs || []).forEach(t => {
       const amt = Number(t.amount || 0);
       totalRevenue += amt;
+      if (t.paystack_reference) {
+        paystackVerifiedRevenue += amt;
+      }
       const tEatStr = new Date(new Date(t.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
       if (tEatStr === todayEatStr) {
         todayRevenue += amt;
         todayTxCount++;
       }
     });
+
+    // Directly query Paystack live transaction totals so revenue is 100% synchronized with Paystack dashboard
+    let paystackLiveVolumeKes = null;
+    let paystackLiveTxCount = null;
+    if (PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.startsWith('sk_test_placeholder')) {
+      try {
+        const pTotalsRes = await axios.get('https://api.paystack.co/transaction/totals', {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+          timeout: 4000
+        });
+        if (pTotalsRes.data?.status && pTotalsRes.data?.data) {
+          const pData = pTotalsRes.data.data;
+          paystackLiveVolumeKes = Math.round(Number(pData.total_volume || 0) / 100);
+          paystackLiveTxCount = Number(pData.total_transactions || 0);
+        }
+      } catch (pErr) {
+        console.warn('[CampusNet Overview] Paystack live totals lookup notice:', pErr.message);
+      }
+    }
+
+    const finalTotalRevenueKes = paystackLiveVolumeKes !== null ? paystackLiveVolumeKes : totalRevenue;
+    const finalTotalTransactions = paystackLiveTxCount !== null ? paystackLiveTxCount : (txs || []).length;
 
     // Format sessions with active status and human-readable countdowns
     const formattedSessions = (sessions || []).map(s => {
@@ -1392,7 +1437,10 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
         vouchers_by_package: voucherStock,
         today_revenue_kes: todayRevenue,
         today_transactions_count: todayTxCount,
-        total_revenue_kes: totalRevenue,
+        total_revenue_kes: finalTotalRevenueKes,
+        paystack_revenue_kes: finalTotalRevenueKes,
+        paystack_verified_revenue_kes: paystackVerifiedRevenue,
+        total_transactions_count: finalTotalTransactions,
         total_customers_count: Object.keys(txsByPhone).length,
         unclaimed_rewards_count: totalUnclaimedRewards
       },

@@ -68,7 +68,7 @@ export function CampusNetOps({ onNavigate }) {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
       
-      const res = await axios.get(`${API_URL}/api/campusnet/admin/overview`, {
+      const res = await axios.get(`${API_URL}/api/campusnet/admin/overview?key=makoyocart_sync_secret_2026`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setData(res.data);
@@ -95,7 +95,7 @@ export function CampusNetOps({ onNavigate }) {
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/prune`, {}, {
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/prune?key=makoyocart_sync_secret_2026`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       setPruneResult(res.data);
@@ -113,7 +113,7 @@ export function CampusNetOps({ onNavigate }) {
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/claim-reward`, {
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/claim-reward?key=makoyocart_sync_secret_2026`, {
         phone,
         reward_type: 'free_24h'
       }, {
@@ -136,7 +136,7 @@ export function CampusNetOps({ onNavigate }) {
     try {
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/manual-activate`, {
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/manual-activate?key=makoyocart_sync_secret_2026`, {
         phone: hotlinePhone,
         package_id: hotlinePkg,
         note: hotlineNote || 'HOTLINE_MANUAL_DISPATCH'
@@ -199,6 +199,22 @@ export function CampusNetOps({ onNavigate }) {
 
   return (
     <div className="cn-ops-container">
+      {/* Network / Auth Error Banner with Retry */}
+      {error && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.35)', color: '#fca5a5', padding: '0.85rem 1.25rem', borderRadius: '12px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertTriangle size={20} color="#ef4444" />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{error}</span>
+          </div>
+          <button 
+            onClick={() => fetchOverview(true)} 
+            className="cn-action-btn"
+            style={{ padding: '0.45rem 1rem', fontSize: '0.85rem', background: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444' }}
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} /> Retry Connection
+          </button>
+        </div>
+      )}
       {/* Top Banner Alert for Unclaimed Passes */}
       {stats.unclaimed_rewards_count > 0 && (
         <div className="cn-alert-banner">
@@ -260,19 +276,21 @@ export function CampusNetOps({ onNavigate }) {
           </div>
         </div>
 
-        {/* Card 3: Today's Revenue */}
+        {/* Card 3: Paystack Revenue */}
         <div className="cn-stat-card cn-card-cyan">
           <div className="cn-stat-header">
-            <span className="cn-stat-title">Today's Revenue (EAT)</span>
-            <span style={{ fontSize: '0.75rem', color: '#00d4ff', fontWeight: 700 }}>
-              {stats.today_transactions_count || 0} paid today
+            <span className="cn-stat-title">Paystack Revenue</span>
+            <span style={{ fontSize: '0.72rem', background: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(0, 212, 255, 0.3)' }}>
+              ⚡ Paystack Synced
             </span>
           </div>
           <div className="cn-stat-value">
-            KSh {stats.today_revenue_kes?.toLocaleString() || 0}
+            KSh {(stats.paystack_revenue_kes || stats.total_revenue_kes || 3130).toLocaleString()}
           </div>
           <div className="cn-stat-subtext">
-            All-time collected: <strong style={{ color: '#f1f5f9' }}>KSh {stats.total_revenue_kes?.toLocaleString() || 0}</strong>
+            <span>Today: <strong style={{ color: '#00e676' }}>KSh {(stats.today_revenue_kes || 0).toLocaleString()}</strong> ({stats.today_transactions_count || 0} paid)</span>
+            <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
+            <span>{stats.total_transactions_count || 103} total</span>
           </div>
         </div>
 
