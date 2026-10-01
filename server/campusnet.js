@@ -2294,7 +2294,8 @@ router.post('/referrals/verify', (req, res) => {
 });
 
 
-// ─── WhatsApp Cloud API Webhook & Autonomous Support Bot ─────────────────────
+
+// ─── WhatsApp Cloud API Webhook & Autonomous Support Bot (v2.0 Interactive) ──
 import {
   PaymentVerificationService,
   SessionRecoveryService,
@@ -2307,8 +2308,8 @@ const supportSessions = new SessionRecoveryService(supabase);
 const supportTickets = new TicketService(supabase);
 const supportBot = new BotConversationManager(supportPayments, supportSessions, supportTickets);
 
-// Helper: Outbound WhatsApp Graph API message sender
-async function sendWhatsAppMsg({ to, text, phoneNumberId, apiToken }) {
+// Helper: Outbound WhatsApp Graph API message sender (Supports Text & Native Buttons)
+async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
   const token = apiToken || process.env.WHATSAPP_API_TOKEN;
   const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1105380096649227';
   if (!token) {
@@ -2317,6 +2318,22 @@ async function sendWhatsAppMsg({ to, text, phoneNumberId, apiToken }) {
   }
   const cleanTo = to.replace(/\D/g, '');
   const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+
+  let payload = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: cleanTo
+  };
+
+  if (typeof responseData === 'object' && responseData.type === 'interactive') {
+    payload.type = 'interactive';
+    payload.interactive = responseData.interactive;
+  } else {
+    const textBody = typeof responseData === 'string' ? responseData : (responseData.text || '');
+    payload.type = 'text';
+    payload.text = { preview_url: false, body: textBody };
+  }
+
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -2324,13 +2341,7 @@ async function sendWhatsAppMsg({ to, text, phoneNumberId, apiToken }) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: cleanTo,
-        type: 'text',
-        text: { preview_url: false, body: text }
-      })
+      body: JSON.stringify(payload)
     });
     const d = await res.json();
     if (!res.ok) console.error('[WhatsApp Graph API Error]', d);
@@ -2355,7 +2366,7 @@ router.get('/whatsapp/webhook', (req, res) => {
   return res.sendStatus(403);
 });
 
-// 2. Inbound WhatsApp Message Ingestion (POST Payload)
+// 2. Inbound WhatsApp Message Ingestion (POST Payload with Buttons support)
 router.post('/whatsapp/webhook', async (req, res) => {
   res.sendStatus(200); // Immediate 200 OK for Meta
 
@@ -2368,18 +2379,24 @@ router.post('/whatsapp/webhook', async (req, res) => {
     const value = changes?.value;
     const message = value?.messages?.[0];
 
-    if (!message || message.type !== 'text') return;
+    if (!message) return;
 
     const fromPhone = message.from;
-    const incomingText = message.text?.body || '';
+    // Extract input from text OR interactive button click OR list selection
+    const incomingText = message.interactive?.button_reply?.id || 
+                         message.interactive?.list_reply?.id || 
+                         message.text?.body || 
+                         '';
 
-    console.log(`[WhatsApp Inbound] From: ${fromPhone} | Message: "${incomingText}"`);
+    if (!incomingText) return;
+
+    console.log(`[WhatsApp Inbound] From: ${fromPhone} | Input: "${incomingText}"`);
 
     const reply = await supportBot.handleMessage(fromPhone, incomingText);
 
     await sendWhatsAppMsg({
       to: fromPhone,
-      text: reply,
+      responseData: reply,
       phoneNumberId: value?.metadata?.phone_number_id
     });
   } catch (err) {
@@ -2406,6 +2423,4 @@ router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
   return res.json(result);
 });
 
-
 export default router;
-
