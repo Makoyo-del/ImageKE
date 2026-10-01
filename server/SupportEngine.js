@@ -587,7 +587,7 @@ export class BotConversationManager {
         type: 'button',
         header: { type: 'text', text: '📶 CampusNet Wi-Fi Support' },
         body: { text: 'Hi! Welcome to CampusNet Automated Support. How can we help you today?' },
-        footer: { type: 'text', text: 'Makoyocart Ventures • 24/7 Desk' },
+        footer: { text: 'Makoyocart Ventures • 24/7 Desk' },
         action: {
           buttons: [
             { type: 'reply', reply: { id: 'btn_paid', title: '⚡ Paid / Connect' } },
@@ -608,7 +608,7 @@ export class BotConversationManager {
         body: {
           text: `• 1 Hour Flash Pass: KSh 10\n• 3 Hours Browsing: KSh 20\n• 24 Hours Unlimited: KSh 40 (🔥 Popular)\n• 3 Days Pass: KSh 80\n• 7 Days Unlimited: KSh 150\n• 30 Days VIP Pass: KSh 500\n\nBuy directly on portal:\nhttp://10.10.0.1/login.html`
         },
-        footer: { type: 'text', text: 'Select an option below:' },
+        footer: { text: 'Select an option below:' },
         action: {
           buttons: [
             { type: 'reply', reply: { id: 'btn_paid', title: '⚡ I Already Paid' } },
