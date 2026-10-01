@@ -2293,5 +2293,119 @@ router.post('/referrals/verify', (req, res) => {
   });
 });
 
+
+// ─── WhatsApp Cloud API Webhook & Autonomous Support Bot ─────────────────────
+import {
+  PaymentVerificationService,
+  SessionRecoveryService,
+  TicketService,
+  BotConversationManager
+} from './SupportEngine.js';
+
+const supportPayments = new PaymentVerificationService(supabase, process.env.PAYSTACK_SECRET_KEY);
+const supportSessions = new SessionRecoveryService(supabase);
+const supportTickets = new TicketService(supabase);
+const supportBot = new BotConversationManager(supportPayments, supportSessions, supportTickets);
+
+// Helper: Outbound WhatsApp Graph API message sender
+async function sendWhatsAppMsg({ to, text, phoneNumberId, apiToken }) {
+  const token = apiToken || process.env.WHATSAPP_API_TOKEN;
+  const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1105380096649227';
+  if (!token) {
+    console.warn('[WhatsApp Outbound] Cannot send reply: WHATSAPP_API_TOKEN not configured.');
+    return;
+  }
+  const cleanTo = to.replace(/\D/g, '');
+  const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanTo,
+        type: 'text',
+        text: { preview_url: false, body: text }
+      })
+    });
+    const d = await res.json();
+    if (!res.ok) console.error('[WhatsApp Graph API Error]', d);
+    else console.log(`[WhatsApp Outbound Sent] Message ID: ${d.messages?.[0]?.id} to ${cleanTo}`);
+  } catch (e) {
+    console.error('[WhatsApp Send Error]', e.message);
+  }
+}
+
+// 1. Meta Webhook Verification (GET Challenge)
+router.get('/whatsapp/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const expectedToken = process.env.WHATSAPP_VERIFY_TOKEN || 'campusnet_meta_webhook_secret_2026';
+
+  if (mode === 'subscribe' && token === expectedToken) {
+    console.log('[WhatsApp Webhook] Meta Verification Challenge SUCCESS!');
+    return res.status(200).send(challenge);
+  }
+  console.warn('[WhatsApp Webhook] Meta Verification FAILED. Token mismatch or bad mode.');
+  return res.sendStatus(403);
+});
+
+// 2. Inbound WhatsApp Message Ingestion (POST Payload)
+router.post('/whatsapp/webhook', async (req, res) => {
+  res.sendStatus(200); // Immediate 200 OK for Meta
+
+  const body = req.body;
+  if (body.object !== 'whatsapp_business_account') return;
+
+  try {
+    const entry = body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    const message = value?.messages?.[0];
+
+    if (!message || message.type !== 'text') return;
+
+    const fromPhone = message.from;
+    const incomingText = message.text?.body || '';
+
+    console.log(`[WhatsApp Inbound] From: ${fromPhone} | Message: "${incomingText}"`);
+
+    const reply = await supportBot.handleMessage(fromPhone, incomingText);
+
+    await sendWhatsAppMsg({
+      to: fromPhone,
+      text: reply,
+      phoneNumberId: value?.metadata?.phone_number_id
+    });
+  } catch (err) {
+    console.error('[WhatsApp Inbound Handler Exception]', err.message);
+  }
+});
+
+// 3. Admin Tickets & Supabase Free-Tier Pruning APIs
+router.get('/admin/tickets', authenticateAdmin, async (req, res) => {
+  const { status, search, limit } = req.query;
+  const tickets = await supportTickets.listTickets({ status, search, limit: Number(limit) || 50 });
+  return res.json({ success: true, tickets });
+});
+
+router.patch('/admin/tickets/:id', authenticateAdmin, async (req, res) => {
+  const { status, admin_notes } = req.body;
+  const result = await supportTickets.updateTicketStatus(req.params.id, status, admin_notes);
+  return res.json(result);
+});
+
+router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
+  const { days_old, purge_all } = req.body;
+  const result = await supportTickets.pruneTickets({ daysOld: Number(days_old) || 7, pruneAllResolved: !!purge_all });
+  return res.json(result);
+});
+
+
 export default router;
 
