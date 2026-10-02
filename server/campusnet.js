@@ -2295,18 +2295,16 @@ router.post('/referrals/verify', (req, res) => {
 
 
 
-// ─── WhatsApp Cloud API Webhook & Autonomous Support Bot (v2.0 Interactive) ──
+// ─── WhatsApp Cloud API Webhook & Autonomous Support Bot (v3.0 PRO) ───────────
 import {
   PaymentVerificationService,
   SessionRecoveryService,
+  LoyaltyService,
+  PromoService,
   TicketService,
-  BotConversationManager
+  BotConversationManager,
+  ADMIN_TECH_SUPPORT_PHONE
 } from './SupportEngine.js';
-
-const supportPayments = new PaymentVerificationService(supabase, process.env.PAYSTACK_SECRET_KEY);
-const supportSessions = new SessionRecoveryService(supabase);
-const supportTickets = new TicketService(supabase);
-const supportBot = new BotConversationManager(supportPayments, supportSessions, supportTickets);
 
 // Helper: Outbound WhatsApp Graph API message sender (Supports Text & Native Buttons)
 async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
@@ -2350,6 +2348,23 @@ async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
     console.error('[WhatsApp Send Error]', e.message);
   }
 }
+
+// Instantiate Support Services
+const supportPayments = new PaymentVerificationService(supabase, process.env.PAYSTACK_SECRET_KEY);
+const supportLoyalty = new LoyaltyService(supabase);
+const supportSessions = new SessionRecoveryService(supabase, supportLoyalty);
+const supportPromos = new PromoService(supabase);
+
+const supportTickets = new TicketService(supabase, async (msg) => {
+  return await sendWhatsAppMsg(msg);
+});
+const supportBot = new BotConversationManager(
+  supportPayments,
+  supportSessions,
+  supportLoyalty,
+  supportPromos,
+  supportTickets
+);
 
 // 1. Meta Webhook Verification (GET Challenge)
 router.get('/whatsapp/webhook', (req, res) => {
@@ -2404,7 +2419,18 @@ router.post('/whatsapp/webhook', async (req, res) => {
   }
 });
 
-// 3. Admin Tickets & Supabase Free-Tier Pruning APIs
+// 3. Loyalty & Promos Public APIs
+router.get('/loyalty/:phone', async (req, res) => {
+  const profile = await supportLoyalty.calculateLoyalty(req.params.phone);
+  return res.json({ success: true, profile });
+});
+
+router.get('/promos', async (req, res) => {
+  const promos = await supportPromos.getActivePromos();
+  return res.json({ success: true, promos });
+});
+
+// 4. Admin Tickets & Supabase Free-Tier Pruning APIs
 router.get('/admin/tickets', authenticateAdmin, async (req, res) => {
   const { status, search, limit } = req.query;
   const tickets = await supportTickets.listTickets({ status, search, limit: Number(limit) || 50 });
