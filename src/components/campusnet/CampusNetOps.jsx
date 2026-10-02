@@ -19,7 +19,16 @@ import {
   ArrowUpRight,
   Database,
   Layers,
-  Sparkles
+  Sparkles,
+  Ticket,
+  Tag,
+  PlusCircle,
+  ToggleLeft,
+  ToggleRight,
+  CheckCircle2,
+  Clock3,
+  HelpCircle,
+  Send
 } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '../../supabase';
@@ -33,7 +42,7 @@ export function CampusNetOps({ onNavigate }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   
-  // Tabs: 'sessions' | 'loyalty' | 'hotline'
+  // Tabs: 'sessions' | 'loyalty' | 'tickets' | 'promos' | 'hotline'
   const [activeTab, setActiveTab] = useState('sessions');
   const [sessionFilter, setSessionFilter] = useState('active'); // 'active' | 'all'
   const [loyaltyFilter, setLoyaltyFilter] = useState('unclaimed'); // 'all' | 'unclaimed' | 'near_reward'
@@ -45,7 +54,28 @@ export function CampusNetOps({ onNavigate }) {
   const [claimingPhone, setClaimingPhone] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   
-  // Hotline Dispatch Form
+  // ─── Tickets & Complaints State ─────────────────────────────────────────────
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketStatusFilter, setTicketStatusFilter] = useState('all'); // 'all' | 'open' | 'in_progress' | 'resolved'
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [updatingTicketId, setUpdatingTicketId] = useState(null);
+  const [adminNotesDraft, setAdminNotesDraft] = useState({});
+  const [pruningTickets, setPruningTickets] = useState(false);
+  const [pruneTicketsResult, setPruneTicketsResult] = useState(null);
+
+  // ─── Promo Codes State ──────────────────────────────────────────────────────
+  const [promos, setPromos] = useState([]);
+  const [promosLoading, setPromosLoading] = useState(false);
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoDiscount, setNewPromoDiscount] = useState(25);
+  const [newPromoDuration, setNewPromoDuration] = useState(48);
+  const [newPromoDesc, setNewPromoDesc] = useState('');
+  const [creatingPromo, setCreatingPromo] = useState(false);
+  const [togglingPromoId, setTogglingPromoId] = useState(null);
+  const [deletingPromoId, setDeletingPromoId] = useState(null);
+
+  // ─── Hotline Dispatch Form ─────────────────────────────────────────────────
   const [hotlinePhone, setHotlinePhone] = useState('');
   const [hotlinePkg, setHotlinePkg] = useState('pkg_24h');
   const [hotlineNote, setHotlineNote] = useState('');
@@ -81,10 +111,47 @@ export function CampusNetOps({ onNavigate }) {
     }
   };
 
+  const fetchTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await axios.get(`${API_URL}/api/campusnet/admin/tickets`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.data?.tickets) setTickets(res.data.tickets);
+    } catch (err) {
+      console.error('Fetch tickets error:', err);
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
+  const fetchPromos = async () => {
+    setPromosLoading(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await axios.get(`${API_URL}/api/campusnet/admin/promos`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.data?.promos) setPromos(res.data.promos);
+    } catch (err) {
+      console.error('Fetch promos error:', err);
+    } finally {
+      setPromosLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchOverview();
+    fetchTickets();
+    fetchPromos();
     // Auto-poll live database every 30 seconds
-    const poll = setInterval(() => fetchOverview(true), 30000);
+    const poll = setInterval(() => {
+      fetchOverview(true);
+      fetchTickets();
+    }, 30000);
     return () => clearInterval(poll);
   }, []);
 
@@ -139,7 +206,7 @@ export function CampusNetOps({ onNavigate }) {
       const res = await axios.post(`${API_URL}/api/campusnet/admin/manual-activate`, {
         phone: hotlinePhone,
         package_id: hotlinePkg,
-        note: hotlineNote || 'HOTLINE_MANUAL_DISPATCH'
+        reason: hotlineNote || 'Hotline Phone Activation'
       }, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -148,9 +215,113 @@ export function CampusNetOps({ onNavigate }) {
       setHotlineNote('');
       await fetchOverview(true);
     } catch (err) {
-      alert('Dispatch failed: ' + (err.response?.data?.error || err.message));
+      alert('Activation failed: ' + (err.response?.data?.error || err.message));
     } finally {
       setDispatching(false);
+    }
+  };
+
+  // ── Ticket Handlers ──
+  const handleUpdateTicketStatus = async (ticketId, newStatus) => {
+    setUpdatingTicketId(ticketId);
+    const notes = adminNotesDraft[ticketId] || '';
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      await axios.patch(`${API_URL}/api/campusnet/admin/tickets/${ticketId}`, {
+        status: newStatus,
+        admin_notes: notes
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      setTickets(prev => prev.map(t => (t.id === ticketId || t.ticket_number === ticketId) ? { ...t, status: newStatus, admin_notes: notes } : t));
+    } catch (err) {
+      alert('Failed to update ticket: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  };
+
+  const handlePruneTickets = async () => {
+    if (!window.confirm('Prune resolved tickets older than 7 days to keep Supabase free-tier optimal?')) return;
+    setPruningTickets(true);
+    setPruneTicketsResult(null);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/tickets/prune`, { days_old: 7 }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      setPruneTicketsResult(res.data);
+      await fetchTickets();
+    } catch (err) {
+      alert('Failed to prune tickets: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setPruningTickets(false);
+    }
+  };
+
+  // ── Promo Handlers ──
+  const handleCreatePromo = async (e) => {
+    e.preventDefault();
+    if (!newPromoCode) return;
+    setCreatingPromo(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await axios.post(`${API_URL}/api/campusnet/admin/promos`, {
+        code: newPromoCode,
+        description: newPromoDesc || `${newPromoDiscount}% Special Discount`,
+        discount_percent: Number(newPromoDiscount),
+        duration_hours: Number(newPromoDuration),
+        max_uses: 1
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.data?.success) {
+        setNewPromoCode('');
+        setNewPromoDesc('');
+        await fetchPromos();
+      }
+    } catch (err) {
+      alert('Failed to create promo: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setCreatingPromo(false);
+    }
+  };
+
+  const handleTogglePromo = async (promoId, currentStatus) => {
+    setTogglingPromoId(promoId);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      await axios.patch(`${API_URL}/api/campusnet/admin/promos/${promoId}/toggle`, {
+        is_active: !currentStatus
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      setPromos(prev => prev.map(p => p.id === promoId ? { ...p, is_active: !currentStatus } : p));
+    } catch (err) {
+      alert('Failed to toggle promo: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setTogglingPromoId(null);
+    }
+  };
+
+  const handleDeletePromo = async (promoId) => {
+    if (!window.confirm('Delete this promo code?')) return;
+    setDeletingPromoId(promoId);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      await axios.delete(`${API_URL}/api/campusnet/admin/promos/${promoId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      setPromos(prev => prev.filter(p => p.id !== promoId));
+    } catch (err) {
+      alert('Failed to delete promo: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDeletingPromoId(null);
     }
   };
 
@@ -162,9 +333,11 @@ export function CampusNetOps({ onNavigate }) {
 
   if (loading && !data) {
     return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-        <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 1rem', display: 'block', color: '#ff5414' }} />
-        <p style={{ fontWeight: 600 }}>Querying live Supabase sessions & vouchers...</p>
+      <div className="cn-loading-container">
+        <RefreshCw size={32} className="animate-spin" color="#ff5414" />
+        <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+          Connecting to Makoyocart Wi-Fi Engine...
+        </p>
       </div>
     );
   }
@@ -172,30 +345,45 @@ export function CampusNetOps({ onNavigate }) {
   const stats = data?.stats || {};
   const sessions = data?.sessions || [];
   const loyalty = data?.loyalty || [];
-  const packages = data?.packages || [];
 
-  // Filtered Sessions
+  // Filter Sessions
   const filteredSessions = sessions.filter(s => {
     if (sessionFilter === 'active' && !s.is_active) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const pMatch = (s.phone || '').includes(q) || (s.local_phone || '').includes(q);
-      const vMatch = (s.voucher_code || '').toLowerCase().includes(q);
-      return pMatch || vMatch;
+      return (s.phone && s.phone.includes(q)) || 
+             (s.local_phone && s.local_phone.includes(q)) ||
+             (s.voucher_code && s.voucher_code.toLowerCase().includes(q));
     }
     return true;
   });
 
-  // Filtered Loyalty
-  const filteredLoyalty = loyalty.filter(cust => {
-    if (loyaltyFilter === 'unclaimed' && !cust.has_unclaimed_reward) return false;
-    if (loyaltyFilter === 'near_reward' && !cust.is_near_reward) return false;
+  // Filter Loyalty
+  const filteredLoyalty = loyalty.filter(l => {
+    if (loyaltyFilter === 'unclaimed' && !l.has_unclaimed_reward) return false;
+    if (loyaltyFilter === 'near_reward' && !l.is_near_reward) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return (cust.phone || '').includes(q) || (cust.local_phone || '').includes(q);
+      return (l.phone && l.phone.includes(q)) || (l.local_phone && l.local_phone.includes(q));
     }
     return true;
   });
+
+  // Filter Tickets
+  const filteredTickets = tickets.filter(t => {
+    if (ticketStatusFilter !== 'all' && t.status !== ticketStatusFilter) return false;
+    if (ticketSearchQuery) {
+      const q = ticketSearchQuery.toLowerCase();
+      return (t.phone && t.phone.includes(q)) ||
+             (t.ticket_number && t.ticket_number.toLowerCase().includes(q)) ||
+             (t.room_location && t.room_location.toLowerCase().includes(q)) ||
+             (t.description && t.description.toLowerCase().includes(q));
+    }
+    return true;
+  });
+
+  const openTicketsCount = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
+  const activePromosCount = promos.filter(p => p.is_active).length;
 
   return (
     <div className="cn-ops-container">
@@ -215,6 +403,7 @@ export function CampusNetOps({ onNavigate }) {
           </button>
         </div>
       )}
+
       {/* Top Banner Alert for Unclaimed Passes */}
       {stats.unclaimed_rewards_count > 0 && (
         <div className="cn-alert-banner">
@@ -307,12 +496,12 @@ export function CampusNetOps({ onNavigate }) {
             <span style={{ fontSize: '0.85rem', color: '#ffb703', fontWeight: 600 }}>Students</span>
           </div>
           <div className="cn-stat-subtext">
-            Out of {stats.total_customers_count || 0} total registered student phone numbers
+            Ready for 1-click reward dispatch or automatic WhatsApp bot claim.
           </div>
         </div>
       </div>
 
-      {/* Subtabs Switcher */}
+      {/* 5-Tab Navigation Bar */}
       <div className="cn-nav-tabs">
         <button 
           className={`cn-nav-btn ${activeTab === 'sessions' ? 'active' : ''}`}
@@ -333,6 +522,26 @@ export function CampusNetOps({ onNavigate }) {
         </button>
 
         <button 
+          className={`cn-nav-btn ${activeTab === 'tickets' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('tickets'); fetchTickets(); }}
+        >
+          <Ticket size={16} /> Bot Tickets & Faults
+          {openTicketsCount > 0 && (
+            <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '10px', fontWeight: 800 }}>
+              {openTicketsCount} Open
+            </span>
+          )}
+        </button>
+
+        <button 
+          className={`cn-nav-btn ${activeTab === 'promos' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('promos'); fetchPromos(); }}
+        >
+          <Tag size={16} /> Promos & Discounts
+          <span className="cn-badge-count">{activePromosCount} Active</span>
+        </button>
+
+        <button 
           className={`cn-nav-btn ${activeTab === 'hotline' ? 'active' : ''}`}
           onClick={() => setActiveTab('hotline')}
         >
@@ -342,7 +551,7 @@ export function CampusNetOps({ onNavigate }) {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button 
             className="cn-action-btn"
-            onClick={() => fetchOverview(true)}
+            onClick={() => { fetchOverview(true); fetchTickets(); fetchPromos(); }}
             disabled={refreshing}
             title="Refresh live telemetry from Supabase"
           >
@@ -402,7 +611,7 @@ export function CampusNetOps({ onNavigate }) {
             </div>
           )}
 
-          {/* DESKTOP TABLE VIEW (Visible on screens > 768px) */}
+          {/* DESKTOP TABLE VIEW */}
           <div className="cn-table-card cn-desktop-table">
             <div className="cn-table-wrapper">
               <table className="cn-data-table">
@@ -448,65 +657,53 @@ export function CampusNetOps({ onNavigate }) {
                       return (
                         <tr key={s.id || s.phone}>
                           <td>
-                            <strong style={{ color: '#ffffff', fontFamily: 'monospace', fontSize: '0.95rem' }}>
-                              {s.local_phone || s.phone}
-                            </strong>
+                            <strong style={{ color: '#ffffff' }}>{s.local_phone || s.phone}</strong>
                           </td>
                           <td>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontFamily: 'monospace', color: '#ff5414', fontWeight: 700 }}>
-                                {s.voucher_code}
-                              </span>
+                            <span className="cn-code-tag">
+                              {s.voucher_code || 'AUTHO-ACTIVE'}
                               <button 
-                                onClick={() => copyToClipboard(s.voucher_code)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
+                                onClick={() => copyToClipboard(s.voucher_code)} 
+                                className="cn-copy-mini-btn"
                                 title="Copy voucher code"
                               >
-                                {copiedCode === s.voucher_code ? <Check size={13} color="#00e676" /> : <Copy size={13} />}
+                                {copiedCode === s.voucher_code ? <Check size={12} color="#00e676" /> : <Copy size={12} />}
                               </button>
-                            </div>
-                            {s.voucher_password && (
-                              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
-                                PIN: <span style={{ color: '#cbd5e1' }}>{s.voucher_password}</span>
-                              </div>
-                            )}
+                            </span>
                           </td>
                           <td>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{s.package_name}</span>
+                            <span className="cn-pkg-badge">{s.package_name || 'Active Pass'}</span>
                           </td>
                           <td>
-                            <span style={{ 
-                              color: isActive ? '#00e676' : '#94a3b8', 
-                              fontWeight: 700, 
-                              fontFamily: 'monospace',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
+                            <span className={`cn-time-left ${isActive ? 'active' : 'expired'}`}>
                               <Clock size={13} /> {dynamicTimeLeft}
                             </span>
                           </td>
-                          <td style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                            {new Date(s.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          <td style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                            {new Date(s.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
                           </td>
                           <td>
-                            <span className={`cn-status-badge ${isActive ? 'cn-badge-active' : 'cn-badge-expired'}`}>
-                              {isActive ? '● ACTIVE' : 'EXPIRED'}
+                            <span className={`cn-status-pill ${isActive ? 'active' : 'expired'}`}>
+                              {isActive ? 'ACTIVE' : 'EXPIRED'}
                             </span>
                           </td>
                           <td>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <a href={s.tel_link} className="cn-action-btn" title="Call student">
-                                <Phone size={12} /> Call
-                              </a>
+                            <div className="cn-action-cell">
                               <a 
                                 href={s.whatsapp_link} 
                                 target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="cn-action-btn cn-btn-wa" 
+                                rel="noreferrer"
+                                className="cn-action-btn cn-btn-wa"
                                 title="Chat on WhatsApp"
                               >
-                                <MessageSquare size={12} /> WhatsApp
+                                <MessageSquare size={13} /> Chat
+                              </a>
+                              <a 
+                                href={s.tel_link} 
+                                className="cn-action-btn cn-btn-call"
+                                title="Call resident"
+                              >
+                                <Phone size={13} /> Call
                               </a>
                             </div>
                           </td>
@@ -519,10 +716,10 @@ export function CampusNetOps({ onNavigate }) {
             </div>
           </div>
 
-          {/* MOBILE CARDS VIEW (Visible on phone screens <= 768px) */}
+          {/* MOBILE CARDS VIEW */}
           <div className="cn-mobile-cards">
             {filteredSessions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', background: 'rgba(17,24,39,0.7)', borderRadius: '12px' }}>
+              <div className="cn-table-card" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                 No sessions match current filter.
               </div>
             ) : (
@@ -547,43 +744,58 @@ export function CampusNetOps({ onNavigate }) {
                 }
 
                 return (
-                  <div className="cn-mobile-card" key={s.id || s.phone}>
-                    <div className="cn-mcard-header">
+                  <div key={s.id || s.phone} className="cn-mcard">
+                    <div className="cn-mcard-top">
                       <div>
-                        <span className="cn-mcard-phone">{s.local_phone || s.phone}</span>
-                        <div className="cn-mcard-pkg">{s.package_name}</div>
+                        <strong className="cn-mcard-phone">{s.local_phone || s.phone}</strong>
+                        <div className="cn-mcard-sub">{s.package_name || 'Active Pass'}</div>
                       </div>
-                      <span className={`cn-status-badge ${isActive ? 'cn-badge-active' : 'cn-badge-expired'}`}>
-                        {isActive ? '● ACTIVE' : 'EXPIRED'}
+                      <span className={`cn-status-pill ${isActive ? 'active' : 'expired'}`}>
+                        {isActive ? 'ACTIVE' : 'EXPIRED'}
                       </span>
                     </div>
 
                     <div className="cn-mcard-body">
-                      <div className="cn-mcard-code-row">
-                        <span className="cn-mcard-code">{s.voucher_code}</span>
-                        <button onClick={() => copyToClipboard(s.voucher_code)} className="cn-copy-mini-btn">
-                          {copiedCode === s.voucher_code ? <Check size={13} color="#00e676" /> : <Copy size={13} />}
-                        </button>
-                        {s.voucher_password && <span className="cn-mcard-pin">PIN: {s.voucher_password}</span>}
-                      </div>
-
-                      <div className="cn-mcard-time-row">
-                        <Clock size={13} color={isActive ? '#00e676' : '#94a3b8'} />
-                        <span style={{ color: isActive ? '#00e676' : '#94a3b8', fontWeight: 800, fontFamily: 'monospace' }}>
-                          {dynamicTimeLeft}
+                      <div className="cn-mcard-row">
+                        <span className="cn-mcard-label">Voucher:</span>
+                        <span className="cn-code-tag">
+                          {s.voucher_code || 'AUTHO-ACTIVE'}
+                          <button 
+                            onClick={() => copyToClipboard(s.voucher_code)} 
+                            className="cn-copy-mini-btn"
+                          >
+                            {copiedCode === s.voucher_code ? <Check size={12} color="#00e676" /> : <Copy size={12} />}
+                          </button>
                         </span>
-                        <span className="cn-mcard-exp-date">
-                          (Exp: {new Date(s.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                      </div>
+                      <div className="cn-mcard-row">
+                        <span className="cn-mcard-label">Remaining:</span>
+                        <span className={`cn-time-left ${isActive ? 'active' : 'expired'}`}>
+                          <Clock size={13} /> {dynamicTimeLeft}
+                        </span>
+                      </div>
+                      <div className="cn-mcard-row">
+                        <span className="cn-mcard-label">Valid Until:</span>
+                        <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                          {new Date(s.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
                         </span>
                       </div>
                     </div>
 
                     <div className="cn-mcard-actions">
-                      <a href={s.tel_link} className="cn-mcard-action-btn cn-btn-tel">
-                        <Phone size={14} /> Call Student
+                      <a 
+                        href={s.whatsapp_link} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="cn-mcard-action-btn cn-btn-wa"
+                      >
+                        <MessageSquare size={13} /> WhatsApp
                       </a>
-                      <a href={s.whatsapp_link} target="_blank" rel="noopener noreferrer" className="cn-mcard-action-btn cn-btn-wa">
-                        <MessageSquare size={14} /> WhatsApp
+                      <a 
+                        href={s.tel_link} 
+                        className="cn-mcard-action-btn cn-btn-call"
+                      >
+                        <Phone size={13} /> Call
                       </a>
                     </div>
                   </div>
@@ -595,7 +807,7 @@ export function CampusNetOps({ onNavigate }) {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 2: LOYALTY STARS & FREE PASSES HUNTER
+          TAB 2: LOYALTY STARS & FREE PASSES
       ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'loyalty' && (
         <div>
@@ -606,7 +818,7 @@ export function CampusNetOps({ onNavigate }) {
               <input 
                 type="text"
                 className="cn-search-input"
-                placeholder="Search student phone number..."
+                placeholder="Search loyalty phone number..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
@@ -617,19 +829,19 @@ export function CampusNetOps({ onNavigate }) {
                 className={`cn-pill-btn ${loyaltyFilter === 'unclaimed' ? 'active' : ''}`}
                 onClick={() => setLoyaltyFilter('unclaimed')}
               >
-                🎁 Free Pass Ready ({loyalty.filter(c => c.has_unclaimed_reward).length})
+                🎁 Free Pass Ready ({stats.unclaimed_rewards_count || 0})
               </button>
               <button 
                 className={`cn-pill-btn ${loyaltyFilter === 'near_reward' ? 'active' : ''}`}
                 onClick={() => setLoyaltyFilter('near_reward')}
               >
-                ⭐ 4/5 Stars Near ({loyalty.filter(c => c.is_near_reward).length})
+                ★ Near Reward (3-4 Stars)
               </button>
               <button 
                 className={`cn-pill-btn ${loyaltyFilter === 'all' ? 'active' : ''}`}
                 onClick={() => setLoyaltyFilter('all')}
               >
-                All Customers ({loyalty.length})
+                All Residents ({loyalty.length})
               </button>
             </div>
           </div>
@@ -640,173 +852,335 @@ export function CampusNetOps({ onNavigate }) {
               <table className="cn-data-table">
                 <thead>
                   <tr>
-                    <th>Student Phone</th>
-                    <th>Loyalty Stars</th>
+                    <th>Resident Phone</th>
+                    <th>Loyalty Progress (5 Stamps = Free 24H)</th>
+                    <th>Purchases</th>
+                    <th>Claimed Free</th>
                     <th>Reward Status</th>
-                    <th>Lifetime Passes</th>
-                    <th>Last Active</th>
-                    <th>Actions (Call / WhatsApp / Claim)</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLoyalty.length === 0 ? (
                     <tr>
                       <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8' }}>
-                        No customers match current filter.
+                        No students match current loyalty filter.
                       </td>
                     </tr>
                   ) : (
-                    filteredLoyalty.map(cust => {
-                      const starsCount = cust.stamps || 0;
-                      return (
-                        <tr key={cust.phone}>
-                          <td>
-                            <strong style={{ color: '#ffffff', fontFamily: 'monospace', fontSize: '1rem' }}>
-                              {cust.local_phone || cust.phone}
-                            </strong>
-                          </td>
-                          <td>
-                            <div className="cn-stars-row">
-                              {[1, 2, 3, 4, 5].map(starIdx => (
-                                <span 
-                                  key={starIdx} 
-                                  className={starIdx <= starsCount ? '' : 'cn-star-empty'}
-                                >
-                                  ★
-                                </span>
-                              ))}
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, marginLeft: '6px', color: '#ffb703' }}>
-                                {starsCount}/5
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            {cust.has_unclaimed_reward ? (
-                              <span className="cn-status-badge cn-badge-unclaimed">
-                                🎁 {cust.unclaimed_24h}x FREE 24H PASS READY!
-                              </span>
-                            ) : cust.is_near_reward ? (
-                              <span style={{ fontSize: '0.75rem', color: '#ff5414', fontWeight: 700 }}>
-                                ⚡ 1 purchase to next Free Pass
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                In progress ({5 - starsCount} needed)
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            <span style={{ fontWeight: 700, color: '#ffffff' }}>
-                              {cust.total_purchases}
-                            </span> <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>passes bought</span>
-                          </td>
-                          <td style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                            {cust.last_active 
-                              ? new Date(cust.last_active).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', month: 'short', day: 'numeric' })
-                              : 'Recent'}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                              <a href={cust.tel_link} className="cn-action-btn" title="Call student">
-                                <Phone size={12} /> Call
-                              </a>
-                              <a 
-                                href={cust.whatsapp_link} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="cn-action-btn cn-btn-wa" 
-                                title="Chat on WhatsApp"
+                    filteredLoyalty.map(cust => (
+                      <tr key={cust.phone}>
+                        <td>
+                          <strong style={{ color: '#ffffff' }}>{cust.local_phone || cust.phone}</strong>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: '#ffb703', fontSize: '1.1rem', letterSpacing: '2px' }}>
+                              {'★'.repeat(cust.stamps) + '☆'.repeat(5 - cust.stamps)}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
+                              ({cust.stamps}/5)
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: '#00d4ff' }}>{cust.total_purchases}</span>
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', marginLeft: '4px' }}>passes</span>
+                        </td>
+                        <td>
+                          <span style={{ color: '#cbd5e1' }}>{cust.claimed_free_count || 0} claimed</span>
+                        </td>
+                        <td>
+                          {cust.has_unclaimed_reward ? (
+                            <span className="cn-status-pill cn-pill-gold">
+                              🎁 {cust.unclaimed_rewards_count} FREE 24H PASS READY
+                            </span>
+                          ) : cust.is_near_reward ? (
+                            <span className="cn-status-pill cn-pill-cyan">
+                              ★ 1 pass away from reward
+                            </span>
+                          ) : (
+                            <span className="cn-status-pill" style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}>
+                              Earning Stars
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="cn-action-cell">
+                            <a 
+                              href={cust.whatsapp_link} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="cn-action-btn cn-btn-wa"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageSquare size={13} /> Chat
+                            </a>
+                            <a 
+                              href={cust.tel_link} 
+                              className="cn-action-btn cn-btn-call"
+                              title="Call resident"
+                            >
+                              <Phone size={13} /> Call
+                            </a>
+                            {cust.has_unclaimed_reward && (
+                              <button 
+                                className="cn-action-btn cn-btn-claim"
+                                onClick={() => handleClaimReward(cust.phone)}
+                                disabled={claimingPhone === cust.phone}
+                                title="Grant free 24-hour pass immediately"
                               >
-                                <MessageSquare size={12} /> WhatsApp
-                              </a>
-                              {cust.has_unclaimed_reward && (
-                                <button 
-                                  className="cn-action-btn cn-btn-claim"
-                                  onClick={() => handleClaimReward(cust.phone)}
-                                  disabled={claimingPhone === cust.phone}
-                                  title="Grant free pass immediately on their behalf"
-                                >
-                                  <Sparkles size={12} />
-                                  {claimingPhone === cust.phone ? 'Granting...' : 'Grant Free Pass'}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
+                                <Sparkles size={13} /> {claimingPhone === cust.phone ? 'Granting...' : 'Grant Free Pass'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* MOBILE CARDS VIEW (Visible on phone screens <= 768px) */}
+          {/* MOBILE CARDS VIEW */}
           <div className="cn-mobile-cards">
             {filteredLoyalty.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', background: 'rgba(17,24,39,0.7)', borderRadius: '12px' }}>
-                No customers match current filter.
+              <div className="cn-table-card" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                No students match current loyalty filter.
               </div>
             ) : (
-              filteredLoyalty.map(cust => {
-                const starsCount = cust.stamps || 0;
+              filteredLoyalty.map(cust => (
+                <div key={cust.phone} className="cn-mcard">
+                  <div className="cn-mcard-top">
+                    <div>
+                      <strong className="cn-mcard-phone">{cust.local_phone || cust.phone}</strong>
+                      <div className="cn-mcard-sub">{cust.total_purchases} Total Purchases • {cust.claimed_free_count || 0} Claimed</div>
+                    </div>
+                    {cust.has_unclaimed_reward ? (
+                      <span className="cn-status-pill cn-pill-gold">
+                        🎁 FREE PASS READY
+                      </span>
+                    ) : (
+                      <span className="cn-status-pill" style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}>
+                        {cust.stamps}/5 Stars
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="cn-mcard-body">
+                    <div className="cn-mcard-row">
+                      <span className="cn-mcard-label">Stars:</span>
+                      <span style={{ color: '#ffb703', fontSize: '1rem', letterSpacing: '2px' }}>
+                        {'★'.repeat(cust.stamps) + '☆'.repeat(5 - cust.stamps)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="cn-mcard-actions">
+                    <a 
+                      href={cust.whatsapp_link} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="cn-mcard-action-btn cn-btn-wa"
+                    >
+                      <MessageSquare size={13} /> WhatsApp
+                    </a>
+                    <a 
+                      href={cust.tel_link} 
+                      className="cn-mcard-action-btn cn-btn-call"
+                    >
+                      <Phone size={13} /> Call
+                    </a>
+                    {cust.has_unclaimed_reward && (
+                      <button 
+                        className="cn-mcard-action-btn cn-btn-claim"
+                        onClick={() => handleClaimReward(cust.phone)}
+                        disabled={claimingPhone === cust.phone}
+                      >
+                        <Sparkles size={13} /> {claimingPhone === cust.phone ? 'Granting...' : 'Grant Free Pass'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB 3: BOT TICKETS & FAULTS CONSOLE
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'tickets' && (
+        <div>
+          {/* Toolbar */}
+          <div className="cn-toolbar">
+            <div className="cn-search-box">
+              <Search size={16} color="#94a3b8" />
+              <input 
+                type="text"
+                className="cn-search-input"
+                placeholder="Search ticket #, room, or phone..."
+                value={ticketSearchQuery}
+                onChange={e => setTicketSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="cn-filter-pills">
+              <button 
+                className={`cn-pill-btn ${ticketStatusFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setTicketStatusFilter('all')}
+              >
+                All Tickets ({tickets.length})
+              </button>
+              <button 
+                className={`cn-pill-btn ${ticketStatusFilter === 'open' ? 'active' : ''}`}
+                onClick={() => setTicketStatusFilter('open')}
+              >
+                🚨 Open ({tickets.filter(t => t.status === 'open').length})
+              </button>
+              <button 
+                className={`cn-pill-btn ${ticketStatusFilter === 'in_progress' ? 'active' : ''}`}
+                onClick={() => setTicketStatusFilter('in_progress')}
+              >
+                ⏳ In Progress ({tickets.filter(t => t.status === 'in_progress').length})
+              </button>
+              <button 
+                className={`cn-pill-btn ${ticketStatusFilter === 'resolved' ? 'active' : ''}`}
+                onClick={() => setTicketStatusFilter('resolved')}
+              >
+                ✓ Resolved ({tickets.filter(t => t.status === 'resolved').length})
+              </button>
+            </div>
+
+            <button 
+              className="cn-prune-btn"
+              onClick={handlePruneTickets}
+              disabled={pruningTickets}
+              title="Deletes resolved tickets older than 7 days from Supabase"
+            >
+              <Trash2 size={14} />
+              {pruningTickets ? 'Pruning...' : 'Prune Resolved (>7d)'}
+            </button>
+          </div>
+
+          {pruneTicketsResult && (
+            <div style={{ background: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.3)', color: '#00e676', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              ✓ {pruneTicketsResult.message || 'Pruned old resolved tickets successfully.'}
+            </div>
+          )}
+
+          {/* Tickets Stream Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {filteredTickets.length === 0 ? (
+              <div className="cn-table-card" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                <CheckCircle2 size={36} color="#00e676" style={{ margin: '0 auto 12px' }} />
+                <h4 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>No Tickets Match Current Filter</h4>
+                <p style={{ margin: '6px 0 0', fontSize: '0.85rem' }}>All student complaints have been addressed or resolved.</p>
+              </div>
+            ) : (
+              filteredTickets.map(t => {
+                const cleanPhone = (t.phone || '').replace(/\D/g, '');
+                const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
+                const isResolved = t.status === 'resolved' || t.status === 'dismissed';
+                const isOpen = t.status === 'open';
+
+                let categoryColor = '#00d4ff';
+                let categoryLabel = 'General Inquiry';
+                if (t.category === 'no_signal') { categoryColor = '#ef4444'; categoryLabel = '📶 Wi-Fi Not Visible'; }
+                else if (t.category === 'slow_speed') { categoryColor = '#ffb703'; categoryLabel = '⚡ Slow Browsing'; }
+                else if (t.category === 'mac_randomization') { categoryColor = '#a855f7'; categoryLabel = '🌐 Portal Not Opening'; }
+                else if (t.category === 'payment_unverified') { categoryColor = '#ff5414'; categoryLabel = '💳 Payment Unverified'; }
+
                 return (
-                  <div className="cn-mobile-card cn-loyalty-mcard" key={cust.phone}>
-                    <div className="cn-mcard-header">
-                      <div>
-                        <span className="cn-mcard-phone">{cust.local_phone || cust.phone}</span>
-                        <div className="cn-mcard-sub">{cust.total_purchases} lifetime passes bought</div>
-                      </div>
-                      {cust.has_unclaimed_reward ? (
-                        <span className="cn-status-badge cn-badge-unclaimed">
-                          🎁 {cust.unclaimed_24h}x FREE PASS
+                  <div 
+                    key={t.id} 
+                    className="cn-table-card"
+                    style={{ 
+                      padding: '1.25rem 1.5rem',
+                      borderLeft: `4px solid ${isOpen ? '#ef4444' : isResolved ? '#00e676' : '#ffb703'}`,
+                      background: isOpen ? 'rgba(239, 68, 68, 0.04)' : 'rgba(17, 24, 39, 0.7)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem', color: '#fff', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '6px' }}>
+                          #{t.ticket_number || 'CN-NEW'}
                         </span>
-                      ) : cust.is_near_reward ? (
-                        <span className="cn-status-badge cn-badge-near">
-                          ⚡ 1 to Free Pass
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: `${categoryColor}22`, color: categoryColor, border: `1px solid ${categoryColor}44` }}>
+                          {categoryLabel}
                         </span>
-                      ) : null}
-                    </div>
-
-                    <div className="cn-mcard-body">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <div className="cn-stars-row">
-                          {[1, 2, 3, 4, 5].map(starIdx => (
-                            <span key={starIdx} className={starIdx <= starsCount ? '' : 'cn-star-empty'}>★</span>
-                          ))}
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, marginLeft: '6px', color: '#ffb703' }}>
-                            {starsCount}/5 Stars
-                          </span>
-                        </div>
-                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                          Last: {cust.last_active ? new Date(cust.last_active).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', month: 'short', day: 'numeric' }) : 'Recent'}
+                        <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
+                          📍 <strong>{t.room_location || 'Hostel Room not specified'}</strong>
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                          📱 {t.device_type || 'Mobile Device'}
                         </span>
                       </div>
 
-                      {cust.has_unclaimed_reward && (
-                        <div className="cn-mcard-reward-box">
-                          <strong>🎉 24-Hour Free Pass Ready!</strong>
-                          <p>Student has not claimed yet. Call or WhatsApp to surprise them!</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="cn-mcard-actions">
-                      <a href={cust.tel_link} className="cn-mcard-action-btn cn-btn-tel">
-                        <Phone size={13} /> Call
-                      </a>
-                      <a href={cust.whatsapp_link} target="_blank" rel="noopener noreferrer" className="cn-mcard-action-btn cn-btn-wa">
-                        <MessageSquare size={13} /> WhatsApp
-                      </a>
-                      {cust.has_unclaimed_reward && (
-                        <button 
-                          className="cn-mcard-action-btn cn-btn-claim"
-                          onClick={() => handleClaimReward(cust.phone)}
-                          disabled={claimingPhone === cust.phone}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <select 
+                          value={t.status}
+                          onChange={e => handleUpdateTicketStatus(t.id, e.target.value)}
+                          disabled={updatingTicketId === t.id}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            background: t.status === 'open' ? 'rgba(239, 68, 68, 0.2)' : t.status === 'resolved' ? 'rgba(0, 230, 118, 0.2)' : 'rgba(255, 183, 3, 0.2)',
+                            color: t.status === 'open' ? '#fca5a5' : t.status === 'resolved' ? '#00e676' : '#ffb703',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            cursor: 'pointer',
+                            outline: 'none'
+                          }}
                         >
-                          <Sparkles size={13} /> {claimingPhone === cust.phone ? 'Granting...' : 'Grant Free Pass'}
-                        </button>
-                      )}
+                          <option value="open">🚨 Open</option>
+                          <option value="in_progress">⏳ In Progress</option>
+                          <option value="resolved">✓ Resolved</option>
+                          <option value="dismissed">✕ Dismissed</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <p style={{ margin: '0 0 1rem', fontSize: '0.92rem', color: '#f1f5f9', lineHeight: '1.5' }}>
+                      {t.description}
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                        Resident: <strong style={{ color: '#fff' }}>{localPhone}</strong> ({cleanPhone}) • Logged {new Date(t.created_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <a 
+                          href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi! Duncan here from CampusNet Support regarding ticket #${t.ticket_number} (Room ${t.room_location}). How can I assist you?`)}`}
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="cn-action-btn cn-btn-wa"
+                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
+                        >
+                          <MessageSquare size={13} /> WhatsApp
+                        </a>
+                        <a 
+                          href={`tel:${localPhone}`} 
+                          className="cn-action-btn cn-btn-call"
+                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
+                        >
+                          <Phone size={13} /> Call
+                        </a>
+                        {t.status !== 'resolved' && (
+                          <button 
+                            onClick={() => handleUpdateTicketStatus(t.id, 'resolved')}
+                            disabled={updatingTicketId === t.id}
+                            className="cn-action-btn"
+                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', background: 'rgba(0, 230, 118, 0.15)', borderColor: '#00e676', color: '#00e676' }}
+                          >
+                            <Check size={13} /> Mark Resolved
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -817,7 +1191,197 @@ export function CampusNetOps({ onNavigate }) {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 3: HOTLINE INSTANT DISPATCH
+          TAB 4: PROMOS & DISCOUNT CODES
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'promos' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+          {/* Create Promo Card */}
+          <div className="cn-table-card" style={{ padding: '1.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem' }}>
+              <PlusCircle size={22} color="#ff5414" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Create Discount Promo Code</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Broad casted live on the WhatsApp bot & applied on the portal.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreatePromo} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Promo Code (Uppercase)
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. FRESHER2026, EXAMS20, WEEKEND50"
+                  value={newPromoCode}
+                  onChange={e => setNewPromoCode(e.target.value.toUpperCase())}
+                  required
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '1rem', fontFamily: 'monospace', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    Discount (%)
+                  </label>
+                  <input 
+                    type="number"
+                    min="5"
+                    max="90"
+                    value={newPromoDiscount}
+                    onChange={e => setNewPromoDiscount(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#00e676', fontSize: '1.1rem', fontWeight: 800, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                    Valid Duration
+                  </label>
+                  <select 
+                    value={newPromoDuration}
+                    onChange={e => setNewPromoDuration(e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  >
+                    <option value="24">24 Hours (1 Day)</option>
+                    <option value="48">48 Hours (2 Days)</option>
+                    <option value="72">72 Hours (3 Days)</option>
+                    <option value="168">7 Days (1 Week)</option>
+                    <option value="720">30 Days (1 Month)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Campaign Description
+                </label>
+                <input 
+                  type="text"
+                  placeholder="e.g. 25% Launch Special for Freshers"
+                  value={newPromoDesc}
+                  onChange={e => setNewPromoDesc(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <button 
+                type="submit"
+                disabled={creatingPromo}
+                style={{ 
+                  background: '#ff5414', 
+                  color: '#fff', 
+                  border: 'none', 
+                  padding: '0.85rem', 
+                  borderRadius: '8px', 
+                  fontWeight: 800, 
+                  fontSize: '0.95rem', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginTop: '0.35rem'
+                }}
+              >
+                <Tag size={16} />
+                {creatingPromo ? 'Publishing...' : 'Publish Active Promo Code'}
+              </button>
+            </form>
+          </div>
+
+          {/* Active Promo Codes List */}
+          <div className="cn-table-card" style={{ padding: '1.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Live Discount Campaigns</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Toggle or remove active discount campaigns.
+                </p>
+              </div>
+              <button onClick={fetchPromos} className="cn-action-btn" title="Refresh promos">
+                <RefreshCw size={13} className={promosLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {promos.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                  No promo codes created yet. Add one on the left!
+                </div>
+              ) : (
+                promos.map(p => {
+                  const isExpired = new Date(p.expires_at) <= new Date();
+                  return (
+                    <div 
+                      key={p.id || p.code}
+                      style={{
+                        padding: '1rem',
+                        borderRadius: '10px',
+                        background: p.is_active && !isExpired ? 'rgba(0, 230, 118, 0.06)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${p.is_active && !isExpired ? 'rgba(0, 230, 118, 0.25)' : 'rgba(255,255,255,0.08)'}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '10px'
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#fff', fontSize: '1.1rem' }}>
+                            {p.code}
+                          </span>
+                          <span style={{ background: '#00e676', color: '#000', fontWeight: 800, fontSize: '0.72rem', padding: '1px 6px', borderRadius: '4px' }}>
+                            {p.discount_percent}% OFF
+                          </span>
+                          {p.is_active && !isExpired ? (
+                            <span style={{ color: '#00e676', fontSize: '0.75rem', fontWeight: 700 }}>● Active</span>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>● Paused</span>
+                          )}
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                          {p.description || 'Special Discount'}
+                        </p>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          Expires: {new Date(p.expires_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button 
+                          onClick={() => handleTogglePromo(p.id, p.is_active)}
+                          disabled={togglingPromoId === p.id}
+                          className="cn-action-btn"
+                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
+                        >
+                          {p.is_active ? 'Pause' : 'Activate'}
+                        </button>
+                        <button 
+                          onClick={() => handleDeletePromo(p.id)}
+                          disabled={deletingPromoId === p.id}
+                          className="cn-action-btn"
+                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', background: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444', color: '#ef4444' }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB 5: HOTLINE INSTANT DISPATCH
       ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'hotline' && (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>

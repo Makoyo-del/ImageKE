@@ -2430,7 +2430,39 @@ router.get('/promos', async (req, res) => {
   return res.json({ success: true, promos });
 });
 
-// 4. Admin Tickets & Supabase Free-Tier Pruning APIs
+// 4. Admin Promo Management APIs
+router.get('/admin/promos', authenticateAdmin, async (req, res) => {
+  const promos = await supportPromos.listAllPromos();
+  return res.json({ success: true, promos });
+});
+
+router.post('/admin/promos', authenticateAdmin, async (req, res) => {
+  const { code, description, discount_percent, duration_hours, max_uses } = req.body;
+  if (!code || !discount_percent) {
+    return res.status(400).json({ success: false, error: 'Code and discount_percent are required.' });
+  }
+  const result = await supportPromos.createPromo({
+    code,
+    description,
+    discountPercent: discount_percent,
+    durationHours: Number(duration_hours) || 24,
+    maxUses: Number(max_uses) || 1
+  });
+  return res.json(result);
+});
+
+router.patch('/admin/promos/:id/toggle', authenticateAdmin, async (req, res) => {
+  const { is_active } = req.body;
+  const result = await supportPromos.togglePromo(req.params.id, is_active);
+  return res.json(result);
+});
+
+router.delete('/admin/promos/:id', authenticateAdmin, async (req, res) => {
+  const result = await supportPromos.deletePromo(req.params.id);
+  return res.json(result);
+});
+
+// 5. Admin Tickets & Supabase Free-Tier Pruning APIs
 router.get('/admin/tickets', authenticateAdmin, async (req, res) => {
   const { status, search, limit } = req.query;
   const tickets = await supportTickets.listTickets({ status, search, limit: Number(limit) || 50 });
@@ -2450,3 +2482,4 @@ router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
 });
 
 export default router;
+
