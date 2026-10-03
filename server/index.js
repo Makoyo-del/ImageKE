@@ -218,28 +218,11 @@ app.post('/api/submit-service-request', formLimiter, async (req, res) => {
   }
 });
 
-// ─── Paystack Webhook Handler ────────────────────────────────────────────────
-app.post('/api/paystack/webhook', (req, res) => {
-  const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-  const signature = req.headers['x-paystack-signature'];
-  if (!signature || !PAYSTACK_SECRET_KEY) {
-    return res.status(401).json({ error: 'Missing Paystack signature or secret key.' });
-  }
-
-  const expectedSig = crypto
-    .createHmac('sha512', PAYSTACK_SECRET_KEY)
-    .update(req.rawBody)
-    .digest('hex');
-
-  const signatureHash = crypto.createHash('sha256').update(signature).digest();
-  const expectedSigHash = crypto.createHash('sha256').update(expectedSig).digest();
-
-  if (!crypto.timingSafeEqual(signatureHash, expectedSigHash)) {
-    console.warn('[Webhook] Signature mismatch — possible spoofed request.');
-    return res.status(401).json({ error: 'Invalid signature.' });
-  }
-
-  res.status(200).json({ received: true });
+// ─── Paystack Webhook Handler (Dual-Route Redundancy) ─────────────────────────
+// Automatically routes directly to CampusNet Webhook handler to guarantee instant voucher activation
+app.post('/api/paystack/webhook', (req, res, next) => {
+  req.url = '/webhook';
+  return campusNetRouter(req, res, next);
 });
 
 // ─── 404 & Global Error Handlers ─────────────────────────────────────────────

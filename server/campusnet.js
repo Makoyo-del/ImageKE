@@ -980,6 +980,37 @@ router.post('/pay/verify-code', async (req, res) => {
       } catch (err) {
         // Not a direct Paystack reference
       }
+
+      // RESILIENT M-PESA RECEIPT LOOKUP: If cleanCode is an M-Pesa receipt (e.g. 10 chars like UIHGQ67XYZ)
+      // Searches recent 50 Paystack transactions by gateway response, reference, or customer phone within 60 mins!
+      if (!paystackVerifiedData) {
+        try {
+          const pList = await axios.get('https://api.paystack.co/transaction?perPage=50', {
+            headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+            timeout: 5000
+          });
+          const recentList = pList.data?.data || [];
+          const matchedTx = recentList.find(tx => {
+            if (tx.status !== 'success') return false;
+            const refMatch = tx.reference?.toUpperCase() === cleanCode;
+            const gatewayMatch = tx.gateway_response?.toUpperCase().includes(cleanCode);
+            const phoneMatch = cleanPhone && cleanPhone.length >= 9 && (
+              tx.customer?.phone?.includes(cleanPhone.slice(-9)) ||
+              tx.metadata?.phone?.includes(cleanPhone.slice(-9)) ||
+              (tx.customer?.email && tx.customer.email.includes(cleanPhone.slice(-9)))
+            );
+            const paidTime = new Date(tx.paid_at || tx.created_at || 0).getTime();
+            const isRecent = (Date.now() - paidTime) < 3600000;
+            return refMatch || gatewayMatch || (phoneMatch && isRecent);
+          });
+          if (matchedTx) {
+            console.log(`[Verify-Code Rescued] Found matching Paystack transaction for M-Pesa code ${cleanCode}: Ref ${matchedTx.reference}`);
+            paystackVerifiedData = matchedTx;
+          }
+        } catch (listErr) {
+          console.warn('[Verify-Code M-Pesa Lookup Error]', listErr.message);
+        }
+      }
     }
 
     // HARD SECURITY GATE: If Paystack has NOT confirmed payment as 'success', REJECT IMMEDIATELY!
