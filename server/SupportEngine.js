@@ -402,110 +402,195 @@ export class LoyaltyService {
 export class PromoService {
   constructor(supabaseClient) {
     this.supabase = supabaseClient;
+    this.jsonPath = path.resolve(__dirname, 'data/campusnet_promos.json');
+  }
+
+  _readLocalPromos() {
+    try {
+      if (fs.existsSync(this.jsonPath)) {
+        const raw = fs.readFileSync(this.jsonPath, 'utf8');
+        return JSON.parse(raw) || [];
+      }
+    } catch (e) {
+      console.warn('[PromoService] Failed to read local promos JSON:', e.message);
+    }
+    return [];
+  }
+
+  _writeLocalPromos(promos) {
+    try {
+      const dir = path.dirname(this.jsonPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.jsonPath, JSON.stringify(promos, null, 2), 'utf8');
+    } catch (e) {
+      console.warn('[PromoService] Failed to write local promos JSON:', e.message);
+    }
   }
 
   async getActivePromos() {
     const nowIso = new Date().toISOString();
+    const nowTime = Date.now();
+
+    // 1. Try Supabase first
     try {
-      const { data: promos } = await this.supabase
+      const { data: promos, error } = await this.supabase
         .from('campusnet_promos')
         .select('*')
         .eq('is_active', true)
         .gte('expires_at', nowIso)
         .order('discount_percent', { ascending: false });
 
-      if (promos && promos.length > 0) return promos;
+      if (!error && Array.isArray(promos) && promos.length > 0) {
+        this._writeLocalPromos(promos);
+        return promos;
+      }
     } catch (e) {}
 
-    // In-memory launch campaign fallback
-    return [
-      {
-        code: 'FRESHER2026',
-        description: '25% Launch Discount on all passes',
-        discount_percent: 25,
-        expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString()
-      }
-    ];
+    // 2. Resilient Dynamic Local Store Fallback
+    const local = this._readLocalPromos();
+    const active = local.filter(p => {
+      if (!p.is_active) return false;
+      if (p.expires_at && new Date(p.expires_at).getTime() < nowTime) return false;
+      return true;
+    });
+
+    return active;
   }
 
-  async createPromo({ code, description, discountPercent, durationHours = 24, maxUses = 1 }) {
+  async getPromoByCode(code) {
+    if (!code || typeof code !== 'string') return null;
+    const clean = code.trim().toUpperCase();
+    const nowTime = Date.now();
+
+    // 1. Check Supabase
+    try {
+      const { data: promo, error } = await this.supabase
+        .from('campusnet_promos')
+        .select('*')
+        .eq('code', clean)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (!error && promo) {
+        if (!promo.expires_at || new Date(promo.expires_at).getTime() >= nowTime) {
+          return promo;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Check Local Dynamic Store
+    const local = this._readLocalPromos();
+    const match = local.find(p => p.code === clean && p.is_active);
+    if (match) {
+      if (!match.expires_at || new Date(match.expires_at).getTime() >= nowTime) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  async createPromo({ code, description, discountPercent, discountAmount = 0, durationHours = 24, maxUses = 1 }) {
+    if (!code) return { success: false, error: 'Promo code is required.' };
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + durationHours * 3600 * 1000).toISOString();
+    const expiresAt = new Date(now.getTime() + (Number(durationHours) || 24) * 3600 * 1000).toISOString();
     const cleanCode = code.trim().toUpperCase();
 
     const payload = {
+      id: 'promo_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       code: cleanCode,
-      description: description || `${discountPercent}% Discount Campaign`,
-      discount_percent: Number(discountPercent) || 10,
+      description: description || `${discountPercent || 10}% Discount Special`,
+      discount_percent: Number(discountPercent) || 0,
+      discount_amount: Number(discountAmount) || 0,
       min_amount_kes: 10,
       max_uses_per_phone: Number(maxUses) || 1,
       starts_at: now.toISOString(),
       expires_at: expiresAt,
-      is_active: true
+      is_active: true,
+      created_at: now.toISOString()
     };
 
-    const { data, error } = await this.supabase
-      .from('campusnet_promos')
-      .upsert(payload, { onConflict: 'code' })
-      .select()
-      .single();
+    // Save to local dynamic store immediately (Zero-fail)
+    const local = this._readLocalPromos();
+    const existingIdx = local.findIndex(p => p.code === cleanCode);
+    if (existingIdx !== -1) {
+      local[existingIdx] = { ...local[existingIdx], ...payload, id: local[existingIdx].id };
+    } else {
+      local.unshift(payload);
+    }
+    this._writeLocalPromos(local);
 
-    if (error) return { success: false, error: error.message };
-    return { success: true, promo: data };
+    // Also attempt to upsert into Supabase
+    try {
+      const { data, error } = await this.supabase
+        .from('campusnet_promos')
+        .upsert(payload, { onConflict: 'code' })
+        .select()
+        .maybeSingle();
+      if (!error && data) {
+        return { success: true, promo: data };
+      }
+    } catch (err) {
+      console.warn('[PromoService] Supabase promo sync notice:', err.message);
+    }
+
+    return { success: true, promo: payload };
   }
 
   async listAllPromos() {
+    let supaPromos = [];
     try {
       const { data, error } = await this.supabase
         .from('campusnet_promos')
         .select('*')
         .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        supaPromos = data;
+      }
     } catch (e) {}
 
-    return [
-      {
-        id: 'promo_default_1',
-        code: 'FRESHER2026',
-        description: '25% Launch Discount on all passes',
-        discount_percent: 25,
-        min_amount_kes: 10,
-        is_active: true,
-        expires_at: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
-        created_at: new Date().toISOString()
-      }
-    ];
+    const localPromos = this._readLocalPromos();
+    const map = new Map();
+    localPromos.forEach(p => map.set(p.code, p));
+    supaPromos.forEach(p => map.set(p.code, p));
+
+    return Array.from(map.values());
   }
 
-  async togglePromo(promoId, isActive) {
+  async togglePromo(promoIdOrCode, isActive) {
+    const local = this._readLocalPromos();
+    const item = local.find(p => p.id === promoIdOrCode || p.code === promoIdOrCode);
+    if (item) {
+      item.is_active = !!isActive;
+      this._writeLocalPromos(local);
+    }
+
     try {
-      const { data, error } = await this.supabase
+      await this.supabase
         .from('campusnet_promos')
-        .update({ is_active: isActive })
-        .eq('id', promoId)
-        .select();
-
-      if (!error) return { success: true, data };
+        .update({ is_active: !!isActive })
+        .or(`id.eq.${promoIdOrCode},code.eq.${promoIdOrCode}`);
     } catch (err) {}
-    return { success: true, updated: true };
+
+    return { success: true, updated: true, is_active: !!isActive };
   }
 
-  async deletePromo(promoId) {
+  async deletePromo(promoIdOrCode) {
+    let local = this._readLocalPromos();
+    local = local.filter(p => p.id !== promoIdOrCode && p.code !== promoIdOrCode);
+    this._writeLocalPromos(local);
+
     try {
-      const { error } = await this.supabase
+      await this.supabase
         .from('campusnet_promos')
         .delete()
-        .eq('id', promoId);
-
-      if (!error) return { success: true };
+        .or(`id.eq.${promoIdOrCode},code.eq.${promoIdOrCode}`);
     } catch (err) {}
+
     return { success: true, deleted: true };
   }
 }
 
-
-// ─── 4. Session Recovery Service with Exact Countdown & Loyalty ────────────────
 export class SessionRecoveryService {
   constructor(supabaseClient, loyaltyService = null) {
     this.supabase = supabaseClient;

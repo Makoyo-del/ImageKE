@@ -111,21 +111,8 @@ router.post('/promo/verify', async (req, res) => {
   const baseAmount = pkg ? pkg.amount : 40;
 
   try {
-    // 1. Query Supabase for active promo rule
-    const { data: promo, error } = await supabase
-      .from('campusnet_promos')
-      .select('*')
-      .eq('code', cleanCode)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    // Fallback if table not queried or offline
-    let promoRule = promo;
-    if (!promoRule && cleanCode === 'FRESHER2026') {
-      promoRule = { code: 'FRESHER2026', discount_percent: 25, discount_amount: 0, min_amount_kes: 10, max_uses_per_phone: 1, is_active: true };
-    } else if (!promoRule && cleanCode === 'EXAMNIGHT') {
-      promoRule = { code: 'EXAMNIGHT', discount_percent: 0, discount_amount: 15, min_amount_kes: 20, max_uses_per_phone: 1, is_active: true };
-    }
+    // 1. Dynamic lookup from PromoService (Zero hardcoding)
+    const promoRule = await supportPromos.getPromoByCode(cleanCode);
 
     if (!promoRule) {
       return res.json({ valid: false, error: 'Invalid or expired promo code.' });
@@ -185,12 +172,6 @@ router.post('/promo/verify', async (req, res) => {
     });
   } catch (err) {
     console.error('[CampusNet Promo Verify Error]', err);
-    // Graceful fallback so checkout never breaks
-    if (cleanCode === 'FRESHER2026') {
-      const discount = Math.round(baseAmount * 0.25);
-      const finalAmt = Math.max(10, baseAmount - discount);
-      return res.json({ valid: true, code: 'FRESHER2026', baseAmount, discountAmount: baseAmount - finalAmt, finalAmount: finalAmt, message: 'FRESHER2026 25% discount applied!' });
-    }
     return res.json({ valid: false, error: 'Promo verification temporarily unavailable.' });
   }
 });
@@ -265,12 +246,7 @@ router.post('/pay/stk', async (req, res) => {
           appliedPromoCode = cleanPromo;
         }
       }
-    } catch (e) {
-      if (cleanPromo === 'FRESHER2026') {
-        finalAmount = Math.max(10, Math.round(pkg.amount * 0.75));
-        appliedPromoCode = 'FRESHER2026';
-      }
-    }
+    } catch (e) { /* Promo error handled */ }
   }
 
   const clientMac = (mac_address && mac_address !== '$(mac)') ? mac_address : '00:00:00:00:00:00';
