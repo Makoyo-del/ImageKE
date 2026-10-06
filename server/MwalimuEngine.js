@@ -110,9 +110,6 @@ export class MwalimuPlanManager {
 
 // ─── 1. UNIVERSAL MULTI-DISCIPLINARY CONTENT FORMATTER ────────────────────────
 export class MwalimuContentFormatter {
-  /**
-   * Sanitizes and formats raw AI text into crisp, clean WhatsApp markdown and Unicode.
-   */
   static cleanForWhatsApp(text) {
     if (!text || typeof text !== 'string') return '';
 
@@ -121,7 +118,7 @@ export class MwalimuContentFormatter {
     // 1. Unescape escaped characters
     out = out.replace(/\\n/g, '\n').replace(/\\t/g, '  ');
 
-    // 2. Protect code fences so programming code (Python, Java, C++, JS, SQL) is not altered
+    // 2. Protect code fences so programming code (Python, Java, C++, JS, SQL) is preserved
     const codeBlocks = [];
     out = out.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
       const idx = codeBlocks.length;
@@ -266,14 +263,10 @@ export class MwalimuContentFormatter {
       s = s.replace(regex, repl);
     });
 
-    // Display LaTeX blocks \[ ... \] or $$ ... $$
     s = s.replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => `\n\n    ${eq.trim()}\n\n`);
     s = s.replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => `\n\n    ${eq.trim()}\n\n`);
-
-    // Inline LaTeX \( ... \)
     s = s.replace(/\\\((.*?)\\\)/g, '$1');
 
-    // Strip mathematical single dollar signs $...$ if containing math symbols
     s = s.replace(/\$([^$\n]+)\$/g, (_, content) => {
       if (/^\d+(\.\d+)?$/.test(content.trim())) return `$${content}`;
       return content;
@@ -580,9 +573,6 @@ WHATSAPP FORMATTING RULES:
 • Always vertical bullet points (•), never inline (1)... (2)...`;
   }
 
-  /**
-   * Generates a high-precision Socratic study answer with multi-model fallback.
-   */
   async answerStudentQuery({ studentPhone, queryText, mediaBase64 = null, mediaMimeType = 'image/jpeg', recentContext = '' }) {
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY is not configured');
@@ -611,8 +601,8 @@ WHATSAPP FORMATTING RULES:
       },
       contents: [{ role: 'user', parts }],
       generationConfig: {
-        temperature: 0.2, // Low temperature for high precision & zero hallucinations
-        maxOutputTokens: 600, // Enforces high-yield brevity
+        temperature: 0.2,
+        maxOutputTokens: 600,
         topP: 0.8
       },
       safetySettings: [
@@ -759,6 +749,7 @@ export class MwalimuDispatcher {
   }
 
   async processInboundMessage({ messageId, fromPhone, textBody, media = null, interactiveButtonId = null }) {
+    // 1. Deduplication
     if (messageId && this.processedMsgIds.has(messageId)) {
       console.log(`[MwalimuDispatcher] Discarding duplicate Meta retry: ${messageId}`);
       return;
@@ -771,41 +762,21 @@ export class MwalimuDispatcher {
     const rawText = (textBody || '').trim();
     const lowerText = rawText.toLowerCase();
 
+    // 2. Typing Indicator
     if (messageId) {
       sendTypingIndicator(messageId).catch(() => {});
     }
 
+    // 3. Interactive Buttons
     const buttonId = interactiveButtonId || '';
     if (buttonId.startsWith('BUY_PLAN_') || buttonId.startsWith('PAY_SELF_') || buttonId.startsWith('PAY_OTHER_') || buttonId.startsWith('MENU_') || buttonId.startsWith('NEXT_') || buttonId.startsWith('QUIZ_')) {
       return await this._handleButtonAction(cleanPhone, buttonId);
     }
 
-    if (this._isHelpCommand(lowerText)) {
-      return await this._handleHelpCommand(cleanPhone);
-    }
-    if (this._isStatusCommand(lowerText)) {
-      return await this._handleStatusQuery(cleanPhone);
-    }
-    if (this._isPricingCommand(lowerText)) {
-      return await this._sendBillingPaywallPrompt(cleanPhone);
-    }
-    if (this._isResetCommand(lowerText)) {
-      return await this._handleResetCommand(cleanPhone);
-    }
-    if (this._isRestoreCommand(lowerText)) {
-      const parts = rawText.split(/\s+/);
-      const possibleReceipt = parts.length > 1 ? parts[1].trim() : null;
-      return await this._handleRestorePass(cleanPhone, possibleReceipt);
-    }
-
-    const mpesaReceiptMatch = rawText.match(/^[A-Z0-9]{10}$/);
-    if (mpesaReceiptMatch && !this._isCommonWord(mpesaReceiptMatch[0])) {
-      return await this._handleRestorePass(cleanPhone, mpesaReceiptMatch[0]);
-    }
-
+    // 4. Pending Dual-Phone Checkout (CHECKED FIRST BEFORE RECEIPT / GENERAL COMMANDS)
     const pending = this.pendingCheckout.get(cleanPhone);
     if (pending && Date.now() - pending.timestamp < 15 * 60 * 1000) {
-      if (lowerText === 'cancel') {
+      if (lowerText === 'cancel' || lowerText === '/cancel') {
         this.pendingCheckout.delete(cleanPhone);
         await this.sendWhatsApp({
           to: cleanPhone,
@@ -817,17 +788,10 @@ export class MwalimuDispatcher {
         return;
       }
 
-      const digitsOnly = rawText.replace(/\D/g, '');
-      let payerClean = null;
-      if (digitsOnly.length === 10 && (digitsOnly.startsWith('07') || digitsOnly.startsWith('01'))) {
-        payerClean = '254' + digitsOnly.slice(1);
-      } else if (digitsOnly.length === 9 && (digitsOnly.startsWith('7') || digitsOnly.startsWith('1'))) {
-        payerClean = '254' + digitsOnly;
-      } else if (digitsOnly.length === 12 && digitsOnly.startsWith('254')) {
-        payerClean = digitsOnly;
-      }
-
-      if (payerClean) {
+      // Robust Kenyan phone extractor (handles 07XXXXXXXX, 01XXXXXXXX, 254XXXXXXXXX, +254XXXXXXXXX, or formatted spaces)
+      const phoneMatch = rawText.match(/(?:254|0|\+254)?([17]\d{8})/);
+      if (phoneMatch) {
+        const payerClean = '254' + phoneMatch[1];
         this.pendingCheckout.delete(cleanPhone);
         const plan = MwalimuPlanManager.getPlan(pending.planId);
         return await this._triggerStkPush(cleanPhone, payerClean, plan.id);
@@ -846,17 +810,45 @@ export class MwalimuDispatcher {
       }
     }
 
+    // 5. Short Commands Engine
+    if (this._isHelpCommand(lowerText)) {
+      return await this._handleHelpCommand(cleanPhone);
+    }
+    if (this._isStatusCommand(lowerText)) {
+      return await this._handleStatusQuery(cleanPhone);
+    }
+    if (this._isPricingCommand(lowerText)) {
+      return await this._sendBillingPaywallPrompt(cleanPhone);
+    }
+    if (this._isResetCommand(lowerText)) {
+      return await this._handleResetCommand(cleanPhone);
+    }
+    if (this._isRestoreCommand(lowerText)) {
+      const parts = rawText.split(/\s+/);
+      const possibleReceipt = parts.length > 1 ? parts[1].trim() : null;
+      return await this._handleRestorePass(cleanPhone, possibleReceipt);
+    }
+
+    // 6. Direct M-Pesa Receipt Detection (Safaricom receipts are 10 alphanumeric chars starting with a letter)
+    const mpesaReceiptMatch = rawText.match(/^[A-Z][A-Z0-9]{9}$/);
+    if (mpesaReceiptMatch && !this._isCommonWord(mpesaReceiptMatch[0])) {
+      return await this._handleRestorePass(cleanPhone, mpesaReceiptMatch[0]);
+    }
+
+    // 7. Check Student Eligibility (Free 3 queries/day or Active Paid Pass)
     const eligibility = await this.quota.checkEligibility(cleanPhone);
     if (!eligibility.allowed) {
       return await this._sendBillingPaywallPrompt(cleanPhone);
     }
 
+    // 8. Prevent duplicate in-flight processing for the same user
     if (this.inFlightUsers.has(cleanPhone)) {
       console.log(`[MwalimuDispatcher] Debouncing overlapping message from ${cleanPhone}`);
       return;
     }
     this.inFlightUsers.add(cleanPhone);
 
+    // 9. Handle Media Attachments & 10MB Limit
     let mediaPayload = null;
     if (media) {
       if (media.fileSize > MAX_UPLOAD_SIZE_BYTES) {
@@ -915,6 +907,7 @@ export class MwalimuDispatcher {
       mediaPayload = downloaded;
     }
 
+    // 10. Generate Socratic AI Response
     try {
       const user = await this.quota.getStudentState(cleanPhone);
       const queryPrompt = rawText || (mediaPayload?.mimeType?.startsWith('audio/')
