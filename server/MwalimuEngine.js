@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MWALIMU AI: AUTONOMOUS MULTI-DISCIPLINARY SOCRATIC STUDY TUTOR
+ * MWALIMU AI: HIGH-PRECISION SOCRATIC STUDY TUTOR ENGINE
  * ============================================================================
  * High-concurrency, zero-storage, production-grade WhatsApp AI tutor for university
  * and college students across ALL disciplines: Mathematics, Statistics, Engineering,
@@ -27,10 +27,6 @@ export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 
 // ─── 0. DYNAMIC STUDY PLANS & BILLING CONFIGURATION ───────────────────────────
 export class MwalimuPlanManager {
-  /**
-   * Retrieves active study pass configurations.
-   * Button titles are strictly capped at 20 characters (Meta API requirement).
-   */
   static getPlans() {
     const dailyPrice = Number(process.env.MWALIMU_PRICE_DAILY) || 20;
     const weekendPrice = Number(process.env.MWALIMU_PRICE_WEEKEND) || 50;
@@ -116,7 +112,6 @@ export class MwalimuPlanManager {
 export class MwalimuContentFormatter {
   /**
    * Sanitizes and formats raw AI text into crisp, clean WhatsApp markdown and Unicode.
-   * Handles Mathematics, Engineering, Code, Medicine, Law, Economics, and Social Sciences.
    */
   static cleanForWhatsApp(text) {
     if (!text || typeof text !== 'string') return '';
@@ -141,9 +136,10 @@ export class MwalimuContentFormatter {
       return `__MWALIMU_INLINE_CODE_${idx}__`;
     });
 
-    // 3. Remove AI roleplay / stage directions (e.g. *Leans back...*, *Smiles and pulls out a pen*)
-    out = out.replace(/^\s*\*[A-Z][^*]{5,120}\*\s*$/gm, '');
-    out = out.replace(/^\s*\*[A-Z][^*]{5,120}\*\n+/g, '');
+    // 3. Remove AI greetings & roleplay stage directions
+    out = out.replace(/^(Jambo|Habari|Hello|Hi)!\s*(Let'?s\s+[^\n]+)?\n+/gi, '');
+    out = out.replace(/^\s*\*[A-Z][^*]{3,120}\*\s*$/gm, '');
+    out = out.replace(/^\s*\*[A-Z][^*]{3,120}\*\n+/g, '');
 
     // 4. Unicode Math & Scientific Notation Replacement
     out = this._formatMathAndSymbols(out);
@@ -279,7 +275,6 @@ export class MwalimuContentFormatter {
 
     // Strip mathematical single dollar signs $...$ if containing math symbols
     s = s.replace(/\$([^$\n]+)\$/g, (_, content) => {
-      // Don't strip currency like $50 or $100
       if (/^\d+(\.\d+)?$/.test(content.trim())) return `$${content}`;
       return content;
     });
@@ -330,10 +325,6 @@ export class MwalimuQuotaService {
     return new Date(Date.now() + this.eatOffsetMs).toISOString().slice(0, 10);
   }
 
-  /**
-   * Retrieves or registers a student account.
-   * Resets daily quota based on Africa/Nairobi local midnight.
-   */
   async getStudentState(phone) {
     const cleanPhone = String(phone || '').replace(/\D/g, '');
     const todayEat = this._getEatDateString();
@@ -361,7 +352,6 @@ export class MwalimuQuotaService {
         return user;
       }
 
-      // New Student Registration (Free tier by default)
       const newUser = {
         phone: cleanPhone,
         tier: 'free',
@@ -385,9 +375,6 @@ export class MwalimuQuotaService {
     }
   }
 
-  /**
-   * Evaluates if student is eligible to ask a question.
-   */
   async checkEligibility(phone) {
     const user = await this.getStudentState(phone);
     const now = new Date();
@@ -422,9 +409,6 @@ export class MwalimuQuotaService {
     };
   }
 
-  /**
-   * Records usage and updates ephemeral rolling memory for Socratic follow-ups.
-   */
   async recordUsage(phone, newContextSnippet = '') {
     const cleanPhone = String(phone || '').replace(/\D/g, '');
     const todayEat = this._getEatDateString();
@@ -465,11 +449,6 @@ export class MwalimuQuotaService {
     }
   }
 
-  /**
-   * Activates a paid study pass.
-   * Supports Pass Stacking: if student still has active hours, the new pass adds to remaining time.
-   * Idempotent: checks receipt to prevent double counting on webhook retries.
-   */
   async activateSubscription(phone, planType, mpesaReceipt, amount, payerPhone = null) {
     const cleanPhone = String(phone || '').replace(/\D/g, '');
     const cleanReceipt = String(mpesaReceipt || '').trim().toUpperCase();
@@ -481,7 +460,6 @@ export class MwalimuQuotaService {
     const effectiveAmount = Number(amount) || plan.priceKes;
 
     try {
-      // 1. Idempotency check: Has this receipt reference already been processed?
       const { data: existingTx } = await this.supabase
         .from('mwalimu_transactions')
         .select('*')
@@ -499,14 +477,12 @@ export class MwalimuQuotaService {
         };
       }
 
-      // 2. Fetch current user state to calculate stacked expiry
       const currentUser = await this.getStudentState(cleanPhone);
       const now = Date.now();
       const currentValidUntilMs = currentUser.valid_until ? new Date(currentUser.valid_until).getTime() : 0;
       const baseTimeMs = currentValidUntilMs > now ? currentValidUntilMs : now;
       const newValidUntilIso = new Date(baseTimeMs + durationMs).toISOString();
 
-      // 3. Log transaction with graceful fallback if payer_phone column is not present
       const txPayload = {
         phone: cleanPhone,
         mpesa_receipt: cleanReceipt,
@@ -519,13 +495,11 @@ export class MwalimuQuotaService {
         .insert({ ...txPayload, payer_phone: cleanPayer });
 
       if (txInsertRes.error && txInsertRes.error.code === 'PGRST204') {
-        // Fallback without payer_phone column
         txInsertRes = await this.supabase
           .from('mwalimu_transactions')
           .insert(txPayload);
       }
 
-      // 4. Update student state
       await this.supabase
         .from('mwalimu_users')
         .upsert({
@@ -549,12 +523,11 @@ export class MwalimuQuotaService {
   }
 }
 
-// ─── 3. MULTI-MODEL SOCRATIC AI PEDAGOGY CLIENT ───────────────────────────────
+// ─── 3. HIGH-PRECISION MULTI-MODEL SOCRATIC AI PEDAGOGY CLIENT ────────────────
 export class MwalimuAIClient {
   constructor(apiKey) {
     this.apiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
 
-    // Parse models from environment or use proven live cascade
     const envModels = (process.env.MWALIMU_AI_MODELS || '').split(',').map(m => m.trim()).filter(Boolean);
     this.candidateModels = envModels.length > 0 ? envModels : [
       'gemini-flash-lite-latest',
@@ -563,7 +536,6 @@ export class MwalimuAIClient {
       'gemini-flash-latest'
     ];
 
-    // Circuit breaker state: modelName -> disabledUntilTimestamp
     this.circuitBreakers = new Map();
   }
 
@@ -582,54 +554,34 @@ export class MwalimuAIClient {
   }
 
   _buildSystemPrompt() {
-    return `You are "Mwalimu AI", an exceptional, supportive university and college tutor sitting right next to the student with a pen and a notebook.
+    return `You are "Mwalimu AI", a brilliant, precise university exam tutor.
 
-ACADEMIC SCOPE & DISCIPLINES:
-You teach and guide students across ALL university & college fields:
-1. MATHEMATICS & STATISTICS (Calculus, Linear Algebra, Probability, ODE/PDE, Discrete Math, Proofs).
-2. COMPUTER SCIENCE & SOFTWARE (Algorithms, Data Structures, Python, Java, C/C++, JavaScript/TypeScript, SQL, System Design, Operating Systems, Networking).
-3. ENGINEERING (Electrical, Mechanical, Civil, Mechatronics, Circuit Analysis, Thermodynamics, Mechanics).
-4. MEDICINE, NURSING & PHARMACY (Anatomy, Physiology, Pathology, Pharmacology, Clinical reasoning principles, Medical ethics).
-5. LAW (Kenyan Legal System, Constitution of Kenya 2010, Common Law, Law of Contract, Torts, Criminal Law, Evidence, Civil Procedure using the IRAC method).
-6. BUSINESS, FINANCE & ECONOMICS (Financial Accounting, Managerial Finance, Micro/Macroeconomics, Taxation, Auditing, Supply Chain).
-7. NATURAL SCIENCES (Physics, Chemistry, Biology, Biochemistry, Genetics).
-8. HUMANITIES & SOCIAL SCIENCES (Communication, Philosophy, Sociology, History, Research Methods).
+CORE PEDAGOGICAL RULES (STRICT):
+1. DIRECT ANSWER AT LINE 1:
+   - Start immediately with the direct, authoritative answer or core conclusion in the very first sentence.
+   - NO pleasantries, NO greetings (no "Jambo", "Habari", "Hello"), NO roleplay ("Let us open our notebook", "Let us pull our chair closer").
+2. HIGH-YIELD & CONCISE:
+   - Keep answers between 120 and 180 words. Every single sentence must teach an exam-relevant point.
+   - Use clean, vertical bullet points (• Point) for clarity.
+3. SUBJECT-SPECIFIC ACCURACY:
+   - Medicine & Anatomy: State the primary life/neurological threat first (e.g. Spinal Cord compression/ESCC for vertebral lesions, major vessels, airway).
+   - Law: State the core legal holding/rule first, then IRAC points with relevant Kenyan statutes/precedents.
+   - Computer Science: State time/space complexity and algorithm/data structure directly with clean code blocks.
+   - Mathematics & Engineering: State the final formula or calculated value first, followed by clear, indented Unicode steps (Step 1, Step 2).
+4. EXAM TRAP / HIGH-YIELD TIP:
+   - Include 1 brief bullet: "*Exam Trap:* [common mistake students make on exams]".
+5. PUNCHY CHECK QUESTION:
+   - End with 1 short, single-sentence check question to test the student's conceptual grasp.
 
-CORE SOCRATIC PEDAGOGY:
-1. START WITH INTUITION & PURPOSE:
-   - Before technical formulas or legal jargon, explain in plain, relatable language:
-     • What problem does this concept solve?
-     • Why does it matter in real life and in exams?
-     • What is the big picture idea?
-2. TEACH HOW TO THINK (NO SKIPPED STEPS):
-   - Walk the student through the reasoning step-by-step.
-   - Explain WHY each intermediate step is taken ("Because condition X holds...", "Therefore, we need...").
-   - For calculations/proofs: present clean, indented Unicode steps (e.g., Step 1, Step 2).
-   - For code: provide clean, well-commented code snippets with time/space complexity notes.
-   - For law: structure clearly with Issue -> Rule/Statute -> Application -> Conclusion (IRAC).
-   - For medicine/nursing: explain the physiological mechanism and remind to verify with local clinical guidelines.
-3. EXAM PATTERNS & TRAPS:
-   - Highlight: "Where students usually trip up on exams is..."
-   - Point out key patterns so the student recognizes similar problems instantly.
-4. TONE & PACING:
-   - Friendly, encouraging, brilliant senior peer who wants the student to excel.
-   - Academically rigorous, zero textbook fluff.
-   - Bite-sized responses (under 300 words).
-   - Conclude naturally with ONE punchy conceptual check question or a natural prompt for the next step.
-   - Match the student's language naturally (English, Kiswahili, or Sheng).
-
-WHATSAPP FORMATTING RULES (STRICT):
-• Use single asterisks for *bold* (never double **bold**).
-• Use clean Unicode symbols for math (e.g. ², ³, √, ∫, Σ, μ, σ, α, β, λ, ≤, ≥, ≠, ±, →).
-• NEVER output raw LaTeX (like \\frac, \\begin, \\text, \\sum).
-• Never write inline lists like (1)... (2)... (3)... Always use vertical bullet points:
-  • Point 1
-  • Point 2
-• Never output roleplay stage directions (e.g. *leans back*, *smiles*).`;
+WHATSAPP FORMATTING RULES:
+• Use single *bold* (never **bold**).
+• Use clean Unicode for math/science (², ³, √, ∫, Σ, μ, σ, α, β, λ, ≤, ≥, ≠, ±, →).
+• NEVER output raw LaTeX (like \\frac, \\text).
+• Always vertical bullet points (•), never inline (1)... (2)...`;
   }
 
   /**
-   * Generates a Socratic study answer with multi-model fallback.
+   * Generates a high-precision Socratic study answer with multi-model fallback.
    */
   async answerStudentQuery({ studentPhone, queryText, mediaBase64 = null, mediaMimeType = 'image/jpeg', recentContext = '' }) {
     if (!this.apiKey) {
@@ -659,9 +611,9 @@ WHATSAPP FORMATTING RULES (STRICT):
       },
       contents: [{ role: 'user', parts }],
       generationConfig: {
-        temperature: 0.35,
-        maxOutputTokens: 950,
-        topP: 0.85
+        temperature: 0.2, // Low temperature for high precision & zero hallucinations
+        maxOutputTokens: 600, // Enforces high-yield brevity
+        topP: 0.8
       },
       safetySettings: [
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -708,9 +660,9 @@ WHATSAPP FORMATTING RULES (STRICT):
         console.warn(`[MwalimuAIClient] Model ${model} failed (${httpStatus} in ${durationMs}ms): ${errMsg}`);
 
         if (httpStatus === 404) {
-          this._tripCircuitBreaker(model, 1800); // 30 min for decommissioned models
+          this._tripCircuitBreaker(model, 1800);
         } else if (httpStatus === 503 || httpStatus === 429) {
-          this._tripCircuitBreaker(model, 60); // 1 min for temporary capacity spikes
+          this._tripCircuitBreaker(model, 60);
         }
 
         lastError = new Error(errMsg);
@@ -737,14 +689,10 @@ export class MwalimuDispatcher {
     this.paystackKey = (paystackSecretKey || process.env.PAYSTACK_SECRET_KEY || '').trim();
     this.sendWhatsApp = sendWhatsAppFunc || sendWhatsAppMessage;
 
-    // Deduplication Set: remembers message IDs for 90s to kill Meta retry storms
     this.processedMsgIds = new Map();
-    // In-flight user lock to prevent concurrent double-answering
     this.inFlightUsers = new Set();
-    // Pending dual-phone checkout store: Student Phone -> { planId, amountKes, timestamp }
     this.pendingCheckout = new Map();
 
-    // Clean up stale cache periodically
     setInterval(() => {
       const now = Date.now();
       for (const [id, time] of this.processedMsgIds.entries()) {
@@ -756,10 +704,6 @@ export class MwalimuDispatcher {
     }, 60000);
   }
 
-  /**
-   * Securely downloads media binary from Meta Cloud API.
-   * Enforces 10MB upload limit and supported MIME types.
-   */
   async _downloadMetaMedia(media) {
     if (!media || !media.id) return null;
     const token = (process.env.WHATSAPP_API_TOKEN || '').trim();
@@ -769,7 +713,6 @@ export class MwalimuDispatcher {
     }
 
     try {
-      // Step 1: Query Meta Graph API for temporary binary URL (5-minute expiry)
       const metaUrlRes = await fetch(`https://graph.facebook.com/${WA_GRAPH_VERSION}/${media.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -784,7 +727,6 @@ export class MwalimuDispatcher {
         return { error: 'FILE_TOO_LARGE', fileSize: metaData.file_size };
       }
 
-      // Step 2: Download raw binary stream with timeout
       const controller = new AbortController();
       const downloadTimer = setTimeout(() => controller.abort(), 18000);
 
@@ -816,11 +758,7 @@ export class MwalimuDispatcher {
     }
   }
 
-  /**
-   * Main inbound message processor.
-   */
   async processInboundMessage({ messageId, fromPhone, textBody, media = null, interactiveButtonId = null }) {
-    // 1. Deduplication (Kills Meta retry storms immediately)
     if (messageId && this.processedMsgIds.has(messageId)) {
       console.log(`[MwalimuDispatcher] Discarding duplicate Meta retry: ${messageId}`);
       return;
@@ -833,18 +771,15 @@ export class MwalimuDispatcher {
     const rawText = (textBody || '').trim();
     const lowerText = rawText.toLowerCase();
 
-    // 2. Fire-and-forget typing indicator & read receipt to immediately engage student
     if (messageId) {
       sendTypingIndicator(messageId).catch(() => {});
     }
 
-    // 3. Handle Interactive Button Clicks
     const buttonId = interactiveButtonId || '';
     if (buttonId.startsWith('BUY_PLAN_') || buttonId.startsWith('PAY_SELF_') || buttonId.startsWith('PAY_OTHER_') || buttonId.startsWith('MENU_') || buttonId.startsWith('NEXT_') || buttonId.startsWith('QUIZ_')) {
       return await this._handleButtonAction(cleanPhone, buttonId);
     }
 
-    // 4. Short Commands Engine (Clean, Immediate, Multi-Course)
     if (this._isHelpCommand(lowerText)) {
       return await this._handleHelpCommand(cleanPhone);
     }
@@ -863,13 +798,11 @@ export class MwalimuDispatcher {
       return await this._handleRestorePass(cleanPhone, possibleReceipt);
     }
 
-    // 5. Direct M-Pesa Receipt Detection (e.g. "SBA7XYZ123")
     const mpesaReceiptMatch = rawText.match(/^[A-Z0-9]{10}$/);
     if (mpesaReceiptMatch && !this._isCommonWord(mpesaReceiptMatch[0])) {
       return await this._handleRestorePass(cleanPhone, mpesaReceiptMatch[0]);
     }
 
-    // 6. Handle Pending Dual-Phone Checkout (Student submitting Payer Phone Number)
     const pending = this.pendingCheckout.get(cleanPhone);
     if (pending && Date.now() - pending.timestamp < 15 * 60 * 1000) {
       if (lowerText === 'cancel') {
@@ -913,20 +846,17 @@ export class MwalimuDispatcher {
       }
     }
 
-    // 7. Check Student Eligibility (Free 3 queries/day or Active Paid Pass)
     const eligibility = await this.quota.checkEligibility(cleanPhone);
     if (!eligibility.allowed) {
       return await this._sendBillingPaywallPrompt(cleanPhone);
     }
 
-    // 8. Prevent duplicate in-flight processing for the same user
     if (this.inFlightUsers.has(cleanPhone)) {
       console.log(`[MwalimuDispatcher] Debouncing overlapping message from ${cleanPhone}`);
       return;
     }
     this.inFlightUsers.add(cleanPhone);
 
-    // 9. Handle Media Attachments & 10MB Limit
     let mediaPayload = null;
     if (media) {
       if (media.fileSize > MAX_UPLOAD_SIZE_BYTES) {
@@ -947,7 +877,6 @@ export class MwalimuDispatcher {
         return;
       }
 
-      // Check supported MIME types
       const mime = (media.mimeType || '').toLowerCase();
       const isSupported = mime.startsWith('image/') ||
                           mime === 'application/pdf' ||
@@ -963,7 +892,7 @@ export class MwalimuDispatcher {
             text: {
               preview_url: false,
               body: `📄 *Attachment Notice*\n\n` +
-                    `Mwalimu AI currently processes *Images*, *PDF study documents*, and *Voice notes*.\n\n` +
+                    `Mwalimu AI processes *Images*, *PDF study documents*, and *Voice notes*.\n\n` +
                     `💡 If you have a Word/PowerPoint document, please *Save as PDF* or take a *screenshot* of the question and send it here!`
             }
           }
@@ -986,7 +915,6 @@ export class MwalimuDispatcher {
       mediaPayload = downloaded;
     }
 
-    // 10. Generate Socratic AI Response
     try {
       const user = await this.quota.getStudentState(cleanPhone);
       const queryPrompt = rawText || (mediaPayload?.mimeType?.startsWith('audio/')
@@ -1001,13 +929,11 @@ export class MwalimuDispatcher {
         recentContext: user.recent_context || ''
       });
 
-      // Record usage only on successful completion
       await this.quota.recordUsage(
         cleanPhone,
         `Student: ${queryPrompt.substring(0, 180)} | Tutor: ${answer.substring(0, 250)}`
       );
 
-      // Send structured WhatsApp reply
       await this._sendInteractiveAnswer(cleanPhone, answer, eligibility);
     } catch (err) {
       console.error('[MwalimuDispatcher] AI Generation Exception:', err.message);
@@ -1017,7 +943,7 @@ export class MwalimuDispatcher {
           type: 'text',
           text: {
             preview_url: false,
-            body: '⚠️ *Mwalimu AI Server Notice:* Our AI compute nodes are currently handling high traffic. Your question was *NOT* deducted from your daily quota. Please re-send your question in 1 minute.'
+            body: '⚠️ *Mwalimu AI Notice:* Our AI compute nodes are currently handling high traffic. Your question was *NOT* deducted from your daily quota. Please re-send your question in 1 minute.'
           }
         }
       });
@@ -1026,10 +952,6 @@ export class MwalimuDispatcher {
     }
   }
 
-  /**
-   * Dispatches the answer along with contextual action buttons.
-   * Uses two-message chunking if total text exceeds Meta's 1024-character interactive limit.
-   */
   async _sendInteractiveAnswer(to, answerText, eligibility) {
     const quotaNotice = eligibility.isPaid
       ? '⚡ *VIP Unlimited Pass Active*'
@@ -1038,7 +960,6 @@ export class MwalimuDispatcher {
     const fullMessage = `${answerText}\n\n---\n${quotaNotice}`;
 
     if (fullMessage.length > 900) {
-      // 1. Send full answer as standard text (WhatsApp supports up to 4096 chars)
       await this.sendWhatsApp({
         to,
         responseData: {
@@ -1047,7 +968,6 @@ export class MwalimuDispatcher {
         }
       });
 
-      // 2. Follow up with quick action buttons
       const followUpPayload = {
         type: 'interactive',
         interactive: {
@@ -1065,7 +985,6 @@ export class MwalimuDispatcher {
 
       await this.sendWhatsApp({ to, responseData: followUpPayload });
     } else {
-      // Single message for short responses (< 900 characters)
       const interactivePayload = {
         type: 'interactive',
         interactive: {
@@ -1085,7 +1004,6 @@ export class MwalimuDispatcher {
     }
   }
 
-  // ─── COMMAND HELPERS & ROUTING ──────────────────────────────────────────────
   _isHelpCommand(text) {
     return ['help', '/help', 'menu', '/menu', 'start', '/start', 'hi', 'hello', 'habari', 'mambo', 'niaje', 'sasa', 'jambo', 'hey', '?'].includes(text);
   }
@@ -1313,10 +1231,6 @@ export class MwalimuDispatcher {
     });
   }
 
-  /**
-   * Reconnects or Restores a pass.
-   * Queries Paystack transactions linked to the student phone number.
-   */
   async _handleRestorePass(phone, receiptCode = null) {
     const cleanPhone = phone.replace(/\D/g, '');
     const formattedPhone = cleanPhone.startsWith('254') ? cleanPhone : '254' + cleanPhone.replace(/^0/, '');
@@ -1330,7 +1244,6 @@ export class MwalimuDispatcher {
     });
 
     try {
-      // 1. Direct Paystack Reference verification if code is supplied
       if (receiptCode && this.paystackKey && !this.paystackKey.startsWith('sk_test_placeholder')) {
         const cleanCode = receiptCode.trim().toUpperCase();
         const pVerifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(cleanCode)}`, {
@@ -1364,7 +1277,6 @@ export class MwalimuDispatcher {
         }
       }
 
-      // 2. Query Paystack by student email customer identity
       if (this.paystackKey && !this.paystackKey.startsWith('sk_test_placeholder')) {
         const studentEmail = `student_${formattedPhone}@mwalimu.duncanmakoyo.com`;
         const custRes = await fetch(`https://api.paystack.co/customer/${encodeURIComponent(studentEmail)}`, {
@@ -1407,7 +1319,6 @@ export class MwalimuDispatcher {
         }
       }
 
-      // No successful payment found
       await this.sendWhatsApp({
         to: cleanPhone,
         responseData: {
@@ -1427,10 +1338,6 @@ export class MwalimuDispatcher {
     }
   }
 
-  /**
-   * Triggers an M-Pesa STK push via Paystack.
-   * Strict server-side pricing from MwalimuPlanManager (zero client tampering).
-   */
   async _triggerStkPush(studentPhone, payerPhone, planType) {
     const cleanStudent = studentPhone.replace(/\D/g, '');
     const cleanPayer = payerPhone.replace(/\D/g, '');
@@ -1447,7 +1354,6 @@ export class MwalimuDispatcher {
       : `We sent an M-Pesa PIN prompt for *KSh ${verifiedAmountKes}* (${verifiedPlan.name}) to *+${formattedStudent}*.\n\nEnter your M-Pesa PIN on your phone to unlock unlimited study access instantly.`;
 
     try {
-      // Step 1: Send prompt notice to student
       await this.sendWhatsApp({
         to: cleanStudent,
         responseData: {
@@ -1464,7 +1370,6 @@ export class MwalimuDispatcher {
         return;
       }
 
-      // Step 2: Dispatch STK Charge to Paystack
       const paystackRes = await fetch('https://api.paystack.co/charge', {
         method: 'POST',
         headers: {
@@ -1472,7 +1377,7 @@ export class MwalimuDispatcher {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          amount: verifiedAmountKes * 100, // Cents strictly enforced by backend
+          amount: verifiedAmountKes * 100,
           email: `student_${formattedStudent}@mwalimu.duncanmakoyo.com`,
           currency: 'KES',
           channels: ['mobile_money'],
@@ -1486,7 +1391,7 @@ export class MwalimuDispatcher {
             product: 'mwalimu_pass',
             venture: 'Mwalimu AI',
             plan: verifiedPlan.id,
-            phone: formattedStudent, // The student who receives the pass
+            phone: formattedStudent,
             payer_phone: formattedPayer
           }
         })
