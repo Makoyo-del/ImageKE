@@ -2330,7 +2330,7 @@ import {
 // Helper: Outbound WhatsApp Graph API message sender (Supports Text & Native Buttons)
 async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
   const token = apiToken || process.env.WHATSAPP_API_TOKEN;
-  const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1105380096649227';
+  const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583';
   if (!token) {
     console.warn('[WhatsApp Outbound] Cannot send reply: WHATSAPP_API_TOKEN not configured.');
     return;
@@ -2344,13 +2344,25 @@ async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
     to: cleanTo
   };
 
-  if (typeof responseData === 'object' && responseData.type === 'interactive') {
+  if (typeof responseData === 'object' && responseData !== null && responseData.type === 'interactive') {
     payload.type = 'interactive';
     payload.interactive = responseData.interactive;
   } else {
-    const textBody = typeof responseData === 'string' ? responseData : (responseData.text || '');
+    // Bulletproof text extraction: strictly guarantees payload.text.body is a string
+    let extractedText = '';
+    if (typeof responseData === 'string') {
+      extractedText = responseData;
+    } else if (typeof responseData === 'object' && responseData !== null) {
+      if (typeof responseData.text === 'string') {
+        extractedText = responseData.text;
+      } else if (typeof responseData.text?.body === 'string') {
+        extractedText = responseData.text.body;
+      } else if (typeof responseData.body === 'string') {
+        extractedText = responseData.body;
+      }
+    }
     payload.type = 'text';
-    payload.text = { preview_url: false, body: textBody };
+    payload.text = { preview_url: false, body: String(extractedText || '') };
   }
 
   try {
@@ -2428,21 +2440,46 @@ router.post('/whatsapp/webhook', async (req, res) => {
     if (!message) return;
 
     const fromPhone = message.from;
-    // Extract input from text OR interactive button click OR list selection
+
+    // Extract media attachments (PDF Documents or Images)
+    let mediaAttachment = null;
+    if (message.type === 'document' && message.document) {
+      mediaAttachment = {
+        type: 'document',
+        id: message.document.id,
+        mimeType: message.document.mime_type || 'application/pdf',
+        filename: message.document.filename || 'study_document.pdf',
+        fileSize: Number(message.document.file_size) || 0,
+        caption: message.document.caption || ''
+      };
+    } else if (message.type === 'image' && message.image) {
+      mediaAttachment = {
+        type: 'image',
+        id: message.image.id,
+        mimeType: message.image.mime_type || 'image/jpeg',
+        filename: 'study_image.jpg',
+        fileSize: Number(message.image.file_size) || 0,
+        caption: message.image.caption || ''
+      };
+    }
+
+    // Extract input from text OR caption OR interactive button click OR list selection
     const incomingText = message.interactive?.button_reply?.id || 
                          message.interactive?.list_reply?.id || 
                          message.text?.body || 
-                         '';
+                         mediaAttachment?.caption || 
+                         (mediaAttachment ? 'Please review this study document and explain step by step.' : '');
 
-    if (!incomingText) return;
+    if (!incomingText && !mediaAttachment) return;
 
-    console.log(`[WhatsApp Inbound] From: ${fromPhone} | Input: "${incomingText}"`);
+    console.log(`[WhatsApp Inbound] From: ${fromPhone} | Type: ${message.type} | Input: "${incomingText.substring(0, 50)}"`);
 
     // Route incoming message to Mwalimu AI Autonomous Study Engine
     await mwalimuDispatcher.processInboundMessage({
       messageId: message.id,
       fromPhone: fromPhone,
       textBody: incomingText,
+      media: mediaAttachment,
       interactiveButtonId: message.interactive?.button_reply?.id || null
     });
   } catch (err) {

@@ -97,24 +97,27 @@ export class MwalimuPlanManager {
   }
 }
 
-// ─── 1. PEDAGOGICAL WHATSAPP FORMATTER (UNICODE MATH & ZERO-WALLS UX) ─────────
+// ─── 1. PEDAGOGICAL WHATSAPP FORMATTER (PROGRESSIVE MATH & ZERO-WALLS UX) ───────
 export class MwalimuContentFormatter {
   /**
-   * Converts standard LaTeX and math expressions into clean WhatsApp Unicode
+   * Converts standard LaTeX and math expressions into clean, legible WhatsApp Unicode
    */
   static formatMathToUnicode(text) {
     if (!text || typeof text !== 'string') return '';
 
     let formatted = text;
 
+    // Unescape any escaped newlines
+    formatted = formatted.replace(/\\n/g, '\n');
+
     // Superscripts
     const superMap = {
       '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
       '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
       '+': '⁺', '-': '⁻', '=': '⁼', '(': '⁽', ')': '⁾',
-      'n': 'ⁿ', 'i': 'ⁱ', 'x': 'ˣ', 'y': 'ʸ'
+      'n': 'ⁿ', 'i': 'ⁱ', 'x': 'ˣ', 'y': 'ʸ', 'k': 'ᵏ', 't': 'ᵗ'
     };
-    formatted = formatted.replace(/\^([0-9nixy+-]+)/g, (_, match) => {
+    formatted = formatted.replace(/\^([0-9niyxkt+-]+)/g, (_, match) => {
       return match.split('').map(c => superMap[c] || c).join('');
     });
     formatted = formatted.replace(/\^{([^}]+)}/g, (_, match) => {
@@ -126,18 +129,19 @@ export class MwalimuContentFormatter {
       '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
       '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
       '+': '₊', '-': '₋', '=': '₌', '(': '₍', ')': '₎',
-      'a': 'ₐ', 'e': 'ₑ', 'o': 'ₒ', 'x': 'ₓ', 'y': 'ᵧ'
+      'a': 'ₐ', 'e': 'ₑ', 'o': 'ₒ', 'x': 'ₓ', 'y': 'ᵧ', 'i': 'ᵢ', 'n': 'ₙ', 'k': 'ₖ'
     };
-    formatted = formatted.replace(/_([0-9aeoxy+-]+)/g, (_, match) => {
+    formatted = formatted.replace(/_([0-9aeoxyink+-]+)/g, (_, match) => {
       return match.split('').map(c => subMap[c] || c).join('');
     });
     formatted = formatted.replace(/_{([^}]+)}/g, (_, match) => {
       return match.split('').map(c => subMap[c] || c).join('');
     });
 
-    // Greek & Statistical symbols
+    // Greek & Mathematical symbol mappings
     const symbolReplacements = [
       [/\\mu/g, 'μ'],
+      [/\\sigma\^2/g, 'σ²'],
       [/\\sigma/g, 'σ'],
       [/\\lambda/g, 'λ'],
       [/\\alpha/g, 'α'],
@@ -152,13 +156,27 @@ export class MwalimuContentFormatter {
       [/\\sqrt{([^}]+)}/g, '√($1)'],
       [/\\sqrt/g, '√'],
       [/\\pm/g, '±'],
-      [/\\le/g, '≤'],
+      [/\\geq/g, '≥'],
+      [/\\leq/g, '≤'],
       [/\\ge/g, '≥'],
+      [/\\le/g, '≤'],
       [/\\neq/g, '≠'],
       [/\\approx/g, '≈'],
       [/\\cdot/g, '·'],
       [/\\times/g, '×'],
       [/\\div/g, '÷'],
+      [/\\to/g, '→'],
+      [/\\implies/g, '⟹'],
+      [/\\iff/g, '⟺'],
+      [/\\in/g, '∈'],
+      [/\\operatorname{Var}/g, 'Var'],
+      [/\\operatorname{Cov}/g, 'Cov'],
+      [/\\operatorname{E}/g, 'E'],
+      [/\\operatorname{P}/g, 'P'],
+      [/\\mathbb{E}/g, 'E'],
+      [/\\mathbb{P}/g, 'P'],
+      [/\\mathbb{R}/g, 'ℝ'],
+      [/\\boxed{([^}]+)}/g, '*$1*'],
       [/\\frac{([^}]+)}{([^}]+)}/g, '($1 / $2)']
     ];
 
@@ -166,15 +184,19 @@ export class MwalimuContentFormatter {
       formatted = formatted.replace(regex, replacement);
     });
 
-    // Clean up remaining LaTeX math brackets: $...$ or $$...$$
-    formatted = formatted.replace(/\$\$([^$]+)\$\$/g, '\n```\n$1\n```\n');
+    // Convert display LaTeX math: \[ ... \] or $ ... $ into indented blocks
+    formatted = formatted.replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => `\n\n        ${eq.trim()}\n\n`);
+    formatted = formatted.replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => `\n\n        ${eq.trim()}\n\n`);
+
+    // Convert inline LaTeX math: \( ... \) or $ ... $
+    formatted = formatted.replace(/\\\((.*?)\\\)/g, '$1');
     formatted = formatted.replace(/\$([^$]+)\$/g, '$1');
 
     return formatted;
   }
 
   /**
-   * Sanitizes Markdown for WhatsApp (ensures asterisks, lists and bold work cleanly)
+   * Sanitizes Markdown for WhatsApp (bold, clean step spacing, table bullets)
    */
   static cleanForWhatsApp(text) {
     if (!text) return '';
@@ -214,9 +236,9 @@ export class MwalimuContentFormatter {
       out = cleanedLines.join('\n');
     }
 
-    // Limit maximum character dump to prevent student cognitive overload
-    if (out.length > 1800) {
-      out = out.substring(0, 1750) + '\n\n*(Response truncated. Tap [Next Step ⏩] below to continue)*';
+    // Limit maximum character dump to prevent cognitive overload
+    if (out.length > 2200) {
+      out = out.substring(0, 2100) + '\n\n*(Response truncated for brevity. Tap [Next Step ⏩] below to continue)*';
     }
 
     return out.trim();
@@ -405,30 +427,102 @@ export class MwalimuQuotaService {
 export class MwalimuAIClient {
   constructor(apiKey) {
     this.apiKey = apiKey || process.env.GEMINI_API_KEY;
-    this.modelName = 'gemini-2.5-flash';
+    // Resilient fallback cascade: prioritizes fast, currently active models
+    this.candidateModels = [
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-flash-latest',
+      'gemini-2.5-flash'
+    ];
   }
 
   /**
    * System instruction enforcing conversational, bite-sized university tutoring
    */
+    /**
+   * System instruction enforcing conversational, step-by-step university tutoring
+   * Built on Duncan Makoyo's pedagogical principles:
+   * - Understanding first, not definitions
+   * - Reasoning behind the answer (how to THINK)
+   * - No skipped steps
+   * - Progressive mathematical working (indented, step-by-step)
+   * - Human sitting next to you on a piece of paper
+   */
   _buildSystemPrompt() {
-    return `You are "Mwalimu AI", an elite, approachable personal university tutor for Kenyan campus students.
-Your goal is to make every complex university concept crystal clear—better than the lecturer!
+    return `You are "Mwalimu AI", an exceptional university tutor sitting right next to the student with a pen and a piece of paper.
+Your primary goal is to make the student genuinely UNDERSTAND the concept, develop problem-solving instincts, and become capable of solving the next problem on their own during an exam!
 
-PEDAGOGICAL TEACHING RULES:
-1. NO WALLS OF TEXT: Never dump massive essays. Keep your answers conversational, crisp, and bite-sized (under 250 words total).
-2. STRUCTURE EVERY EXPLANATION INTO 3 PARTS:
-   Part 1: The Intuition / Real-Life Analogy (2-3 sentences explaining it simply).
-   Part 2: The Core Rule or Formula (Clean, step-by-step).
-   Part 3: One Quick Worked Example or Check.
-3. MATHEMATICAL & STATISTICAL NOTATION:
-   - Do NOT use raw complex LaTeX like \\frac{a}{b} or \\int_0^\\infty.
-   - Use clean, readable mathematical symbols (e.g. Var(X) = E[X²] - (E[X])², ∫, √, μ, σ, α, β, λ, Σ).
-4. TONE & EMPATHY:
-   - Be supportive, sharp, and encouraging like a brilliant senior student.
-   - If the student is asking about Kenyan units (like MATH 240, Economics, Computer Science), speak with practical clarity.
-5. END WITH AN INTERACTIVE PROMPT:
-   - Always conclude with: "Would you like me to: (1) Show the next step, (2) Give another example, or (3) Quiz your understanding?"`;
+CORE TEACHING PRINCIPLES:
+
+1. START WITH UNDERSTANDING, NOT DEFINITIONS:
+   - When introducing a topic or answering a question, never immediately dump technical definitions.
+   - First explain in plain English:
+     • What problem does this concept solve?
+     • Why does it matter?
+     • What is the main idea behind it?
+     • What should you think about when you see this question on an exam?
+   - Give the "big picture" intuition first, then introduce the technical terms.
+
+2. TEACH THE REASONING BEHIND THE ANSWER:
+   - Do NOT just give the answer. Walk the student through how to THINK their way through it:
+     "What is this question really testing?"
+     "Before doing anything, ask yourself..."
+     "Why do we need this?"
+     "Because of this condition, we know that..."
+     "Therefore, we need..."
+     "Now let's determine..."
+     "See what happened there?"
+   - Help the student understand WHY each decision is made.
+
+3. DO NOT SKIP THE SMALL STEPS:
+   - Never assume an intermediate step is obvious. If understanding A is necessary before B, explain A first.
+   - Explain what every symbol means in plain English before using it.
+   - If you use a formula, explain what every part means and why it applies here.
+
+4. PROGRESSIVE MATHEMATICAL WORKING (CRITICAL UX RULE):
+   - Never dump multiple transformations on the same line (Avoid: A = B = C = D).
+   - Display calculations as a sequence of small, clean reasoning steps:
+     
+     Step 1 — Start with Markov
+     Markov says:
+             P[u(Z) ≥ c] ≤ E[u(Z)] / c
+
+     Step 2 — Choose the function:
+             u(Z) = (Z − μ)²
+             c = k²σ²
+
+     Step 3 — Substitute:
+             P[(Z − μ)² ≥ k²σ²] ≤ E[(Z − μ)²] / (k²σ²)
+
+     Step 4 — Use the variance definition:
+     Because variance is the expected squared distance from the mean:
+             E[(Z − μ)²] = σ²
+
+     Step 5 — Cancel σ²:
+             P[(Z − μ)² ≥ k²σ²] ≤ 1/k²
+
+     Step 6 — Final result:
+             P[|Z − μ| ≥ kσ] ≤ 1/k²
+
+   - Use clean, standard Unicode symbols: P(A | B), E[X], Var(X), ∫, √, μ, σ, α, β, λ, Σ, ², ³, ≤, ≥, ≠, ±.
+   - NEVER leave raw, ugly LaTeX commands like \\frac or \\ge in your output.
+
+5. MAKE THE STUDENT SEE THE PATTERN:
+   - Explicitly highlight:
+     "The important pattern here is..."
+     "Whenever you see this type of question on an exam, think..."
+     "The difference between these two concepts is..."
+
+6. TEACH LIKE YOU ARE SITTING NEXT TO ME:
+   - Tone: A brilliant, encouraging senior classmate who wants you to ace your CATs.
+   - "Okay, let's slow this down."
+   - "Notice something important here..."
+   - "This part is where students usually get stuck—here's why..."
+   - Academically accurate, zero robotic textbook fluff.
+
+7. INTERACTIVE PACING:
+   - Keep individual responses focused and bite-sized (under 280 words).
+   - Conclude naturally with: "Would you like me to: (1) Show the next step, (2) Give another example, or (3) Quiz your understanding?"`;
   }
 
   /**
@@ -472,36 +566,47 @@ PEDAGOGICAL TEACHING RULES:
       }
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.apiKey}`;
+    let lastError = null;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000); // 20s hard timeout
+    for (const model of this.candidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 18000);
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
 
-      const data = await response.json();
-      if (!response.ok || !data.candidates?.[0]?.content?.parts?.[0]?.text) {
-        throw new Error(data.error?.message || 'Empty AI response from Gemini');
+        const data = await response.json();
+        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          const rawText = data.candidates[0].content.parts[0].text;
+          return MwalimuContentFormatter.cleanForWhatsApp(rawText);
+        }
+
+        const errMsg = data.error?.message || 'Empty AI candidate response';
+        console.warn(`[MwalimuAIClient] Model ${model} notice: ${errMsg}. Trying fallback...`);
+        lastError = new Error(errMsg);
+      } catch (err) {
+        clearTimeout(timeout);
+        console.warn(`[MwalimuAIClient] Model ${model} exception: ${err.message}. Trying fallback...`);
+        lastError = err;
       }
-
-      const rawText = data.candidates[0].content.parts[0].text;
-      return MwalimuContentFormatter.cleanForWhatsApp(rawText);
-    } catch (err) {
-      clearTimeout(timeout);
-      console.error('[MwalimuAIClient Error]', err.message);
-      throw err;
     }
+
+    console.error('[MwalimuAIClient Error] All model fallbacks exhausted:', lastError?.message);
+    throw lastError || new Error('All AI models unavailable');
   }
 }
 
 // ─── 4. HIGH-CONCURRENCY DISPATCHER & DEDUPLICATION QUEUE ─────────────────────
+// 10 Megabytes Hard Limit: Protects server RAM & keeps Socratic responses under 5 seconds
+export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+
 export class MwalimuDispatcher {
   constructor({ quotaService, aiClient, paystackSecretKey, sendWhatsAppFunc }) {
     this.quota = quotaService;
@@ -527,7 +632,60 @@ export class MwalimuDispatcher {
    * High-throughput Inbound Router
    * Guarantees < 30ms processing time before background delegation
    */
-  async processInboundMessage({ messageId, fromPhone, textBody, mediaId = null, mediaType = null, interactiveButtonId = null }) {
+  /**
+   * Securely downloads media binary from Meta Cloud API
+   * Enforces 10MB upload size limit before memory buffering
+   */
+  async _downloadMetaMedia(media) {
+    if (!media || !media.id) return null;
+    const token = process.env.WHATSAPP_API_TOKEN;
+    if (!token) {
+      console.warn('[MwalimuDispatcher] WHATSAPP_API_TOKEN not configured for media download');
+      return null;
+    }
+
+    try {
+      // Step 1: Query Meta Graph API for media URL
+      const metaUrlRes = await fetch(`https://graph.facebook.com/v21.0/${media.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!metaUrlRes.ok) {
+        console.error('[MwalimuDispatcher] Failed to fetch media URL from Meta:', await metaUrlRes.text());
+        return null;
+      }
+      const metaData = await metaUrlRes.json();
+      if (!metaData.url) return null;
+
+      // Verify file size does not exceed limit
+      if (metaData.file_size && metaData.file_size > MAX_UPLOAD_SIZE_BYTES) {
+        return { error: 'FILE_TOO_LARGE', fileSize: metaData.file_size };
+      }
+
+      // Step 2: Download raw binary stream
+      const binRes = await fetch(metaData.url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!binRes.ok) return null;
+
+      const arrayBuffer = await binRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      if (buffer.length > MAX_UPLOAD_SIZE_BYTES) {
+        return { error: 'FILE_TOO_LARGE', fileSize: buffer.length };
+      }
+
+      return {
+        base64: buffer.toString('base64'),
+        mimeType: metaData.mime_type || media.mimeType || 'application/pdf',
+        fileSize: buffer.length
+      };
+    } catch (err) {
+      console.error('[MwalimuDispatcher] Media download exception:', err.message);
+      return null;
+    }
+  }
+
+  async processInboundMessage({ messageId, fromPhone, textBody, media = null, interactiveButtonId = null }) {
     // Step 1: Deduplication Check (Kills Meta Retry Storms instantly)
     if (messageId && this.processedMsgIds.has(messageId)) {
       console.log(`[MwalimuDispatcher] Discarding duplicate Meta retry: ${messageId}`);
@@ -558,12 +716,51 @@ export class MwalimuDispatcher {
     }
     this.inFlightUsers.add(cleanPhone);
 
-    // Step 5: Process AI Generation Asynchronously
+    // Step 5: Process Media & Enforce 10MB Upload Limit
+    let mediaPayload = null;
+    if (media) {
+      if (media.fileSize > MAX_UPLOAD_SIZE_BYTES) {
+        const sizeMb = (media.fileSize / (1024 * 1024)).toFixed(1);
+        await this.sendWhatsApp({
+          to: cleanPhone,
+          responseData: {
+            type: 'text',
+            text: {
+              preview_url: false,
+              body: `⚠️ *Document Exceeds 10MB Limit*\n\n` +
+                    `Your uploaded file is *${sizeMb}MB*. To keep Socratic tutoring lightning-fast and prevent server timeouts, Mwalimu AI accepts documents up to *10MB*.\n\n` +
+                    `💡 *Solution:* Send just the specific page, take a screenshot of the question, or split your PDF.`
+            }
+          }
+        });
+        return;
+      }
+
+      const downloaded = await this._downloadMetaMedia(media);
+      if (downloaded?.error === 'FILE_TOO_LARGE') {
+        await this.sendWhatsApp({
+          to: cleanPhone,
+          responseData: {
+            type: 'text',
+            text: {
+              preview_url: false,
+              body: `⚠️ *Document Exceeds 10MB Limit*\n\nPlease send a document under 10MB to continue.`
+            }
+          }
+        });
+        return;
+      }
+      mediaPayload = downloaded;
+    }
+
+    // Step 6: Process AI Generation Asynchronously
     try {
       const user = await this.quota.getStudentState(cleanPhone);
       const answer = await this.ai.answerStudentQuery({
         studentPhone: cleanPhone,
-        queryText: textBody || 'Explain this topic clearly step by step.',
+        queryText: textBody || 'Please analyze this attached study material and explain key concepts step by step.',
+        imageBase64: mediaPayload?.base64 || null,
+        imageMimeType: mediaPayload?.mimeType || 'image/jpeg',
         recentContext: user.recent_context || ''
       });
 
