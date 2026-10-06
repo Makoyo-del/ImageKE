@@ -3,6 +3,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { supabase } from './supabase.js';
+import { sendWhatsAppMessage, sendTypingIndicator, WA_GRAPH_VERSION } from './WhatsAppSender.js';
 import {
   MwalimuPlanManager,
   MwalimuQuotaService,
@@ -2417,59 +2418,11 @@ import {
 } from './SupportEngine.js';
 
 // Helper: Outbound WhatsApp Graph API message sender (Supports Text & Native Buttons)
+// Helper: Outbound WhatsApp Graph API message sender (Backed by WhatsAppSender.js)
 async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
-  const token = (apiToken || process.env.WHATSAPP_API_TOKEN || '').trim();
-  const phoneId = (phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583').toString().trim().replace(/\D/g, '') || '1395576280301583';
-  if (!token) {
-    console.warn('[WhatsApp Outbound] Cannot send reply: WHATSAPP_API_TOKEN not configured.');
-    return;
-  }
-  const cleanTo = to.replace(/\D/g, '');
-  const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
-
-  let payload = {
-    messaging_product: 'whatsapp',
-    recipient_type: 'individual',
-    to: cleanTo
-  };
-
-  if (typeof responseData === 'object' && responseData !== null && responseData.type === 'interactive') {
-    payload.type = 'interactive';
-    payload.interactive = responseData.interactive;
-  } else {
-    // Bulletproof text extraction: strictly guarantees payload.text.body is a string
-    let extractedText = '';
-    if (typeof responseData === 'string') {
-      extractedText = responseData;
-    } else if (typeof responseData === 'object' && responseData !== null) {
-      if (typeof responseData.text === 'string') {
-        extractedText = responseData.text;
-      } else if (typeof responseData.text?.body === 'string') {
-        extractedText = responseData.text.body;
-      } else if (typeof responseData.body === 'string') {
-        extractedText = responseData.body;
-      }
-    }
-    payload.type = 'text';
-    payload.text = { preview_url: false, body: String(extractedText || '') };
-  }
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    const d = await res.json();
-    if (!res.ok) console.error('[WhatsApp Graph API Error]', d);
-    else console.log(`[WhatsApp Outbound Sent] Message ID: ${d.messages?.[0]?.id} to ${cleanTo}`);
-  } catch (e) {
-    console.error('[WhatsApp Send Error]', e.message);
-  }
+  return await sendWhatsAppMessage({ to, responseData, phoneNumberId, apiToken });
 }
+
 
 // Instantiate Support Services
 const supportPayments = new PaymentVerificationService(supabase, process.env.PAYSTACK_SECRET_KEY);
@@ -2521,61 +2474,74 @@ router.post('/whatsapp/webhook', async (req, res) => {
   if (body.object !== 'whatsapp_business_account') return;
 
   try {
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
-    const message = value?.messages?.[0];
+    const entries = body.entry || [];
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      for (const change of changes) {
+        const value = change.value;
+        const messages = value?.messages || [];
 
-    if (!message) return;
+        for (const message of messages) {
+          const fromPhone = message.from;
+          if (!fromPhone) continue;
 
-    const fromPhone = message.from;
+          // Extract media attachments (Document, Image, Audio / Voice note)
+          let mediaAttachment = null;
+          if (message.type === 'document' && message.document) {
+            mediaAttachment = {
+              type: 'document',
+              id: message.document.id,
+              mimeType: message.document.mime_type || 'application/pdf',
+              filename: message.document.filename || 'study_document.pdf',
+              fileSize: Number(message.document.file_size) || 0,
+              caption: message.document.caption || ''
+            };
+          } else if (message.type === 'image' && message.image) {
+            mediaAttachment = {
+              type: 'image',
+              id: message.image.id,
+              mimeType: message.image.mime_type || 'image/jpeg',
+              filename: 'study_image.jpg',
+              fileSize: Number(message.image.file_size) || 0,
+              caption: message.image.caption || ''
+            };
+          } else if (message.type === 'audio' && message.audio) {
+            mediaAttachment = {
+              type: 'audio',
+              id: message.audio.id,
+              mimeType: message.audio.mime_type || 'audio/ogg; codecs=opus',
+              filename: 'voice_note.ogg',
+              fileSize: Number(message.audio.file_size) || 0,
+              caption: ''
+            };
+          }
 
-    // Extract media attachments (PDF Documents or Images)
-    let mediaAttachment = null;
-    if (message.type === 'document' && message.document) {
-      mediaAttachment = {
-        type: 'document',
-        id: message.document.id,
-        mimeType: message.document.mime_type || 'application/pdf',
-        filename: message.document.filename || 'study_document.pdf',
-        fileSize: Number(message.document.file_size) || 0,
-        caption: message.document.caption || ''
-      };
-    } else if (message.type === 'image' && message.image) {
-      mediaAttachment = {
-        type: 'image',
-        id: message.image.id,
-        mimeType: message.image.mime_type || 'image/jpeg',
-        filename: 'study_image.jpg',
-        fileSize: Number(message.image.file_size) || 0,
-        caption: message.image.caption || ''
-      };
+          // Extract input text
+          const incomingText = message.interactive?.button_reply?.id ||
+                               message.interactive?.list_reply?.id ||
+                               message.text?.body ||
+                               mediaAttachment?.caption ||
+                               (mediaAttachment ? (message.type === 'audio' ? 'Please listen to this voice note and answer my study question.' : 'Please review this study document and explain step by step.') : '');
+
+          if (!incomingText && !mediaAttachment) continue;
+
+          console.log(`[WhatsApp Inbound] From: ${fromPhone} | Type: ${message.type} | Input: "${incomingText.substring(0, 50)}"`);
+
+          // Route to Mwalimu AI Autonomous Study Engine
+          await mwalimuDispatcher.processInboundMessage({
+            messageId: message.id,
+            fromPhone: fromPhone,
+            textBody: incomingText,
+            media: mediaAttachment,
+            interactiveButtonId: message.interactive?.button_reply?.id || null
+          });
+        }
+      }
     }
-
-    // Extract input from text OR caption OR interactive button click OR list selection
-    const incomingText = message.interactive?.button_reply?.id || 
-                         message.interactive?.list_reply?.id || 
-                         message.text?.body || 
-                         mediaAttachment?.caption || 
-                         (mediaAttachment ? 'Please review this study document and explain step by step.' : '');
-
-    if (!incomingText && !mediaAttachment) return;
-
-    console.log(`[WhatsApp Inbound] From: ${fromPhone} | Type: ${message.type} | Input: "${incomingText.substring(0, 50)}"`);
-
-    // Route incoming message to Mwalimu AI Autonomous Study Engine
-    await mwalimuDispatcher.processInboundMessage({
-      messageId: message.id,
-      fromPhone: fromPhone,
-      textBody: incomingText,
-      media: mediaAttachment,
-      interactiveButtonId: message.interactive?.button_reply?.id || null
-    });
   } catch (err) {
     console.error('[WhatsApp Inbound Handler Exception]', err.message);
   }
 });
-
 // 3. Loyalty & Promos Public APIs
 router.get('/loyalty/:phone', async (req, res) => {
   const profile = await supportLoyalty.calculateLoyalty(req.params.phone);
@@ -2642,7 +2608,7 @@ router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
 
 
 // ─── Mwalimu AI Dashboard Management APIs ────────────────────────────────────
-router.get('/mwalimu/stats', async (_req, res) => {
+router.get('/mwalimu/stats', authenticateAdmin, async (_req, res) => {
   try {
     const { count: totalStudents } = await supabase
       .from('mwalimu_users')
@@ -2701,7 +2667,7 @@ router.get('/mwalimu/stats', async (_req, res) => {
   }
 });
 
-router.post('/mwalimu/grant-pass', async (req, res) => {
+router.post('/mwalimu/grant-pass', authenticateAdmin, async (req, res) => {
   const { phone, durationHours = 24, plan = 'manual_grant' } = req.body;
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
 
@@ -2724,5 +2690,38 @@ router.post('/mwalimu/grant-pass', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+
+// ─── WhatsApp Conversational Automation Commands Sync ────────────────────────
+async function syncWhatsAppCommands() {
+  const token = (process.env.WHATSAPP_API_TOKEN || '').trim();
+  const phoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583').toString().trim();
+  if (!token) return;
+
+  const payload = {
+    commands: [
+      { command_name: 'help', command_description: 'How to use Mwalimu AI across all courses' },
+      { command_name: 'status', command_description: 'Check active pass and remaining free questions' },
+      { command_name: 'prices', command_description: 'View unmetered study passes (20, 50, 199 KSh)' },
+      { command_name: 'restore', command_description: 'Reconnect an active pass or M-Pesa payment' },
+      { command_name: 'reset', command_description: 'Clear recent context and start a new topic' }
+    ],
+    enable_welcome_message: false
+  };
+
+  try {
+    const res = await fetch(`https://graph.facebook.com/${WA_GRAPH_VERSION}/${phoneId}/conversational_automation`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      console.log('[WhatsApp Commands] WhatsApp Conversational Automation menu registered successfully!');
+    }
+  } catch (err) {
+    console.warn('[WhatsApp Commands Sync Notice]', err.message);
+  }
+}
+syncWhatsAppCommands();
 
 export default router;
