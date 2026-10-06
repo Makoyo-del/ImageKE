@@ -638,7 +638,7 @@ export class MwalimuDispatcher {
    */
   async _downloadMetaMedia(media) {
     if (!media || !media.id) return null;
-    const token = process.env.WHATSAPP_API_TOKEN;
+    const token = (process.env.WHATSAPP_API_TOKEN || '').trim();
     if (!token) {
       console.warn('[MwalimuDispatcher] WHATSAPP_API_TOKEN not configured for media download');
       return null;

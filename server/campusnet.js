@@ -2335,8 +2335,8 @@ import {
 
 // Helper: Outbound WhatsApp Graph API message sender (Supports Text & Native Buttons)
 async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
-  const token = apiToken || process.env.WHATSAPP_API_TOKEN;
-  const phoneId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583';
+  const token = (apiToken || process.env.WHATSAPP_API_TOKEN || '').trim();
+  const phoneId = (phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583').toString().trim().replace(/\D/g, '') || '1395576280301583';
   if (!token) {
     console.warn('[WhatsApp Outbound] Cannot send reply: WHATSAPP_API_TOKEN not configured.');
     return;
