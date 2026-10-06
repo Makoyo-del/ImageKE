@@ -65,6 +65,11 @@ export class MwalimuPlanManager {
     return plans[planId] || plans['daily_24h'];
   }
 
+  static validateAmount(planId, paidAmountKes) {
+    const plan = this.getPlan(planId);
+    return Number(paidAmountKes) >= Number(plan.priceKes);
+  }
+
   static getPlanByButtonId(buttonId) {
     const plans = this.getPlans();
     // Support modern and legacy button IDs
@@ -376,7 +381,7 @@ export class MwalimuQuotaService {
   /**
    * Activates a paid study pass (Daily KSh 20, Weekend KSh 50, Semester KSh 150)
    */
-  async activateSubscription(phone, planType, mpesaReceipt, amount) {
+  async activateSubscription(phone, planType, mpesaReceipt, amount, payerPhone = null) {
     const cleanPhone = phone.replace(/\D/g, '');
     const cleanReceipt = (mpesaReceipt || '').trim().toUpperCase();
 
@@ -385,6 +390,8 @@ export class MwalimuQuotaService {
     const durationHours = plan.durationHours;
     const tierName = plan.tier;
     const effectiveAmount = amount || plan.priceKes;
+    const cleanPayer = (payerPhone || phone).replace(/\D/g, '');
+    const formattedReceipt = cleanPayer !== cleanPhone ? (cleanReceipt + ' (Payer: ' + cleanPayer + ')') : cleanReceipt;
 
     const now = new Date();
     const validUntil = new Date(now.getTime() + durationHours * 3600 * 1000);
@@ -395,7 +402,7 @@ export class MwalimuQuotaService {
         .from('mwalimu_transactions')
         .insert({
           phone: cleanPhone,
-          mpesa_receipt: cleanReceipt,
+          mpesa_receipt: formattedReceipt,
           amount: Number(amount),
           plan: planType
         });
@@ -618,20 +625,21 @@ export class MwalimuDispatcher {
     this.processedMsgIds = new Map();
     // In-flight User Debounce: prevents double-text race conditions
     this.inFlightUsers = new Set();
+    // Pending Dual-Phone Checkout Session Store (Student Phone -> { planId, amountKes, planName, timestamp })
+    this.pendingCheckout = new Map();
 
-    // Clean deduplication map every 60 seconds
+    // Clean deduplication map and expired pending checkouts every 60 seconds
     setInterval(() => {
       const now = Date.now();
       for (const [id, time] of this.processedMsgIds.entries()) {
         if (now - time > 90000) this.processedMsgIds.delete(id);
       }
+      for (const [phone, sess] of this.pendingCheckout.entries()) {
+        if (now - sess.timestamp > 15 * 60 * 1000) this.pendingCheckout.delete(phone);
+      }
     }, 60000);
   }
 
-  /**
-   * High-throughput Inbound Router
-   * Guarantees < 30ms processing time before background delegation
-   */
   /**
    * Securely downloads media binary from Meta Cloud API
    * Enforces 10MB upload size limit before memory buffering
@@ -696,27 +704,79 @@ export class MwalimuDispatcher {
     }
 
     const cleanPhone = fromPhone.replace(/\D/g, '');
+    const rawText = (textBody || '').trim();
+    const lowerText = rawText.toLowerCase();
 
-    // Step 2: Handle Interactive Button Clicks (Billing & Quick Navigation)
+    // Step 2: Handle Interactive Button Clicks (Billing, Selection, Navigation)
     const buttonId = interactiveButtonId || '';
-    if (buttonId.startsWith('BUY_PLAN_') || buttonId.startsWith('MENU_') || buttonId.startsWith('NEXT_')) {
+    if (buttonId.startsWith('BUY_PLAN_') || buttonId.startsWith('PAY_SELF_') || buttonId.startsWith('PAY_OTHER_') || buttonId.startsWith('MENU_') || buttonId.startsWith('NEXT_')) {
       return await this._handleButtonAction(cleanPhone, buttonId);
     }
 
-    // Step 3: Handle Payment / Quota Exhaustion checks
+    // Step 3: Handle Authentication Status & Account Check Commands
+    if (['status', 'account', 'my pass', 'reconnect', 'login', 'whoami', 'check'].includes(lowerText)) {
+      return await this._handleStatusQuery(cleanPhone);
+    }
+
+    // Step 4: Handle Manual Pass Claiming / Reconnecting by Receipt Code
+    if (lowerText.startsWith('claim ') || lowerText.startsWith('restore ') || lowerText.startsWith('voucher ') || lowerText.startsWith('verify ')) {
+      const code = rawText.split(/\s+/).slice(1).join(' ').trim();
+      return await this._handleClaimReceipt(cleanPhone, code);
+    }
+
+    // Direct M-Pesa receipt detection (e.g. SBA7XYZ123)
+    const mpesaCodeMatch = rawText.match(/^[A-Z0-9]{10}$/);
+    if (mpesaCodeMatch && !['CHEBYSHEV', 'ALGORITHM', 'QUESTIONS', 'PROBABILITY'].includes(mpesaCodeMatch[0])) {
+      return await this._handleClaimReceipt(cleanPhone, mpesaCodeMatch[0]);
+    }
+
+    // Step 5: Check Pending Dual-Phone Checkout (Student Replying with Payer Phone)
+    const pendingCheckout = this.pendingCheckout.get(cleanPhone);
+    if (pendingCheckout && Date.now() - pendingCheckout.timestamp < 15 * 60 * 1000) {
+      if (lowerText === 'cancel') {
+        this.pendingCheckout.delete(cleanPhone);
+        await this.sendWhatsApp({
+          to: cleanPhone,
+          responseData: {
+            type: 'text',
+            text: { preview_url: false, body: '❌ *Checkout Cancelled.*\n\nWhat study topic or assignment problem would you like to solve?' }
+          }
+        });
+        return;
+      }
+
+      // Extract phone number from message
+      const digitsOnly = rawText.replace(/\D/g, '');
+      let payerClean = null;
+      if (digitsOnly.length === 10 && (digitsOnly.startsWith('07') || digitsOnly.startsWith('01'))) {
+        payerClean = '254' + digitsOnly.slice(1);
+      } else if (digitsOnly.length === 9 && (digitsOnly.startsWith('7') || digitsOnly.startsWith('1'))) {
+        payerClean = '254' + digitsOnly;
+      } else if (digitsOnly.length === 12 && digitsOnly.startsWith('254')) {
+        payerClean = digitsOnly;
+      }
+
+      if (payerClean) {
+        this.pendingCheckout.delete(cleanPhone);
+        const plan = MwalimuPlanManager.getPlan(pendingCheckout.planId);
+        return await this._triggerStkPush(cleanPhone, payerClean, plan.id, plan.priceKes, plan.name);
+      }
+    }
+
+    // Step 6: Handle Payment / Quota Exhaustion checks
     const eligibility = await this.quota.checkEligibility(cleanPhone);
     if (!eligibility.allowed) {
       return await this._sendBillingPaywallPrompt(cleanPhone, eligibility.queriesToday);
     }
 
-    // Step 4: User Debouncing (If student sends 3 messages in 2s, don't double-charge)
+    // Step 7: User Debouncing (If student sends 3 messages in 2s, don't double-charge)
     if (this.inFlightUsers.has(cleanPhone)) {
       console.log(`[MwalimuDispatcher] Debouncing rapid message from ${cleanPhone}`);
       return;
     }
     this.inFlightUsers.add(cleanPhone);
 
-    // Step 5: Process Media & Enforce 10MB Upload Limit
+    // Step 8: Process Media & Enforce 10MB Upload Limit
     let mediaPayload = null;
     if (media) {
       if (media.fileSize > MAX_UPLOAD_SIZE_BYTES) {
@@ -753,21 +813,21 @@ export class MwalimuDispatcher {
       mediaPayload = downloaded;
     }
 
-    // Step 6: Process AI Generation Asynchronously
+    // Step 9: Process AI Generation Asynchronously
     try {
       const user = await this.quota.getStudentState(cleanPhone);
       const answer = await this.ai.answerStudentQuery({
         studentPhone: cleanPhone,
-        queryText: textBody || 'Please analyze this attached study material and explain key concepts step by step.',
+        queryText: rawText || 'Please analyze this attached study material and explain key concepts step by step.',
         imageBase64: mediaPayload?.base64 || null,
         imageMimeType: mediaPayload?.mimeType || 'image/jpeg',
         recentContext: user.recent_context || ''
       });
 
       // Update ephemeral usage & overwrite context
-      await this.quota.recordUsage(cleanPhone, `Q: ${textBody.substring(0, 100)} | A: ${answer.substring(0, 150)}`);
+      await this.quota.recordUsage(cleanPhone, `Q: ${rawText.substring(0, 100)} | A: ${answer.substring(0, 150)}`);
 
-      // Send structured WhatsApp reply with interactive quick actions
+      // Send structured WhatsApp reply (Safely handling Meta 1024 char limit)
       await this._sendInteractiveAnswer(cleanPhone, answer, eligibility);
     } catch (err) {
       console.error('[MwalimuDispatcher] Processing failure:', err.message);
@@ -787,7 +847,10 @@ export class MwalimuDispatcher {
   }
 
   /**
-   * Dispatches the answer along with contextual Quick Action buttons
+   * Dispatches the answer along with contextual Quick Action buttons.
+   * FIX FOR META ERROR #131009 (Interactive body text max length 1024 chars):
+   * If answer is > 900 chars, send full answer as standard text (up to 4096 chars),
+   * followed immediately by interactive action buttons!
    */
   async _sendInteractiveAnswer(to, answerText, eligibility) {
     const quotaNotice = eligibility.isPaid 
@@ -796,31 +859,73 @@ export class MwalimuDispatcher {
 
     const fullMessage = `${answerText}\n\n---\n${quotaNotice}`;
 
-    const interactivePayload = {
-      type: 'interactive',
-      interactive: {
-        type: 'button',
-        body: { text: fullMessage },
-        action: {
-          buttons: [
-            {
-              type: 'reply',
-              reply: { id: 'NEXT_STEP', title: 'Next Step ⏩' }
-            },
-            {
-              type: 'reply',
-              reply: { id: 'MENU_EXAMPLE', title: 'Give Example 💡' }
-            },
-            {
-              type: 'reply',
-              reply: { id: 'MENU_PRICING', title: 'Get Unlimited ⚡' }
-            }
-          ]
+    if (fullMessage.length > 900) {
+      // 1. Send full comprehensive answer as pure text (supports up to 4096 characters without Meta error)
+      await this.sendWhatsApp({
+        to,
+        responseData: {
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: fullMessage
+          }
         }
-      }
-    };
+      });
 
-    await this.sendWhatsApp({ to, responseData: interactivePayload });
+      // 2. Send follow-up interactive buttons (small body < 100 chars, always succeeds)
+      const followUpPayload = {
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: '🎓 *What should we explore next?*' },
+          action: {
+            buttons: [
+              {
+                type: 'reply',
+                reply: { id: 'NEXT_STEP', title: 'Next Step ⏩' }
+              },
+              {
+                type: 'reply',
+                reply: { id: 'MENU_EXAMPLE', title: 'Give Example 💡' }
+              },
+              {
+                type: 'reply',
+                reply: { id: 'MENU_PRICING', title: 'Get Unlimited ⚡' }
+              }
+            ]
+          }
+        }
+      };
+
+      await this.sendWhatsApp({ to, responseData: followUpPayload });
+    } else {
+      // Single message for short responses (< 900 characters)
+      const interactivePayload = {
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: fullMessage },
+          action: {
+            buttons: [
+              {
+                type: 'reply',
+                reply: { id: 'NEXT_STEP', title: 'Next Step ⏩' }
+              },
+              {
+                type: 'reply',
+                reply: { id: 'MENU_EXAMPLE', title: 'Give Example 💡' }
+              },
+              {
+                type: 'reply',
+                reply: { id: 'MENU_PRICING', title: 'Get Unlimited ⚡' }
+              }
+            ]
+          }
+        }
+      };
+
+      await this.sendWhatsApp({ to, responseData: interactivePayload });
+    }
   }
 
   /**
@@ -848,11 +953,46 @@ export class MwalimuDispatcher {
    * Handles Interactive Button Actions
    */
   async _handleButtonAction(phone, buttonId) {
-    // Dynamic Plan Resolution via MwalimuPlanManager (zero hardcoding)
+    // 1. Initial Plan Selection: Prompt for Payment Phone (This line vs Other line)
     const plan = MwalimuPlanManager.getPlanByButtonId(buttonId);
     if (plan) {
-      return await this._triggerStkPush(phone, plan.id, plan.priceKes, plan.name);
+      return await this._sendDualPhoneSelection(phone, plan);
     }
+
+    // 2. Dual-Phone Choice: Pay with THIS phone
+    if (buttonId.startsWith('PAY_SELF_')) {
+      const planId = buttonId.replace('PAY_SELF_', '');
+      const selectedPlan = MwalimuPlanManager.getPlan(planId);
+      return await this._triggerStkPush(phone, phone, selectedPlan.id, selectedPlan.priceKes, selectedPlan.name);
+    }
+
+    // 3. Dual-Phone Choice: Pay with ANOTHER phone
+    if (buttonId.startsWith('PAY_OTHER_')) {
+      const planId = buttonId.replace('PAY_OTHER_', '');
+      const selectedPlan = MwalimuPlanManager.getPlan(planId);
+      this.pendingCheckout.set(phone, {
+        planId: selectedPlan.id,
+        amountKes: selectedPlan.priceKes,
+        planName: selectedPlan.name,
+        timestamp: Date.now()
+      });
+
+      return await this.sendWhatsApp({
+        to: phone,
+        responseData: {
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: `✍️ *Pay with Another M-Pesa Number*\n\n` +
+                  `Selected: *${selectedPlan.name}* (KSh ${selectedPlan.priceKes})\n\n` +
+                  `Please reply with the *10-digit M-Pesa phone number* (e.g. \`0712345678\` or \`0112345678\`) of the person paying.\n\n` +
+                  `🔒 *Pass Guarantee:* Once they enter their M-Pesa PIN, this WhatsApp line will immediately activate!\n\n` +
+                  `_(Reply "cancel" to cancel)_`
+          }
+        }
+      });
+    }
+
     if (buttonId === 'MENU_PRICING') {
       return await this._sendBillingPaywallPrompt(phone, 3);
     }
@@ -873,21 +1013,206 @@ export class MwalimuDispatcher {
   }
 
   /**
-   * Triggers an M-Pesa STK push via Paystack for instant pass activation
+   * Prompts the student to select whether to pay with THIS line or ANOTHER line
    */
-  async _triggerStkPush(phone, planType, amountKes, planTitle) {
-    const formattedPhone = phone.startsWith('0') ? '254' + phone.slice(1) : (phone.startsWith('254') ? phone : '254' + phone);
-    const ref = `MWA_${Date.now()}_${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  async _sendDualPhoneSelection(phone, plan) {
+    const localPhone = phone.startsWith('254') ? '0' + phone.slice(3) : phone;
+
+    const message = `🎓 *${plan.name} (KSh ${plan.priceKes})*\n\n` +
+      `How would you like to pay with M-Pesa?\n\n` +
+      `1️⃣ *This WhatsApp Line:* (${localPhone})\n` +
+      `2️⃣ *Another M-Pesa Line:* (Parent, Friend, or SIM 2)\n\n` +
+      `🔒 *Your study pass will be automatically activated on THIS WhatsApp chat.*`;
+
+    const dualPhonePayload = {
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: message },
+        action: {
+          buttons: [
+            {
+              type: 'reply',
+              reply: { id: `PAY_SELF_${plan.id}`, title: 'Pay This SIM 📱' }
+            },
+            {
+              type: 'reply',
+              reply: { id: `PAY_OTHER_${plan.id}`, title: 'Use Other SIM 🔄' }
+            }
+          ]
+        }
+      }
+    };
+
+    await this.sendWhatsApp({ to: phone, responseData: dualPhonePayload });
+  }
+
+  /**
+   * Handles Student Status / Account Reconnection Check
+   */
+  async _handleStatusQuery(phone) {
+    const user = await this.quota.getStudentState(phone);
+    const eligibility = await this.quota.checkEligibility(phone);
+    const localPhone = phone.startsWith('254') ? '0' + phone.slice(3) : phone;
+
+    let statusBody = `🎓 *MWALIMU AI — STUDENT AUTHENTICATION*\n\n` +
+      `📱 *Student Line:* ${localPhone} (+${phone})\n`;
+
+    if (eligibility.isPaid) {
+      const expDate = new Date(user.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' });
+      statusBody += `⚡ *Access Tier:* 👑 *VIP Pro Pass (Active)*\n` +
+                    `⏳ *Valid Until:* ${expDate}\n` +
+                    `📊 *Questions:* *Unlimited 24/7*\n\n` +
+                    `🔑 *Pass ID:* \`MWA-${phone.slice(-4)}\`\n\n` +
+                    `Send any question or study PDF to start learning!`;
+    } else {
+      statusBody += `⭐ *Access Tier:* Free Tier\n` +
+                    `📊 *Questions Remaining Today:* ${eligibility.remainingFree}/3 free queries\n\n` +
+                    `💡 *Paid via M-Pesa and need to reconnect?*\n` +
+                    `Reply with:\n*CLAIM <M-PESA-CODE>* (e.g. \`CLAIM SBA7XYZ123\`)`;
+    }
+
+    await this.sendWhatsApp({
+      to: phone,
+      responseData: {
+        type: 'text',
+        text: { preview_url: false, body: statusBody }
+      }
+    });
+  }
+
+  /**
+   * Reconnects or Claims a pass using an M-Pesa receipt code or Paystack reference
+   */
+  async _handleClaimReceipt(phone, receiptCode) {
+    const cleanCode = (receiptCode || '').trim().toUpperCase();
+    if (!cleanCode || cleanCode.length < 5) {
+      return await this.sendWhatsApp({
+        to: phone,
+        responseData: {
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: `⚠️ *Invalid Receipt Code*\n\nPlease reply with your 10-character M-Pesa receipt code:\n*CLAIM <RECEIPT-CODE>* (e.g. \`CLAIM SBA7XYZ123\`)`
+          }
+        }
+      });
+    }
 
     try {
-      // Send prompt notice to student
+      // 1. Check local transactions first
+      const { data: existingTx } = await this.quota.supabase
+        .from('mwalimu_transactions')
+        .select('*')
+        .ilike('mpesa_receipt', `%${cleanCode}%`)
+        .maybeSingle();
+
+      if (existingTx) {
+        const plan = MwalimuPlanManager.getPlan(existingTx.plan);
+        await this.quota.activateSubscription(phone, plan.id, cleanCode, existingTx.amount);
+        const userState = await this.quota.getStudentState(phone);
+        const expStr = new Date(userState.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' });
+
+        return await this.sendWhatsApp({
+          to: phone,
+          responseData: {
+            type: 'text',
+            text: {
+              preview_url: false,
+              body: `🎉 *Pass Reconnected Successfully!*\n\n` +
+                    `Verified Receipt: *${cleanCode}*\n` +
+                    `Plan: *${plan.name}*\n` +
+                    `Valid Until: *${expStr}*\n\n` +
+                    `Your Socratic study engine is now active with unlimited questions!`
+            }
+          }
+        });
+      }
+
+      // 2. Fallback: Verify directly with Paystack API using authoritative Live Secret Key
+      if (this.paystackKey && !this.paystackKey.startsWith('sk_test_placeholder')) {
+        const pRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(cleanCode)}`, {
+          headers: { Authorization: `Bearer ${this.paystackKey}` }
+        });
+        const pData = await pRes.json();
+
+        if (pData?.data?.status === 'success') {
+          const amtKes = Math.round((pData.data.amount || 0) / 100);
+          let planId = 'daily_24h';
+          if (amtKes >= 190) planId = 'semester_30d';
+          else if (amtKes >= 45) planId = 'weekend_3d';
+
+          const targetPlan = MwalimuPlanManager.getPlan(planId);
+          await this.quota.activateSubscription(phone, targetPlan.id, cleanCode, amtKes);
+          const userState = await this.quota.getStudentState(phone);
+          const expStr = new Date(userState.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' });
+
+          return await this.sendWhatsApp({
+            to: phone,
+            responseData: {
+              type: 'text',
+              text: {
+                preview_url: false,
+                body: `✅ *Payment Verified with Paystack!*\n\n` +
+                      `M-Pesa Reference: *${cleanCode}*\n` +
+                      `Plan Activated: *${targetPlan.name}* (KSh ${amtKes})\n` +
+                      `Valid Until: *${expStr}*\n\n` +
+                      `You now have unmetered 24/7 study access. Send any question anytime!`
+              }
+            }
+          });
+        }
+      }
+
+      // Not found
       await this.sendWhatsApp({
         to: phone,
         responseData: {
           type: 'text',
           text: {
             preview_url: false,
-            body: `📱 *Requesting M-Pesa PIN Prompt...*\n\nWe sent an M-Pesa STK prompt for *KSh ${amountKes}* (${planTitle}) to ${formattedPhone}.\n\nEnter your M-Pesa PIN on your phone to unlock unlimited study access instantly.`
+            body: `⚠️ *Receipt Verification Notice*\n\n` +
+                  `We could not find payment code *${cleanCode}*.\n\n` +
+                  `• Make sure you completed the M-Pesa PIN prompt.\n` +
+                  `• Check your Safaricom SMS for the 10-character code.\n` +
+                  `• If you just entered your PIN 10 seconds ago, please wait a moment and try again.`
+          }
+        }
+      });
+    } catch (err) {
+      console.error('[MwalimuDispatcher] Claim exception:', err.message);
+    }
+  }
+
+  /**
+   * Triggers an M-Pesa STK push via Paystack for instant pass activation
+   * BACKEND IS KING: Price is strictly enforced from MwalimuPlanManager (zero client tampering)
+   */
+  async _triggerStkPush(studentPhone, payerPhone, planType, amountKes, planTitle) {
+    const cleanStudent = studentPhone.replace(/\D/g, '');
+    const cleanPayer = payerPhone.replace(/\D/g, '');
+    const formattedStudent = cleanStudent.startsWith('254') ? cleanStudent : '254' + cleanStudent.replace(/^0/, '');
+    const formattedPayer = cleanPayer.startsWith('254') ? cleanPayer : '254' + cleanPayer.replace(/^0/, '');
+    const ref = `MWA_${Date.now()}_${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
+    // BACKEND IS KING: Enforce server-side plan specification
+    const verifiedPlan = MwalimuPlanManager.getPlan(planType);
+    const verifiedAmountKes = verifiedPlan.priceKes;
+
+    const isDifferentPayer = cleanStudent !== cleanPayer;
+    const payerNotice = isDifferentPayer 
+      ? `We dispatched an M-Pesa PIN prompt for *KSh ${verifiedAmountKes}* (${verifiedPlan.name}) to *0${cleanPayer.slice(-9)}*.\n\n🔒 *Guarantee:* Once they enter their M-Pesa PIN, *THIS* WhatsApp account will immediately activate!`
+      : `We sent an M-Pesa prompt for *KSh ${verifiedAmountKes}* (${verifiedPlan.name}) to *+${formattedStudent}*.\n\nEnter your M-Pesa PIN on your phone to unlock unlimited study access instantly.`;
+
+    try {
+      // Send prompt notice to student
+      await this.sendWhatsApp({
+        to: cleanStudent,
+        responseData: {
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: `📱 *Requesting M-Pesa PIN Prompt...*\n\n${payerNotice}`
           }
         }
       });
@@ -900,24 +1225,27 @@ export class MwalimuDispatcher {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          amount: amountKes * 100, // Paystack requires kobo/cents
-          email: `student_${formattedPhone}@mwalimu.duncanmakoyo.com`,
+          amount: verifiedAmountKes * 100, // Cents strictly enforced by backend
+          email: `student_${formattedStudent}@mwalimu.duncanmakoyo.com`,
           currency: 'KES',
           mobile_money: {
-            phone: formattedPhone,
+            phone: formattedPayer, // The phone number that receives the STK prompt
             provider: 'mpesa'
           },
           reference: ref,
           metadata: {
             service: 'mwalimu_ai',
-            plan: planType,
-            phone: formattedPhone
+            product: 'mwalimu_pass',
+            venture: 'Mwalimu AI',
+            plan: verifiedPlan.id,
+            phone: formattedStudent, // The student who receives the pass
+            payer_phone: formattedPayer
           }
         })
       });
 
       const resData = await paystackRes.json();
-      console.log(`[MwalimuBilling] Paystack STK dispatched: ${ref} | Status: ${resData.status}`);
+      console.log(`[MwalimuBilling] Paystack STK dispatched: ${ref} (Payer: ${formattedPayer}, Student: ${formattedStudent}) | Status: ${resData.status}`);
     } catch (err) {
       console.error('[MwalimuBilling] STK Push Exception:', err.message);
     }

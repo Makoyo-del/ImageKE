@@ -552,6 +552,66 @@ export function CampusNetOps({ onNavigate }) {
         </div>
       </div>
 
+      {/* Multi-Venture Executive Split Strip */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+        gap: '12px', 
+        marginBottom: '1.25rem',
+        background: 'rgba(15, 23, 42, 0.65)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '12px 16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.4rem' }}>📶</span>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Hostel Wi-Fi Sales</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#00d4ff' }}>
+              KSh {(stats.wifi_total_revenue_kes || stats.total_revenue_kes || 0).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stats.wifi_transactions_count || stats.total_transactions_count || 0} passes paid</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.4rem' }}>🎓</span>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Mwalimu AI Study Sales</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#10b981' }}>
+              KSh {(stats.mwalimu_total_revenue_kes || mwalimuData?.stats?.totalRevenueKes || 0).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+              {stats.mwalimu_transactions_count || mwalimuData?.stats?.transactionCount || 0} passes • {stats.mwalimu_active_students_count || mwalimuData?.stats?.activePaidStudents || 0} Pro Active
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.4rem' }}>💼</span>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Combined Ventures Revenue</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffb703' }}>
+              KSh {((stats.wifi_total_revenue_kes || stats.total_revenue_kes || 0) + (stats.mwalimu_total_revenue_kes || mwalimuData?.stats?.totalRevenueKes || 0)).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>100% Verified M-Pesa Volume</div>
+          </div>
+        </div>
+
+        {Number(stats.paystack_account_volume_kes || 0) > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.4rem' }}>🏦</span>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Paystack Live Total Volume</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#cbd5e1' }}>
+                KSh {Number(stats.paystack_account_volume_kes).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Entire Paystack Account</div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 5-Tab Navigation Bar */}
       <div className="cn-nav-tabs">
         <button 
@@ -1438,6 +1498,309 @@ export function CampusNetOps({ onNavigate }) {
                   );
                 })
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════
+          TAB: MWALIMU AI SOCRATIC TUTOR CONSOLE
+      ══════════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'mwalimu' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Mwalimu 4 Stat Cards */}
+          <div className="cn-stat-grid">
+            <div className="cn-stat-card cn-card-green">
+              <div className="cn-stat-header">
+                <span className="cn-stat-title">Active VIP Pro Students</span>
+                <span className="cn-pulse-dot" />
+              </div>
+              <div className="cn-stat-value">
+                {mwalimuData?.stats?.activePaidStudents || 0}
+                <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>Unmetered</span>
+              </div>
+              <div className="cn-stat-subtext">
+                Unlimited 24/7 Socratic question answering active
+              </div>
+            </div>
+
+            <div className="cn-stat-card cn-card-cyan">
+              <div className="cn-stat-header">
+                <span className="cn-stat-title">Total Mwalimu AI Sales</span>
+                <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                  🎓 Bot Revenue
+                </span>
+              </div>
+              <div className="cn-stat-value">
+                KSh {(mwalimuData?.stats?.totalRevenueKes || stats.mwalimu_total_revenue_kes || 0).toLocaleString()}
+              </div>
+              <div className="cn-stat-subtext">
+                <span>Today: <strong style={{ color: '#00e676' }}>KSh {(mwalimuData?.stats?.todayRevenueKes || stats.mwalimu_today_revenue_kes || 0).toLocaleString()}</strong></span>
+                <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
+                <span>{mwalimuData?.stats?.transactionCount || stats.mwalimu_transactions_count || 0} study passes purchased</span>
+              </div>
+            </div>
+
+            <div className="cn-stat-card cn-card-orange">
+              <div className="cn-stat-header">
+                <span className="cn-stat-title">Registered Students</span>
+                <BookOpen size={18} color="#ff5414" />
+              </div>
+              <div className="cn-stat-value">
+                {mwalimuData?.stats?.totalStudents || stats.mwalimu_total_students_count || 0}
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>on WhatsApp</span>
+              </div>
+              <div className="cn-stat-subtext">
+                Students who have chatted with Mwalimu AI (+254 794 877 125)
+              </div>
+            </div>
+
+            <div className="cn-stat-card cn-card-gold">
+              <div className="cn-stat-header">
+                <span className="cn-stat-title">Unit Economics & Margin</span>
+                <Zap size={18} color="#ffb703" />
+              </div>
+              <div className="cn-stat-value" style={{ color: '#ffb703' }}>
+                95%+
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 500 }}>Gross Margin</span>
+              </div>
+              <div className="cn-stat-subtext">
+                Covers Render starter ($7/mo) & Gemini token inference (~KSh 0.01/q)
+              </div>
+            </div>
+          </div>
+
+          {/* Quick VIP Pass Grant Console */}
+          <div className="cn-table-card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+              <GraduationCap size={22} color="#10b981" />
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>1-Click VIP Study Pass Console</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Instantly grant a student unlimited Socratic questions without billing them (for VIPs, testing, or disputes).
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleGrantMwalimuPass} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input 
+                type="tel"
+                placeholder="Student WhatsApp (e.g. 0758530492 or 254758530492)"
+                value={grantPhone}
+                onChange={e => setGrantPhone(e.target.value)}
+                required
+                style={{ flex: '1 1 240px', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+              />
+              <select 
+                value={grantDuration}
+                onChange={e => setGrantDuration(Number(e.target.value))}
+                style={{ width: '180px', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+              >
+                <option value="24">24 Hours (Cram Pass)</option>
+                <option value="72">3 Days (Weekend Pass)</option>
+                <option value="720">30 Days (Semester Pass)</option>
+                <option value="8760">1 Year (VIP Scholar)</option>
+              </select>
+              <button 
+                type="submit"
+                disabled={grantingPass}
+                style={{ 
+                  background: '#10b981', 
+                  color: '#fff', 
+                  border: 'none', 
+                  padding: '0.75rem 1.5rem', 
+                  borderRadius: '8px', 
+                  fontWeight: 800, 
+                  fontSize: '0.95rem', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Sparkles size={16} />
+                {grantingPass ? 'Granting...' : 'Grant Unlimited Pass'}
+              </button>
+            </form>
+
+            {grantResult && (
+              <div style={{ marginTop: '0.85rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                ✓ {grantResult.message || 'VIP Pass successfully activated!'}
+              </div>
+            )}
+          </div>
+
+          {/* Mwalimu Transactions Table */}
+          <div className="cn-table-card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Recent Mwalimu AI M-Pesa Purchases</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Micro-billing transactions verified by Paystack & activated on WhatsApp.
+                </p>
+              </div>
+              <button onClick={fetchMwalimuStats} className="cn-action-btn" title="Refresh Mwalimu telemetry">
+                <RefreshCw size={13} className={mwalimuLoading ? 'animate-spin' : ''} /> Refresh
+              </button>
+            </div>
+
+            <div className="cn-table-wrapper">
+              <table className="cn-data-table">
+                <thead>
+                  <tr>
+                    <th>Student Phone</th>
+                    <th>M-Pesa Receipt</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Date / Time (EAT)</th>
+                    <th>Status</th>
+                    <th>Quick Contact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(mwalimuData?.recentTransactions || []).length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                        No M-Pesa pass purchases recorded yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    (mwalimuData?.recentTransactions || []).map(tx => {
+                      const cleanPhone = (tx.phone || '').replace(/\D/g, '');
+                      const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
+                      return (
+                        <tr key={tx.id || tx.mpesa_receipt}>
+                          <td><strong style={{ color: '#fff' }}>{localPhone}</strong></td>
+                          <td><span className="cn-code-tag">{tx.mpesa_receipt || '—'}</span></td>
+                          <td><span className="cn-pkg-badge">{tx.plan === 'semester_30d' ? '30-Day Semester VIP' : tx.plan === 'weekend_3d' ? '3-Day Weekend' : '24h Cram Pass'}</span></td>
+                          <td><strong style={{ color: '#00e676' }}>KSh {tx.amount}</strong></td>
+                          <td style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                            {new Date(tx.created_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
+                          </td>
+                          <td><span className="cn-status-pill active">COMPLETED</span></td>
+                          <td>
+                            <a 
+                              href={`https://wa.me/${cleanPhone}`} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="cn-action-btn cn-btn-wa"
+                              style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+                            >
+                              <MessageSquare size={12} /> WhatsApp
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Student Directory Table */}
+          <div className="cn-table-card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Student Directory & Pass Expiry</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+                  Active students, access tiers, and question consumption tracking.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className={`cn-pill-btn ${mwalimuFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setMwalimuFilter('all')}
+                >
+                  All ({(mwalimuData?.activeUsers || []).length})
+                </button>
+                <button 
+                  className={`cn-pill-btn ${mwalimuFilter === 'active' ? 'active' : ''}`}
+                  onClick={() => setMwalimuFilter('active')}
+                >
+                  VIP Active
+                </button>
+              </div>
+            </div>
+
+            <div className="cn-table-wrapper">
+              <table className="cn-data-table">
+                <thead>
+                  <tr>
+                    <th>Student Phone</th>
+                    <th>Access Tier</th>
+                    <th>Valid Until</th>
+                    <th>Queries Today</th>
+                    <th>Status</th>
+                    <th>Quick Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(mwalimuData?.activeUsers || []).length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                        No registered students yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    (mwalimuData?.activeUsers || []).filter(u => {
+                      if (mwalimuFilter === 'active') return u.valid_until && new Date(u.valid_until) > new Date();
+                      return true;
+                    }).map(u => {
+                      const cleanPhone = (u.phone || '').replace(/\D/g, '');
+                      const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
+                      const isVip = u.valid_until && new Date(u.valid_until) > new Date();
+                      return (
+                        <tr key={u.phone}>
+                          <td><strong style={{ color: '#fff' }}>{localPhone}</strong></td>
+                          <td>
+                            <span style={{ 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.78rem', 
+                              fontWeight: 700, 
+                              background: isVip ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.06)', 
+                              color: isVip ? '#34d399' : '#94a3b8' 
+                            }}>
+                              {isVip ? '👑 VIP Pro' : '⭐ Free Daily Tier'}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
+                            {u.valid_until ? new Date(u.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' }) : 'Expired'}
+                          </td>
+                          <td style={{ fontSize: '0.85rem', color: '#fff' }}>{u.queries_today || 0} / 3</td>
+                          <td>
+                            <span className={`cn-status-pill ${isVip ? 'active' : 'expired'}`}>
+                              {isVip ? 'ACTIVE' : 'FREE / EXPIRED'}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <a 
+                                href={`https://wa.me/${cleanPhone}`} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="cn-action-btn cn-btn-wa"
+                                style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+                              >
+                                <MessageSquare size={12} /> Chat
+                              </a>
+                              <button 
+                                onClick={() => handleGrantMwalimuPass(null, cleanPhone, 24)} 
+                                className="cn-action-btn"
+                                style={{ padding: '3px 8px', fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.2)', borderColor: '#10b981' }}
+                                title="Grant 24h VIP pass"
+                              >
+                                +24h VIP
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

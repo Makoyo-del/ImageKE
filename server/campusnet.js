@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { supabase } from './supabase.js';
 import {
+  MwalimuPlanManager,
   MwalimuQuotaService,
   MwalimuAIClient,
   MwalimuDispatcher
@@ -518,9 +519,46 @@ router.post('/webhook', async (req, res) => {
       const plan = metadata.plan || 'daily_24h';
       const mpesaReceipt = data.authorization?.last4 || data.reference || `MWA_${Date.now()}`;
       const amount = Math.round((data.amount || 0) / 100);
-      const cleanCustomerPhone = (metadata.phone || data.customer?.phone || '').replace(/\D/g, '');
-      await mwalimuQuota.activateSubscription(cleanCustomerPhone, plan, mpesaReceipt, amount);
-      console.log(`[MwalimuAI Webhook] Pass activated for ${cleanCustomerPhone} (${plan}, KSh ${amount})`);
+      const cleanStudentPhone = (metadata.phone || data.customer?.phone || '').replace(/\D/g, '');
+      const cleanPayerPhone = (metadata.payer_phone || cleanStudentPhone).replace(/\D/g, '');
+
+      // SERVER-SIDE SECURITY & VERIFICATION:
+      // Verify paid amount matches or exceeds plan price (zero client-side price tampering)
+      const targetPlan = MwalimuPlanManager.getPlan(plan);
+      if (amount < targetPlan.priceKes) {
+        console.warn(`[MwalimuAI Webhook] Underpaid transaction rejected: Paid ${amount} KES for ${plan} (requires ${targetPlan.priceKes} KES)`);
+        return res.status(200).json({ status: 'rejected', reason: 'UNDERPAID' });
+      }
+
+      await mwalimuQuota.activateSubscription(cleanStudentPhone, targetPlan.id, mpesaReceipt, amount, cleanPayerPhone);
+      console.log(`[MwalimuAI Webhook] Pass activated for student ${cleanStudentPhone} (paid by ${cleanPayerPhone}, ${targetPlan.id}, KSh ${amount})`);
+
+      // Instant WhatsApp Confirmation to the Student
+      try {
+        const userState = await mwalimuQuota.getStudentState(cleanStudentPhone);
+        const validUntilStr = userState.valid_until 
+          ? new Date(userState.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })
+          : 'Next 24h';
+        const payerNote = cleanPayerPhone !== cleanStudentPhone ? `\n💳 *Paid by M-Pesa Line:* 0${cleanPayerPhone.slice(-9)}` : '';
+
+        await sendWhatsAppMsg({
+          to: cleanStudentPhone,
+          responseData: {
+            type: 'text',
+            text: {
+              preview_url: false,
+              body: `🎉 *Payment Confirmed — Study Pass Activated!*\n\n` +
+                    `✅ *Plan:* ${targetPlan.name} (KSh ${amount})\n` +
+                    `⏳ *Valid Until:* ${validUntilStr}\n` +
+                    `🧾 *Receipt Code:* \`${mpesaReceipt}\`${payerNote}\n\n` +
+                    `Your Socratic tutor is now unlocked with *unlimited questions*! Send any question, assignment problem, or study document anytime.`
+            }
+          }
+        });
+      } catch (waErr) {
+        console.error('[MwalimuAI Webhook WhatsApp Notice Error]', waErr.message);
+      }
+
       return res.status(200).json({ status: 'success', service: 'mwalimu_ai' });
     }
     let phone = metadata.phone || data.customer?.phone || '';
@@ -1327,8 +1365,34 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
       }
     }
 
-    const finalTotalRevenueKes = paystackLiveVolumeKes !== null ? paystackLiveVolumeKes : totalRevenue;
-    const finalTotalTransactions = paystackLiveTxCount !== null ? paystackLiveTxCount : (txs || []).length;
+    // Separated Mwalimu AI bot revenue from mwalimu_transactions
+    const { data: mwalimuTxs } = await supabase
+      .from('mwalimu_transactions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    let mwalimuTotalRevenue = 0;
+    let mwalimuTodayRevenue = 0;
+    let mwalimuTodayTxCount = 0;
+
+    (mwalimuTxs || []).forEach(mt => {
+      const amt = Number(mt.amount || 0);
+      mwalimuTotalRevenue += amt;
+      const mtEatStr = new Date(new Date(mt.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
+      if (mtEatStr === todayEatStr) {
+        mwalimuTodayRevenue += amt;
+        mwalimuTodayTxCount++;
+      }
+    });
+
+    const { count: mwalimuTotalStudents } = await supabase
+      .from('mwalimu_users')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: mwalimuActivePaidStudents } = await supabase
+      .from('mwalimu_users')
+      .select('*', { count: 'exact', head: true })
+      .gt('valid_until', nowIso);
 
     // Format sessions with active status and human-readable countdowns
     const formattedSessions = (sessions || []).map(s => {
@@ -1465,6 +1529,25 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
         today_revenue_kes: todayRevenue,
         today_transactions_count: todayTxCount,
         total_revenue_kes: totalRevenue,
+        // Wi-Fi separated metrics
+        wifi_today_revenue_kes: todayRevenue,
+        wifi_today_transactions_count: todayTxCount,
+        wifi_total_revenue_kes: totalRevenue,
+        wifi_transactions_count: (txs || []).length,
+        estimated_wifi_fee_kes: Math.round(totalRevenue * 0.015),
+        estimated_wifi_net_revenue_kes: Math.round(totalRevenue * 0.985),
+
+        // Mwalimu AI separated metrics
+        mwalimu_today_revenue_kes: mwalimuTodayRevenue,
+        mwalimu_today_transactions_count: mwalimuTodayTxCount,
+        mwalimu_total_revenue_kes: mwalimuTotalRevenue,
+        mwalimu_transactions_count: (mwalimuTxs || []).length,
+        mwalimu_active_students_count: mwalimuActivePaidStudents || 0,
+        mwalimu_total_students_count: mwalimuTotalStudents || 0,
+
+        // Multi-venture combined metrics
+        combined_venture_revenue_kes: totalRevenue + mwalimuTotalRevenue,
+        combined_venture_tx_count: (txs || []).length + (mwalimuTxs || []).length,
         paystack_wifi_revenue_kes: totalRevenue,
         paystack_account_volume_kes: paystackLiveVolumeKes,
         paystack_verified_revenue_kes: paystackVerifiedRevenue,
@@ -2571,13 +2654,28 @@ router.get('/mwalimu/stats', async (_req, res) => {
       .select('*', { count: 'exact', head: true })
       .gt('valid_until', nowIso);
 
+    const eatOffset = 3 * 60 * 60 * 1000;
+    const todayEatStr = new Date(new Date().getTime() + eatOffset).toISOString().slice(0, 10);
+
     const { data: recentTxs } = await supabase
       .from('mwalimu_transactions')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
-    const totalRevenueKes = (recentTxs || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+    let totalRevenueKes = 0;
+    let todayRevenueKes = 0;
+    let todayTxCount = 0;
+
+    (recentTxs || []).forEach(tx => {
+      const amt = Number(tx.amount) || 0;
+      totalRevenueKes += amt;
+      const txEatStr = new Date(new Date(tx.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
+      if (txEatStr === todayEatStr) {
+        todayRevenueKes += amt;
+        todayTxCount++;
+      }
+    });
 
     const { data: activeUsersList } = await supabase
       .from('mwalimu_users')
@@ -2591,6 +2689,8 @@ router.get('/mwalimu/stats', async (_req, res) => {
         totalStudents: totalStudents || 0,
         activePaidStudents: activePaidStudents || 0,
         totalRevenueKes,
+        todayRevenueKes,
+        todayTransactionCount: todayTxCount,
         transactionCount: (recentTxs || []).length
       },
       recentTransactions: recentTxs || [],
