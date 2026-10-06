@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
+  GraduationCap,
+  BookOpen,
   Wifi, 
   Shield, 
   Phone, 
@@ -75,6 +77,16 @@ export function CampusNetOps({ onNavigate }) {
   const [togglingPromoId, setTogglingPromoId] = useState(null);
   const [deletingPromoId, setDeletingPromoId] = useState(null);
 
+  // ─── Mwalimu AI Operations State ──────────────────────────────────────────
+  const [mwalimuData, setMwalimuData] = useState(null);
+  const [mwalimuLoading, setMwalimuLoading] = useState(false);
+  const [mwalimuSearch, setMwalimuSearch] = useState('');
+  const [mwalimuFilter, setMwalimuFilter] = useState('all'); // 'all' | 'active' | 'free'
+  const [grantPhone, setGrantPhone] = useState('');
+  const [grantDuration, setGrantDuration] = useState(24);
+  const [grantingPass, setGrantingPass] = useState(false);
+  const [grantResult, setGrantResult] = useState(null);
+
   // ─── Hotline Dispatch Form ─────────────────────────────────────────────────
   const [hotlinePhone, setHotlinePhone] = useState('');
   const [hotlinePkg, setHotlinePkg] = useState('pkg_24h');
@@ -124,6 +136,44 @@ export function CampusNetOps({ onNavigate }) {
       console.error('Fetch tickets error:', err);
     } finally {
       setTicketsLoading(false);
+    }
+  };
+
+  const fetchMwalimuStats = async () => {
+    setMwalimuLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/campusnet/mwalimu/stats`);
+      if (res.data?.success) {
+        setMwalimuData(res.data);
+      }
+    } catch (err) {
+      console.error('Fetch Mwalimu stats error:', err);
+    } finally {
+      setMwalimuLoading(false);
+    }
+  };
+
+  const handleGrantMwalimuPass = async (e, phoneToGrant = null, hours = 24) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const targetPhone = phoneToGrant || grantPhone;
+    if (!targetPhone) {
+      alert('Please provide a student phone number');
+      return;
+    }
+    setGrantingPass(true);
+    setGrantResult(null);
+    try {
+      const res = await axios.post(`${API_URL}/api/campusnet/mwalimu/grant-pass`, {
+        phone: targetPhone,
+        durationHours: Number(hours) || 24
+      });
+      setGrantResult(res.data);
+      if (!phoneToGrant) setGrantPhone('');
+      await fetchMwalimuStats();
+    } catch (err) {
+      alert('Failed to grant pass: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setGrantingPass(false);
     }
   };
 
@@ -540,6 +590,18 @@ export function CampusNetOps({ onNavigate }) {
         >
           <Tag size={16} /> Promos & Discounts
           <span className="cn-badge-count">{activePromosCount} Active</span>
+        </button>
+
+        <button 
+          className={`cn-nav-btn ${activeTab === 'mwalimu' ? 'active' : ''}`}
+          onClick={() => { setActiveTab('mwalimu'); fetchMwalimuStats(); }}
+        >
+          <GraduationCap size={16} /> 🎓 Mwalimu AI
+          {mwalimuData?.stats?.activePaidStudents > 0 && (
+            <span style={{ background: '#10b981', color: '#fff', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '10px', fontWeight: 800 }}>
+              {mwalimuData.stats.activePaidStudents} Pro
+            </span>
+          )}
         </button>
 
         <button 

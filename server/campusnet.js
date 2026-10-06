@@ -2512,7 +2512,7 @@ router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
   return res.json(result);
 });
 
-export default router;
+// router export moved to bottom
 
 
 // ─── Mwalimu AI Dashboard Management APIs ────────────────────────────────────
@@ -2581,3 +2581,5 @@ router.post('/mwalimu/grant-pass', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+export default router;

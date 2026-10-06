@@ -14,6 +14,89 @@
 
 import crypto from 'crypto';
 
+// ─── 0. DYNAMIC STUDY PLANS & BILLING CONFIGURATION (OOP & ZERO HARDCODING) ───
+export class MwalimuPlanManager {
+  /**
+   * Retrieves all active study pass configurations.
+   * Dynamically reads environment overrides with optimal student-budget defaults.
+   * Unit Economics Account For:
+   * - Render Starter Plan ($7/mo = ~KSh 945/mo)
+   * - Meta WhatsApp 24h Conversation Windows (~KSh 1.08/window after 1,000 free/mo)
+   * - Paystack M-Pesa processing fees (~1.5% - 2.5%)
+   * - Gemini 2.5 Flash token usage (~KSh 0.01 / query)
+   */
+  static getPlans() {
+    return {
+      daily_24h: {
+        id: 'daily_24h',
+        name: '24-Hour Cram Pass',
+        priceKes: Number(process.env.MWALIMU_PRICE_DAILY) || 20,
+        durationHours: 24,
+        buttonId: 'BUY_PLAN_DAILY',
+        buttonTitle: `⚡ KSh ${Number(process.env.MWALIMU_PRICE_DAILY) || 20} (24 Hours)`,
+        tier: 'daily',
+        summary: 'Full exam night unmetered study'
+      },
+      weekend_3d: {
+        id: 'weekend_3d',
+        name: '3-Day Weekend & CATs Pass',
+        priceKes: Number(process.env.MWALIMU_PRICE_WEEKEND) || 50,
+        durationHours: 72,
+        buttonId: 'BUY_PLAN_WEEKEND',
+        buttonTitle: `📚 KSh ${Number(process.env.MWALIMU_PRICE_WEEKEND) || 50} (3 Days)`,
+        tier: 'weekend',
+        summary: 'CATs revision marathon unmetered'
+      },
+      semester_30d: {
+        id: 'semester_30d',
+        name: '30-Day Semester VIP Pass',
+        priceKes: Number(process.env.MWALIMU_PRICE_SEMESTER) || 199,
+        durationHours: 720,
+        buttonId: 'BUY_PLAN_SEMESTER',
+        buttonTitle: `👑 KSh ${Number(process.env.MWALIMU_PRICE_SEMESTER) || 199} (30 Days)`,
+        tier: 'monthly',
+        summary: 'Whole month unlimited Socratic tutor'
+      }
+    };
+  }
+
+  static getPlan(planId) {
+    const plans = this.getPlans();
+    return plans[planId] || plans['daily_24h'];
+  }
+
+  static getPlanByButtonId(buttonId) {
+    const plans = this.getPlans();
+    // Support modern and legacy button IDs
+    if (buttonId === 'BUY_PLAN_20') return plans.daily_24h;
+    if (buttonId === 'BUY_PLAN_50') return plans.weekend_3d;
+    if (buttonId === 'BUY_PLAN_150') return plans.semester_30d;
+    return Object.values(plans).find(p => p.buttonId === buttonId) || null;
+  }
+
+  static generatePaywallText() {
+    const plans = Object.values(this.getPlans());
+    let txt = `🎓 *You've mastered today's 3 free questions!*\n\n` +
+      `Don't let your study flow stall tonight. Unlock instant, unmetered Socratic tutoring with M-Pesa:\n\n`;
+    for (const p of plans) {
+      txt += `• *${p.name}:* KSh ${p.priceKes} (${p.summary})\n`;
+    }
+    txt += `\nSelect your study pass below to activate instantly:`;
+    return txt;
+  }
+
+  static generatePaywallButtons() {
+    const plans = Object.values(this.getPlans());
+    return plans.map(p => ({
+      type: 'reply',
+      reply: {
+        id: p.buttonId,
+        title: p.buttonTitle
+      }
+    }));
+  }
+}
+
 // ─── 1. PEDAGOGICAL WHATSAPP FORMATTER (UNICODE MATH & ZERO-WALLS UX) ─────────
 export class MwalimuContentFormatter {
   /**
@@ -275,16 +358,11 @@ export class MwalimuQuotaService {
     const cleanPhone = phone.replace(/\D/g, '');
     const cleanReceipt = (mpesaReceipt || '').trim().toUpperCase();
 
-    let durationHours = 24;
-    let tierName = 'daily';
-
-    if (planType === 'weekend_3d') {
-      durationHours = 72;
-      tierName = 'weekend';
-    } else if (planType === 'semester_30d') {
-      durationHours = 720;
-      tierName = 'monthly';
-    }
+    // Dynamically retrieve plan specifications via MwalimuPlanManager
+    const plan = MwalimuPlanManager.getPlan(planType);
+    const durationHours = plan.durationHours;
+    const tierName = plan.tier;
+    const effectiveAmount = amount || plan.priceKes;
 
     const now = new Date();
     const validUntil = new Date(now.getTime() + durationHours * 3600 * 1000);
@@ -552,13 +630,8 @@ export class MwalimuDispatcher {
    * Paywall prompt triggered when free 3 queries expire
    */
   async _sendBillingPaywallPrompt(to, queriesUsed) {
-    const promptMessage = 
-      `🎓 *You've mastered today's 3 free questions!*\n\n` +
-      `Don't let your study flow stall tonight. Unlock instant, unmetered Socratic tutoring with M-Pesa:\n\n` +
-      `• *24-Hour Cram Pass:* KSh 20 (Full exam night unlimited)\n` +
-      `• *3-Day Weekend Pass:* KSh 50 (CATs revision marathon)\n` +
-      `• *30-Day Semester VIP:* KSh 150 (Whole month unmetered)\n\n` +
-      `Select your study pass below to activate instantly:`;
+    const promptMessage = MwalimuPlanManager.generatePaywallText();
+    const buttons = MwalimuPlanManager.generatePaywallButtons();
 
     const paywallPayload = {
       type: 'interactive',
@@ -566,20 +639,7 @@ export class MwalimuDispatcher {
         type: 'button',
         body: { text: promptMessage },
         action: {
-          buttons: [
-            {
-              type: 'reply',
-              reply: { id: 'BUY_PLAN_20', title: '⚡ KSh 20 (24 Hours)' }
-            },
-            {
-              type: 'reply',
-              reply: { id: 'BUY_PLAN_50', title: '📚 KSh 50 (3 Days)' }
-            },
-            {
-              type: 'reply',
-              reply: { id: 'BUY_PLAN_150', title: '👑 KSh 150 (30 Days)' }
-            }
-          ]
+          buttons
         }
       }
     };
@@ -591,14 +651,10 @@ export class MwalimuDispatcher {
    * Handles Interactive Button Actions
    */
   async _handleButtonAction(phone, buttonId) {
-    if (buttonId === 'BUY_PLAN_20') {
-      return await this._triggerStkPush(phone, 'daily_24h', 20, '24-Hour Exam Sprint Pass');
-    }
-    if (buttonId === 'BUY_PLAN_50') {
-      return await this._triggerStkPush(phone, 'weekend_3d', 50, '3-Day Weekend Study Pass');
-    }
-    if (buttonId === 'BUY_PLAN_150') {
-      return await this._triggerStkPush(phone, 'semester_30d', 150, '30-Day Semester VIP Pass');
+    // Dynamic Plan Resolution via MwalimuPlanManager (zero hardcoding)
+    const plan = MwalimuPlanManager.getPlanByButtonId(buttonId);
+    if (plan) {
+      return await this._triggerStkPush(phone, plan.id, plan.priceKes, plan.name);
     }
     if (buttonId === 'MENU_PRICING') {
       return await this._sendBillingPaywallPrompt(phone, 3);
