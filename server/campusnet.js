@@ -3,6 +3,11 @@ import axios from 'axios';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { supabase } from './supabase.js';
+import {
+  MwalimuQuotaService,
+  MwalimuAIClient,
+  MwalimuDispatcher
+} from './MwalimuEngine.js';
 
 dotenv.config();
 
@@ -509,6 +514,15 @@ router.post('/webhook', async (req, res) => {
 
   if (event.event === 'charge.success') {
     const metadata = data.metadata || {};
+    if (metadata.service === 'mwalimu_ai') {
+      const plan = metadata.plan || 'daily_24h';
+      const mpesaReceipt = data.authorization?.last4 || data.reference || `MWA_${Date.now()}`;
+      const amount = Math.round((data.amount || 0) / 100);
+      const cleanCustomerPhone = (metadata.phone || data.customer?.phone || '').replace(/\D/g, '');
+      await mwalimuQuota.activateSubscription(cleanCustomerPhone, plan, mpesaReceipt, amount);
+      console.log(`[MwalimuAI Webhook] Pass activated for ${cleanCustomerPhone} (${plan}, KSh ${amount})`);
+      return res.status(200).json({ status: 'success', service: 'mwalimu_ai' });
+    }
     let phone = metadata.phone || data.customer?.phone || '';
     if (!phone && data.customer?.email && data.customer.email.includes('wifi+')) {
       phone = data.customer.email.replace('wifi+', '').split('@')[0];
@@ -2362,6 +2376,16 @@ const supportLoyalty = new LoyaltyService(supabase);
 const supportSessions = new SessionRecoveryService(supabase, supportLoyalty);
 const supportPromos = new PromoService(supabase);
 
+// ─── Mwalimu AI Autonomous Tutoring Engine ─────────────────────────────────
+const mwalimuQuota = new MwalimuQuotaService(supabase);
+const mwalimuAI = new MwalimuAIClient(process.env.GEMINI_API_KEY);
+const mwalimuDispatcher = new MwalimuDispatcher({
+  quotaService: mwalimuQuota,
+  aiClient: mwalimuAI,
+  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
+  sendWhatsAppFunc: sendWhatsAppMsg
+});
+
 const supportTickets = new TicketService(supabase, async (msg) => {
   return await sendWhatsAppMsg(msg);
 });
@@ -2414,12 +2438,12 @@ router.post('/whatsapp/webhook', async (req, res) => {
 
     console.log(`[WhatsApp Inbound] From: ${fromPhone} | Input: "${incomingText}"`);
 
-    const reply = await supportBot.handleMessage(fromPhone, incomingText);
-
-    await sendWhatsAppMsg({
-      to: fromPhone,
-      responseData: reply,
-      phoneNumberId: value?.metadata?.phone_number_id
+    // Route incoming message to Mwalimu AI Autonomous Study Engine
+    await mwalimuDispatcher.processInboundMessage({
+      messageId: message.id,
+      fromPhone: fromPhone,
+      textBody: incomingText,
+      interactiveButtonId: message.interactive?.button_reply?.id || null
     });
   } catch (err) {
     console.error('[WhatsApp Inbound Handler Exception]', err.message);
@@ -2490,3 +2514,70 @@ router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
 
 export default router;
 
+
+// ─── Mwalimu AI Dashboard Management APIs ────────────────────────────────────
+router.get('/mwalimu/stats', async (_req, res) => {
+  try {
+    const { count: totalStudents } = await supabase
+      .from('mwalimu_users')
+      .select('*', { count: 'exact', head: true });
+
+    const nowIso = new Date().toISOString();
+    const { count: activePaidStudents } = await supabase
+      .from('mwalimu_users')
+      .select('*', { count: 'exact', head: true })
+      .gt('valid_until', nowIso);
+
+    const { data: recentTxs } = await supabase
+      .from('mwalimu_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const totalRevenueKes = (recentTxs || []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+
+    const { data: activeUsersList } = await supabase
+      .from('mwalimu_users')
+      .select('phone, tier, valid_until, queries_today, last_query_date, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(30);
+
+    res.json({
+      success: true,
+      stats: {
+        totalStudents: totalStudents || 0,
+        activePaidStudents: activePaidStudents || 0,
+        totalRevenueKes,
+        transactionCount: (recentTxs || []).length
+      },
+      recentTransactions: recentTxs || [],
+      activeUsers: activeUsersList || []
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/mwalimu/grant-pass', async (req, res) => {
+  const { phone, durationHours = 24, plan = 'manual_grant' } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+
+  try {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const now = new Date();
+    const validUntil = new Date(now.getTime() + durationHours * 3600 * 1000);
+
+    await supabase
+      .from('mwalimu_users')
+      .upsert({
+        phone: cleanPhone,
+        tier: 'manual_vip',
+        valid_until: validUntil.toISOString(),
+        queries_today: 0
+      }, { onConflict: 'phone' });
+
+    res.json({ success: true, message: `VIP pass granted for ${cleanPhone} until ${validUntil.toISOString()}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
