@@ -1451,6 +1451,12 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
 
     return res.json({
       success: true,
+      diagnostics: {
+        hasWhatsAppToken: !!process.env.WHATSAPP_API_TOKEN,
+        hasGeminiKey: !!process.env.GEMINI_API_KEY,
+        whatsAppPhoneId: process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583',
+        tokenLength: (process.env.WHATSAPP_API_TOKEN || '').length
+      },
       stats: {
         active_sessions_count: activeSessionsCount,
         total_sessions_count: formattedSessions.length,
