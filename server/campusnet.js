@@ -3,13 +3,12 @@ import axios from 'axios';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { supabase } from './supabase.js';
-import { sendWhatsAppMessage, sendTypingIndicator, WA_GRAPH_VERSION } from './WhatsAppSender.js';
 import {
-  MwalimuPlanManager,
-  MwalimuQuotaService,
-  MwalimuAIClient,
-  MwalimuDispatcher
-} from './MwalimuEngine.js';
+  LoyaltyService,
+  PromoService,
+  SessionRecoveryService,
+  PaymentVerificationService
+} from './WifiPromosLoyalty.js';
 
 dotenv.config();
 
@@ -516,52 +515,7 @@ router.post('/webhook', async (req, res) => {
 
   if (event.event === 'charge.success') {
     const metadata = data.metadata || {};
-    if (metadata.service === 'mwalimu_ai') {
-      const plan = metadata.plan || 'daily_24h';
-      const mpesaReceipt = data.authorization?.last4 || data.reference || `MWA_${Date.now()}`;
-      const amount = Math.round((data.amount || 0) / 100);
-      const cleanStudentPhone = (metadata.phone || data.customer?.phone || '').replace(/\D/g, '');
-      const cleanPayerPhone = (metadata.payer_phone || cleanStudentPhone).replace(/\D/g, '');
-
-      // SERVER-SIDE SECURITY & VERIFICATION:
-      // Verify paid amount matches or exceeds plan price (zero client-side price tampering)
-      const targetPlan = MwalimuPlanManager.getPlan(plan);
-      if (amount < targetPlan.priceKes) {
-        console.warn(`[MwalimuAI Webhook] Underpaid transaction rejected: Paid ${amount} KES for ${plan} (requires ${targetPlan.priceKes} KES)`);
-        return res.status(200).json({ status: 'rejected', reason: 'UNDERPAID' });
-      }
-
-      await mwalimuQuota.activateSubscription(cleanStudentPhone, targetPlan.id, mpesaReceipt, amount, cleanPayerPhone);
-      console.log(`[MwalimuAI Webhook] Pass activated for student ${cleanStudentPhone} (paid by ${cleanPayerPhone}, ${targetPlan.id}, KSh ${amount})`);
-
-      // Instant WhatsApp Confirmation to the Student
-      try {
-        const userState = await mwalimuQuota.getStudentState(cleanStudentPhone);
-        const validUntilStr = userState.valid_until 
-          ? new Date(userState.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })
-          : 'Next 24h';
-        const payerNote = cleanPayerPhone !== cleanStudentPhone ? `\n💳 *Paid by M-Pesa Line:* 0${cleanPayerPhone.slice(-9)}` : '';
-
-        await sendWhatsAppMsg({
-          to: cleanStudentPhone,
-          responseData: {
-            type: 'text',
-            text: {
-              preview_url: false,
-              body: `🎉 *Payment Confirmed — Study Pass Activated!*\n\n` +
-                    `✅ *Plan:* ${targetPlan.name} (KSh ${amount})\n` +
-                    `⏳ *Valid Until:* ${validUntilStr}\n` +
-                    `🧾 *Receipt Code:* \`${mpesaReceipt}\`${payerNote}\n\n` +
-                    `Your Socratic tutor is now unlocked with *unlimited questions*! Send any question, assignment problem, or study document anytime.`
-            }
-          }
-        });
-      } catch (waErr) {
-        console.error('[MwalimuAI Webhook WhatsApp Notice Error]', waErr.message);
-      }
-
-      return res.status(200).json({ status: 'success', service: 'mwalimu_ai' });
-    }
+    
     let phone = metadata.phone || data.customer?.phone || '';
     if (!phone && data.customer?.email && data.customer.email.includes('wifi+')) {
       phone = data.customer.email.replace('wifi+', '').split('@')[0];
@@ -1366,34 +1320,7 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
       }
     }
 
-    // Separated Mwalimu AI bot revenue from mwalimu_transactions
-    const { data: mwalimuTxs } = await supabase
-      .from('mwalimu_transactions')
-      .select('*')
-      .order('created_at', { ascending: false });
 
-    let mwalimuTotalRevenue = 0;
-    let mwalimuTodayRevenue = 0;
-    let mwalimuTodayTxCount = 0;
-
-    (mwalimuTxs || []).forEach(mt => {
-      const amt = Number(mt.amount || 0);
-      mwalimuTotalRevenue += amt;
-      const mtEatStr = new Date(new Date(mt.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
-      if (mtEatStr === todayEatStr) {
-        mwalimuTodayRevenue += amt;
-        mwalimuTodayTxCount++;
-      }
-    });
-
-    const { count: mwalimuTotalStudents } = await supabase
-      .from('mwalimu_users')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: mwalimuActivePaidStudents } = await supabase
-      .from('mwalimu_users')
-      .select('*', { count: 'exact', head: true })
-      .gt('valid_until', nowIso);
 
     // Format sessions with active status and human-readable countdowns
     const formattedSessions = (sessions || []).map(s => {
@@ -1538,17 +1465,7 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
         estimated_wifi_fee_kes: Math.round(totalRevenue * 0.015),
         estimated_wifi_net_revenue_kes: Math.round(totalRevenue * 0.985),
 
-        // Mwalimu AI separated metrics
-        mwalimu_today_revenue_kes: mwalimuTodayRevenue,
-        mwalimu_today_transactions_count: mwalimuTodayTxCount,
-        mwalimu_total_revenue_kes: mwalimuTotalRevenue,
-        mwalimu_transactions_count: (mwalimuTxs || []).length,
-        mwalimu_active_students_count: mwalimuActivePaidStudents || 0,
-        mwalimu_total_students_count: mwalimuTotalStudents || 0,
 
-        // Multi-venture combined metrics
-        combined_venture_revenue_kes: totalRevenue + mwalimuTotalRevenue,
-        combined_venture_tx_count: (txs || []).length + (mwalimuTxs || []).length,
         paystack_wifi_revenue_kes: totalRevenue,
         paystack_account_volume_kes: paystackLiveVolumeKes,
         paystack_verified_revenue_kes: paystackVerifiedRevenue,
@@ -2406,143 +2323,11 @@ router.post('/referrals/verify', (req, res) => {
 
 
 
-// ─── WhatsApp Cloud API Webhook & Autonomous Support Bot (v3.0 PRO) ───────────
-import {
-  PaymentVerificationService,
-  SessionRecoveryService,
-  LoyaltyService,
-  PromoService,
-  TicketService,
-  BotConversationManager,
-  ADMIN_TECH_SUPPORT_PHONE
-} from './SupportEngine.js';
-
-// Helper: Outbound WhatsApp Graph API message sender (Supports Text & Native Buttons)
-// Helper: Outbound WhatsApp Graph API message sender (Backed by WhatsAppSender.js)
-async function sendWhatsAppMsg({ to, responseData, phoneNumberId, apiToken }) {
-  return await sendWhatsAppMessage({ to, responseData, phoneNumberId, apiToken });
-}
-
-
-// Instantiate Support Services
-const supportPayments = new PaymentVerificationService(supabase, process.env.PAYSTACK_SECRET_KEY);
+// ─── CampusNet Promos & Loyalty Services ────────────────────────────────────────
 const supportLoyalty = new LoyaltyService(supabase);
-const supportSessions = new SessionRecoveryService(supabase, supportLoyalty);
 const supportPromos = new PromoService(supabase);
 
-// ─── Mwalimu AI Autonomous Tutoring Engine ─────────────────────────────────
-const mwalimuQuota = new MwalimuQuotaService(supabase);
-const mwalimuAI = new MwalimuAIClient(process.env.GEMINI_API_KEY);
-const mwalimuDispatcher = new MwalimuDispatcher({
-  quotaService: mwalimuQuota,
-  aiClient: mwalimuAI,
-  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
-  sendWhatsAppFunc: sendWhatsAppMsg
-});
-
-const supportTickets = new TicketService(supabase, async (msg) => {
-  return await sendWhatsAppMsg(msg);
-});
-const supportBot = new BotConversationManager(
-  supportPayments,
-  supportSessions,
-  supportLoyalty,
-  supportPromos,
-  supportTickets
-);
-
-// 1. Meta Webhook Verification (GET Challenge)
-router.get('/whatsapp/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-  const expectedToken = process.env.WHATSAPP_VERIFY_TOKEN || 'campusnet_meta_webhook_secret_2026';
-
-  if (mode === 'subscribe' && token === expectedToken) {
-    console.log('[WhatsApp Webhook] Meta Verification Challenge SUCCESS!');
-    return res.status(200).send(challenge);
-  }
-  console.warn('[WhatsApp Webhook] Meta Verification FAILED. Token mismatch or bad mode.');
-  return res.sendStatus(403);
-});
-
-// 2. Inbound WhatsApp Message Ingestion (POST Payload with Buttons support)
-router.post('/whatsapp/webhook', async (req, res) => {
-  res.sendStatus(200); // Immediate 200 OK for Meta
-
-  const body = req.body;
-  if (body.object !== 'whatsapp_business_account') return;
-
-  try {
-    const entries = body.entry || [];
-    for (const entry of entries) {
-      const changes = entry.changes || [];
-      for (const change of changes) {
-        const value = change.value;
-        const messages = value?.messages || [];
-
-        for (const message of messages) {
-          const fromPhone = message.from;
-          if (!fromPhone) continue;
-
-          // Extract media attachments (Document, Image, Audio / Voice note)
-          let mediaAttachment = null;
-          if (message.type === 'document' && message.document) {
-            mediaAttachment = {
-              type: 'document',
-              id: message.document.id,
-              mimeType: message.document.mime_type || 'application/pdf',
-              filename: message.document.filename || 'study_document.pdf',
-              fileSize: Number(message.document.file_size) || 0,
-              caption: message.document.caption || ''
-            };
-          } else if (message.type === 'image' && message.image) {
-            mediaAttachment = {
-              type: 'image',
-              id: message.image.id,
-              mimeType: message.image.mime_type || 'image/jpeg',
-              filename: 'study_image.jpg',
-              fileSize: Number(message.image.file_size) || 0,
-              caption: message.image.caption || ''
-            };
-          } else if (message.type === 'audio' && message.audio) {
-            mediaAttachment = {
-              type: 'audio',
-              id: message.audio.id,
-              mimeType: message.audio.mime_type || 'audio/ogg; codecs=opus',
-              filename: 'voice_note.ogg',
-              fileSize: Number(message.audio.file_size) || 0,
-              caption: ''
-            };
-          }
-
-          // Extract input text
-          const incomingText = message.interactive?.button_reply?.id ||
-                               message.interactive?.list_reply?.id ||
-                               message.text?.body ||
-                               mediaAttachment?.caption ||
-                               (mediaAttachment ? (message.type === 'audio' ? 'Please listen to this voice note and answer my study question.' : 'Please review this study document and explain step by step.') : '');
-
-          if (!incomingText && !mediaAttachment) continue;
-
-          console.log(`[WhatsApp Inbound] From: ${fromPhone} | Type: ${message.type} | Input: "${incomingText.substring(0, 50)}"`);
-
-          // Route to Mwalimu AI Autonomous Study Engine
-          await mwalimuDispatcher.processInboundMessage({
-            messageId: message.id,
-            fromPhone: fromPhone,
-            textBody: incomingText,
-            media: mediaAttachment,
-            interactiveButtonId: message.interactive?.button_reply?.id || null
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[WhatsApp Inbound Handler Exception]', err.message);
-  }
-});
-// 3. Loyalty & Promos Public APIs
+// 1. Loyalty & Promos Public APIs
 router.get('/loyalty/:phone', async (req, res) => {
   const profile = await supportLoyalty.calculateLoyalty(req.params.phone);
   return res.json({ success: true, profile });
@@ -2553,7 +2338,7 @@ router.get('/promos', async (req, res) => {
   return res.json({ success: true, promos });
 });
 
-// 4. Admin Promo Management APIs
+// 2. Admin Promo Management APIs
 router.get('/admin/promos', authenticateAdmin, async (req, res) => {
   const promos = await supportPromos.listAllPromos();
   return res.json({ success: true, promos });
@@ -2584,144 +2369,5 @@ router.delete('/admin/promos/:id', authenticateAdmin, async (req, res) => {
   const result = await supportPromos.deletePromo(req.params.id);
   return res.json(result);
 });
-
-// 5. Admin Tickets & Supabase Free-Tier Pruning APIs
-router.get('/admin/tickets', authenticateAdmin, async (req, res) => {
-  const { status, search, limit } = req.query;
-  const tickets = await supportTickets.listTickets({ status, search, limit: Number(limit) || 50 });
-  return res.json({ success: true, tickets });
-});
-
-router.patch('/admin/tickets/:id', authenticateAdmin, async (req, res) => {
-  const { status, admin_notes } = req.body;
-  const result = await supportTickets.updateTicketStatus(req.params.id, status, admin_notes);
-  return res.json(result);
-});
-
-router.post('/admin/tickets/prune', authenticateAdmin, async (req, res) => {
-  const { days_old, purge_all } = req.body;
-  const result = await supportTickets.pruneTickets({ daysOld: Number(days_old) || 7, pruneAllResolved: !!purge_all });
-  return res.json(result);
-});
-
-// router export moved to bottom
-
-
-// ─── Mwalimu AI Dashboard Management APIs ────────────────────────────────────
-router.get('/mwalimu/stats', authenticateAdmin, async (_req, res) => {
-  try {
-    const { count: totalStudents } = await supabase
-      .from('mwalimu_users')
-      .select('*', { count: 'exact', head: true });
-
-    const nowIso = new Date().toISOString();
-    const { count: activePaidStudents } = await supabase
-      .from('mwalimu_users')
-      .select('*', { count: 'exact', head: true })
-      .gt('valid_until', nowIso);
-
-    const eatOffset = 3 * 60 * 60 * 1000;
-    const todayEatStr = new Date(new Date().getTime() + eatOffset).toISOString().slice(0, 10);
-
-    const { data: recentTxs } = await supabase
-      .from('mwalimu_transactions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    let totalRevenueKes = 0;
-    let todayRevenueKes = 0;
-    let todayTxCount = 0;
-
-    (recentTxs || []).forEach(tx => {
-      const amt = Number(tx.amount) || 0;
-      totalRevenueKes += amt;
-      const txEatStr = new Date(new Date(tx.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
-      if (txEatStr === todayEatStr) {
-        todayRevenueKes += amt;
-        todayTxCount++;
-      }
-    });
-
-    const { data: activeUsersList } = await supabase
-      .from('mwalimu_users')
-      .select('phone, tier, valid_until, queries_today, last_query_date, updated_at')
-      .order('updated_at', { ascending: false })
-      .limit(30);
-
-    res.json({
-      success: true,
-      stats: {
-        totalStudents: totalStudents || 0,
-        activePaidStudents: activePaidStudents || 0,
-        totalRevenueKes,
-        todayRevenueKes,
-        todayTransactionCount: todayTxCount,
-        transactionCount: (recentTxs || []).length
-      },
-      recentTransactions: recentTxs || [],
-      activeUsers: activeUsersList || []
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post('/mwalimu/grant-pass', authenticateAdmin, async (req, res) => {
-  const { phone, durationHours = 24, plan = 'manual_grant' } = req.body;
-  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
-
-  try {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const now = new Date();
-    const validUntil = new Date(now.getTime() + durationHours * 3600 * 1000);
-
-    await supabase
-      .from('mwalimu_users')
-      .upsert({
-        phone: cleanPhone,
-        tier: 'manual_vip',
-        valid_until: validUntil.toISOString(),
-        queries_today: 0
-      }, { onConflict: 'phone' });
-
-    res.json({ success: true, message: `VIP pass granted for ${cleanPhone} until ${validUntil.toISOString()}` });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-
-// ─── WhatsApp Conversational Automation Commands Sync ────────────────────────
-async function syncWhatsAppCommands() {
-  const token = (process.env.WHATSAPP_API_TOKEN || '').trim();
-  const phoneId = (process.env.WHATSAPP_PHONE_NUMBER_ID || '1395576280301583').toString().trim();
-  if (!token) return;
-
-  const payload = {
-    commands: [
-      { command_name: 'help', command_description: 'How to use Mwalimu AI across all courses' },
-      { command_name: 'status', command_description: 'Check active pass and remaining free questions' },
-      { command_name: 'prices', command_description: 'View unmetered study passes (20, 50, 199 KSh)' },
-      { command_name: 'restore', command_description: 'Reconnect an active pass or M-Pesa payment' },
-      { command_name: 'reset', command_description: 'Clear recent context and start a new topic' }
-    ],
-    enable_welcome_message: false
-  };
-
-  try {
-    const res = await fetch(`https://graph.facebook.com/${WA_GRAPH_VERSION}/${phoneId}/conversational_automation`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (res.ok) {
-      console.log('[WhatsApp Commands] WhatsApp Conversational Automation menu registered successfully!');
-    }
-  } catch (err) {
-    console.warn('[WhatsApp Commands Sync Notice]', err.message);
-  }
-}
-syncWhatsAppCommands();
 
 export default router;

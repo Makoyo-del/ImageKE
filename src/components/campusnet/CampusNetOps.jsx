@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  GraduationCap,
-  BookOpen,
   Wifi, 
   Shield, 
   Phone, 
@@ -22,7 +20,6 @@ import {
   Database,
   Layers,
   Sparkles,
-  Ticket,
   Tag,
   PlusCircle,
   ToggleLeft,
@@ -44,7 +41,7 @@ export function CampusNetOps({ onNavigate }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   
-  // Tabs: 'sessions' | 'loyalty' | 'tickets' | 'promos' | 'hotline'
+  // Tabs: 'sessions' | 'loyalty' | 'promos' | 'hotline'
   const [activeTab, setActiveTab] = useState('sessions');
   const [sessionFilter, setSessionFilter] = useState('active'); // 'active' | 'all'
   const [loyaltyFilter, setLoyaltyFilter] = useState('unclaimed'); // 'all' | 'unclaimed' | 'near_reward'
@@ -56,16 +53,6 @@ export function CampusNetOps({ onNavigate }) {
   const [claimingPhone, setClaimingPhone] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   
-  // ─── Tickets & Complaints State ─────────────────────────────────────────────
-  const [tickets, setTickets] = useState([]);
-  const [ticketsLoading, setTicketsLoading] = useState(false);
-  const [ticketStatusFilter, setTicketStatusFilter] = useState('all'); // 'all' | 'open' | 'in_progress' | 'resolved'
-  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
-  const [updatingTicketId, setUpdatingTicketId] = useState(null);
-  const [adminNotesDraft, setAdminNotesDraft] = useState({});
-  const [pruningTickets, setPruningTickets] = useState(false);
-  const [pruneTicketsResult, setPruneTicketsResult] = useState(null);
-
   // ─── Promo Codes State ──────────────────────────────────────────────────────
   const [promos, setPromos] = useState([]);
   const [promosLoading, setPromosLoading] = useState(false);
@@ -76,16 +63,6 @@ export function CampusNetOps({ onNavigate }) {
   const [creatingPromo, setCreatingPromo] = useState(false);
   const [togglingPromoId, setTogglingPromoId] = useState(null);
   const [deletingPromoId, setDeletingPromoId] = useState(null);
-
-  // ─── Mwalimu AI Operations State ──────────────────────────────────────────
-  const [mwalimuData, setMwalimuData] = useState(null);
-  const [mwalimuLoading, setMwalimuLoading] = useState(false);
-  const [mwalimuSearch, setMwalimuSearch] = useState('');
-  const [mwalimuFilter, setMwalimuFilter] = useState('all'); // 'all' | 'active' | 'free'
-  const [grantPhone, setGrantPhone] = useState('');
-  const [grantDuration, setGrantDuration] = useState(24);
-  const [grantingPass, setGrantingPass] = useState(false);
-  const [grantResult, setGrantResult] = useState(null);
 
   // ─── Hotline Dispatch Form ─────────────────────────────────────────────────
   const [hotlinePhone, setHotlinePhone] = useState('');
@@ -123,68 +100,6 @@ export function CampusNetOps({ onNavigate }) {
     }
   };
 
-  const fetchTickets = async () => {
-    setTicketsLoading(true);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const res = await axios.get(`${API_URL}/api/campusnet/admin/tickets`, {
-        headers: { Authorization: token ? `Bearer ${token}` : 'Bearer campusnet_secret_admin_2026' }
-      });
-      if (res.data?.tickets) setTickets(res.data.tickets);
-    } catch (err) {
-      console.error('Fetch tickets error:', err);
-    } finally {
-      setTicketsLoading(false);
-    }
-  };
-
-  const fetchMwalimuStats = async () => {
-    setMwalimuLoading(true);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const res = await axios.get(`${API_URL}/api/campusnet/mwalimu/stats`, {
-        headers: { Authorization: token ? `Bearer ${token}` : 'Bearer campusnet_secret_admin_2026' }
-      });
-      if (res.data?.success) {
-        setMwalimuData(res.data);
-      }
-    } catch (err) {
-      console.error('Fetch Mwalimu stats error:', err);
-    } finally {
-      setMwalimuLoading(false);
-    }
-  };
-
-  const handleGrantMwalimuPass = async (e, phoneToGrant = null, hours = 24) => {
-    if (e && e.preventDefault) e.preventDefault();
-    const targetPhone = phoneToGrant || grantPhone;
-    if (!targetPhone) {
-      alert('Please provide a student phone number');
-      return;
-    }
-    setGrantingPass(true);
-    setGrantResult(null);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/mwalimu/grant-pass`, {
-        phone: targetPhone,
-        durationHours: Number(hours) || 24
-      }, {
-        headers: { Authorization: token ? `Bearer ${token}` : 'Bearer campusnet_secret_admin_2026' }
-      });
-      setGrantResult(res.data);
-      if (!phoneToGrant) setGrantPhone('');
-      await fetchMwalimuStats();
-    } catch (err) {
-      alert('Failed to grant pass: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setGrantingPass(false);
-    }
-  };
-
   const fetchPromos = async () => {
     setPromosLoading(true);
     try {
@@ -203,12 +118,10 @@ export function CampusNetOps({ onNavigate }) {
 
   useEffect(() => {
     fetchOverview();
-    fetchTickets();
     fetchPromos();
     // Auto-poll live database every 30 seconds
     const poll = setInterval(() => {
       fetchOverview(true);
-      fetchTickets();
     }, 30000);
     return () => clearInterval(poll);
   }, []);
@@ -276,46 +189,6 @@ export function CampusNetOps({ onNavigate }) {
       alert('Activation failed: ' + (err.response?.data?.error || err.message));
     } finally {
       setDispatching(false);
-    }
-  };
-
-  // ── Ticket Handlers ──
-  const handleUpdateTicketStatus = async (ticketId, newStatus) => {
-    setUpdatingTicketId(ticketId);
-    const notes = adminNotesDraft[ticketId] || '';
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      await axios.patch(`${API_URL}/api/campusnet/admin/tickets/${ticketId}`, {
-        status: newStatus,
-        admin_notes: notes
-      }, {
-        headers: { Authorization: token ? `Bearer ${token}` : 'Bearer campusnet_secret_admin_2026' }
-      });
-      setTickets(prev => prev.map(t => (t.id === ticketId || t.ticket_number === ticketId) ? { ...t, status: newStatus, admin_notes: notes } : t));
-    } catch (err) {
-      alert('Failed to update ticket: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setUpdatingTicketId(null);
-    }
-  };
-
-  const handlePruneTickets = async () => {
-    if (!window.confirm('Prune resolved tickets older than 7 days to keep Supabase free-tier optimal?')) return;
-    setPruningTickets(true);
-    setPruneTicketsResult(null);
-    try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      const res = await axios.post(`${API_URL}/api/campusnet/admin/tickets/prune`, { days_old: 7 }, {
-        headers: { Authorization: token ? `Bearer ${token}` : 'Bearer campusnet_secret_admin_2026' }
-      });
-      setPruneTicketsResult(res.data);
-      await fetchTickets();
-    } catch (err) {
-      alert('Failed to prune tickets: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setPruningTickets(false);
     }
   };
 
@@ -428,20 +301,6 @@ export function CampusNetOps({ onNavigate }) {
     return true;
   });
 
-  // Filter Tickets
-  const filteredTickets = tickets.filter(t => {
-    if (ticketStatusFilter !== 'all' && t.status !== ticketStatusFilter) return false;
-    if (ticketSearchQuery) {
-      const q = ticketSearchQuery.toLowerCase();
-      return (t.phone && t.phone.includes(q)) ||
-             (t.ticket_number && t.ticket_number.toLowerCase().includes(q)) ||
-             (t.room_location && t.room_location.toLowerCase().includes(q)) ||
-             (t.description && t.description.toLowerCase().includes(q));
-    }
-    return true;
-  });
-
-  const openTicketsCount = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
   const activePromosCount = promos.filter(p => p.is_active).length;
 
   return (
@@ -560,10 +419,10 @@ export function CampusNetOps({ onNavigate }) {
         </div>
       </div>
 
-      {/* Multi-Venture Executive Split Strip */}
+      {/* CampusNet Pure Wi-Fi Operational Performance Ribbon */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
         gap: '12px', 
         marginBottom: '1.25rem',
         background: 'rgba(15, 23, 42, 0.65)',
@@ -574,7 +433,7 @@ export function CampusNetOps({ onNavigate }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '1.4rem' }}>📶</span>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Hostel Wi-Fi Sales</div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Hostel Wi-Fi Gross Sales</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#00d4ff' }}>
               KSh {(stats.wifi_total_revenue_kes || stats.total_revenue_kes || 0).toLocaleString()}
             </div>
@@ -583,26 +442,24 @@ export function CampusNetOps({ onNavigate }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1.4rem' }}>🎓</span>
+          <span style={{ fontSize: '1.4rem' }}>⚡</span>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Mwalimu AI Study Sales</div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#10b981' }}>
-              KSh {(stats.mwalimu_total_revenue_kes || mwalimuData?.stats?.totalRevenueKes || 0).toLocaleString()}
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Estimated Net Earnings</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#00e676' }}>
+              KSh {(stats.estimated_net_revenue_kes || Math.round((stats.total_revenue_kes || 0) * 0.985)).toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-              {stats.mwalimu_transactions_count || mwalimuData?.stats?.transactionCount || 0} passes • {stats.mwalimu_active_students_count || mwalimuData?.stats?.activePaidStudents || 0} Pro Active
-            </div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>After Paystack 1.5% processing</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1.4rem' }}>💼</span>
+          <span style={{ fontSize: '1.4rem' }}>👥</span>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Combined Ventures Revenue</div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Active Network Sessions</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffb703' }}>
-              KSh {((stats.wifi_total_revenue_kes || stats.total_revenue_kes || 0) + (stats.mwalimu_total_revenue_kes || mwalimuData?.stats?.totalRevenueKes || 0)).toLocaleString()}
+              {stats.active_sessions_count || 0} Connected
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>100% Verified M-Pesa Volume</div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stats.available_vouchers_count || 0} vouchers in pool</div>
           </div>
         </div>
 
@@ -640,17 +497,6 @@ export function CampusNetOps({ onNavigate }) {
           )}
         </button>
 
-        <button 
-          className={`cn-nav-btn ${activeTab === 'tickets' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('tickets'); fetchTickets(); }}
-        >
-          <Ticket size={16} /> Bot Tickets & Faults
-          {openTicketsCount > 0 && (
-            <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '10px', fontWeight: 800 }}>
-              {openTicketsCount} Open
-            </span>
-          )}
-        </button>
 
         <button 
           className={`cn-nav-btn ${activeTab === 'promos' ? 'active' : ''}`}
@@ -660,17 +506,6 @@ export function CampusNetOps({ onNavigate }) {
           <span className="cn-badge-count">{activePromosCount} Active</span>
         </button>
 
-        <button 
-          className={`cn-nav-btn ${activeTab === 'mwalimu' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('mwalimu'); fetchMwalimuStats(); }}
-        >
-          <GraduationCap size={16} /> 🎓 Mwalimu AI
-          {mwalimuData?.stats?.activePaidStudents > 0 && (
-            <span style={{ background: '#10b981', color: '#fff', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '10px', fontWeight: 800 }}>
-              {mwalimuData.stats.activePaidStudents} Pro
-            </span>
-          )}
-        </button>
 
         <button 
           className={`cn-nav-btn ${activeTab === 'hotline' ? 'active' : ''}`}
@@ -682,7 +517,7 @@ export function CampusNetOps({ onNavigate }) {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button 
             className="cn-action-btn"
-            onClick={() => { fetchOverview(true); fetchTickets(); fetchPromos(); }}
+            onClick={() => { fetchOverview(true); fetchPromos(); }}
             disabled={refreshing}
             title="Refresh live telemetry from Supabase"
           >
@@ -1140,189 +975,9 @@ export function CampusNetOps({ onNavigate }) {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 3: BOT TICKETS & FAULTS CONSOLE
-      ══════════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'tickets' && (
-        <div>
-          {/* Toolbar */}
-          <div className="cn-toolbar">
-            <div className="cn-search-box">
-              <Search size={16} color="#94a3b8" />
-              <input 
-                type="text"
-                className="cn-search-input"
-                placeholder="Search ticket #, room, or phone..."
-                value={ticketSearchQuery}
-                onChange={e => setTicketSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="cn-filter-pills">
-              <button 
-                className={`cn-pill-btn ${ticketStatusFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setTicketStatusFilter('all')}
-              >
-                All Tickets ({tickets.length})
-              </button>
-              <button 
-                className={`cn-pill-btn ${ticketStatusFilter === 'open' ? 'active' : ''}`}
-                onClick={() => setTicketStatusFilter('open')}
-              >
-                🚨 Open ({tickets.filter(t => t.status === 'open').length})
-              </button>
-              <button 
-                className={`cn-pill-btn ${ticketStatusFilter === 'in_progress' ? 'active' : ''}`}
-                onClick={() => setTicketStatusFilter('in_progress')}
-              >
-                ⏳ In Progress ({tickets.filter(t => t.status === 'in_progress').length})
-              </button>
-              <button 
-                className={`cn-pill-btn ${ticketStatusFilter === 'resolved' ? 'active' : ''}`}
-                onClick={() => setTicketStatusFilter('resolved')}
-              >
-                ✓ Resolved ({tickets.filter(t => t.status === 'resolved').length})
-              </button>
-            </div>
-
-            <button 
-              className="cn-prune-btn"
-              onClick={handlePruneTickets}
-              disabled={pruningTickets}
-              title="Deletes resolved tickets older than 7 days from Supabase"
-            >
-              <Trash2 size={14} />
-              {pruningTickets ? 'Pruning...' : 'Prune Resolved (>7d)'}
-            </button>
-          </div>
-
-          {pruneTicketsResult && (
-            <div style={{ background: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.3)', color: '#00e676', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              ✓ {pruneTicketsResult.message || 'Pruned old resolved tickets successfully.'}
-            </div>
-          )}
-
-          {/* Tickets Stream Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {filteredTickets.length === 0 ? (
-              <div className="cn-table-card" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                <CheckCircle2 size={36} color="#00e676" style={{ margin: '0 auto 12px' }} />
-                <h4 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>No Tickets Match Current Filter</h4>
-                <p style={{ margin: '6px 0 0', fontSize: '0.85rem' }}>All student complaints have been addressed or resolved.</p>
-              </div>
-            ) : (
-              filteredTickets.map(t => {
-                const cleanPhone = (t.phone || '').replace(/\D/g, '');
-                const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
-                const isResolved = t.status === 'resolved' || t.status === 'dismissed';
-                const isOpen = t.status === 'open';
-
-                let categoryColor = '#00d4ff';
-                let categoryLabel = 'General Inquiry';
-                if (t.category === 'no_signal') { categoryColor = '#ef4444'; categoryLabel = '📶 Wi-Fi Not Visible'; }
-                else if (t.category === 'slow_speed') { categoryColor = '#ffb703'; categoryLabel = '⚡ Slow Browsing'; }
-                else if (t.category === 'mac_randomization') { categoryColor = '#a855f7'; categoryLabel = '🌐 Portal Not Opening'; }
-                else if (t.category === 'payment_unverified') { categoryColor = '#ff5414'; categoryLabel = '💳 Payment Unverified'; }
-
-                return (
-                  <div 
-                    key={t.id} 
-                    className="cn-table-card"
-                    style={{ 
-                      padding: '1.25rem 1.5rem',
-                      borderLeft: `4px solid ${isOpen ? '#ef4444' : isResolved ? '#00e676' : '#ffb703'}`,
-                      background: isOpen ? 'rgba(239, 68, 68, 0.04)' : 'rgba(17, 24, 39, 0.7)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem', color: '#fff', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '6px' }}>
-                          #{t.ticket_number || 'CN-NEW'}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: `${categoryColor}22`, color: categoryColor, border: `1px solid ${categoryColor}44` }}>
-                          {categoryLabel}
-                        </span>
-                        <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
-                          📍 <strong>{t.room_location || 'Hostel Room not specified'}</strong>
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                          📱 {t.device_type || 'Mobile Device'}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <select 
-                          value={t.status}
-                          onChange={e => handleUpdateTicketStatus(t.id, e.target.value)}
-                          disabled={updatingTicketId === t.id}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            background: t.status === 'open' ? 'rgba(239, 68, 68, 0.2)' : t.status === 'resolved' ? 'rgba(0, 230, 118, 0.2)' : 'rgba(255, 183, 3, 0.2)',
-                            color: t.status === 'open' ? '#fca5a5' : t.status === 'resolved' ? '#00e676' : '#ffb703',
-                            fontWeight: 700,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="open">🚨 Open</option>
-                          <option value="in_progress">⏳ In Progress</option>
-                          <option value="resolved">✓ Resolved</option>
-                          <option value="dismissed">✕ Dismissed</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <p style={{ margin: '0 0 1rem', fontSize: '0.92rem', color: '#f1f5f9', lineHeight: '1.5' }}>
-                      {t.description}
-                    </p>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                        Resident: <strong style={{ color: '#fff' }}>{localPhone}</strong> ({cleanPhone}) • Logged {new Date(t.created_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <a 
-                          href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi! Duncan here from CampusNet Support regarding ticket #${t.ticket_number} (Room ${t.room_location}). How can I assist you?`)}`}
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="cn-action-btn cn-btn-wa"
-                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
-                        >
-                          <MessageSquare size={13} /> WhatsApp
-                        </a>
-                        <a 
-                          href={`tel:${localPhone}`} 
-                          className="cn-action-btn cn-btn-call"
-                          style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem' }}
-                        >
-                          <Phone size={13} /> Call
-                        </a>
-                        {t.status !== 'resolved' && (
-                          <button 
-                            onClick={() => handleUpdateTicketStatus(t.id, 'resolved')}
-                            disabled={updatingTicketId === t.id}
-                            className="cn-action-btn"
-                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', background: 'rgba(0, 230, 118, 0.15)', borderColor: '#00e676', color: '#00e676' }}
-                          >
-                            <Check size={13} /> Mark Resolved
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 4: PROMOS & DISCOUNT CODES
+          TAB 3: PROMOS & DISCOUNT CODES
       ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'promos' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
@@ -1511,311 +1166,9 @@ export function CampusNetOps({ onNavigate }) {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════════
-          TAB: MWALIMU AI SOCRATIC TUTOR CONSOLE
-      ══════════════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'mwalimu' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Mwalimu 4 Stat Cards */}
-          <div className="cn-stat-grid">
-            <div className="cn-stat-card cn-card-green">
-              <div className="cn-stat-header">
-                <span className="cn-stat-title">Active VIP Pro Students</span>
-                <span className="cn-pulse-dot" />
-              </div>
-              <div className="cn-stat-value">
-                {mwalimuData?.stats?.activePaidStudents || 0}
-                <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>Unmetered</span>
-              </div>
-              <div className="cn-stat-subtext">
-                Unlimited 24/7 Socratic question answering active
-              </div>
-            </div>
-
-            <div className="cn-stat-card cn-card-cyan">
-              <div className="cn-stat-header">
-                <span className="cn-stat-title">Total Mwalimu AI Sales</span>
-                <span style={{ fontSize: '0.72rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                  🎓 Bot Revenue
-                </span>
-              </div>
-              <div className="cn-stat-value">
-                KSh {(mwalimuData?.stats?.totalRevenueKes || stats.mwalimu_total_revenue_kes || 0).toLocaleString()}
-              </div>
-              <div className="cn-stat-subtext">
-                <span>Today: <strong style={{ color: '#00e676' }}>KSh {(mwalimuData?.stats?.todayRevenueKes || stats.mwalimu_today_revenue_kes || 0).toLocaleString()}</strong></span>
-                <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
-                <span>{mwalimuData?.stats?.transactionCount || stats.mwalimu_transactions_count || 0} study passes purchased</span>
-              </div>
-            </div>
-
-            <div className="cn-stat-card cn-card-orange">
-              <div className="cn-stat-header">
-                <span className="cn-stat-title">Registered Students</span>
-                <BookOpen size={18} color="#ff5414" />
-              </div>
-              <div className="cn-stat-value">
-                {mwalimuData?.stats?.totalStudents || stats.mwalimu_total_students_count || 0}
-                <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>on WhatsApp</span>
-              </div>
-              <div className="cn-stat-subtext">
-                Students who have chatted with Mwalimu AI (+254 794 877 125)
-              </div>
-            </div>
-
-            <div className="cn-stat-card cn-card-gold">
-              <div className="cn-stat-header">
-                <span className="cn-stat-title">Unit Economics & Margin</span>
-                <Zap size={18} color="#ffb703" />
-              </div>
-              <div className="cn-stat-value" style={{ color: '#ffb703' }}>
-                95%+
-                <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 500 }}>Gross Margin</span>
-              </div>
-              <div className="cn-stat-subtext">
-                Covers Render starter ($7/mo) & Gemini token inference (~KSh 0.01/q)
-              </div>
-            </div>
-          </div>
-
-          {/* Quick VIP Pass Grant Console */}
-          <div className="cn-table-card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-              <GraduationCap size={22} color="#10b981" />
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>1-Click VIP Study Pass Console</h3>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
-                  Instantly grant a student unlimited Socratic questions without billing them (for VIPs, testing, or disputes).
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleGrantMwalimuPass} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <input 
-                type="tel"
-                placeholder="Student WhatsApp (e.g. 0758530492 or 254758530492)"
-                value={grantPhone}
-                onChange={e => setGrantPhone(e.target.value)}
-                required
-                style={{ flex: '1 1 240px', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
-              />
-              <select 
-                value={grantDuration}
-                onChange={e => setGrantDuration(Number(e.target.value))}
-                style={{ width: '180px', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(8,18,54,0.8)', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
-              >
-                <option value="24">24 Hours (Cram Pass)</option>
-                <option value="72">3 Days (Weekend Pass)</option>
-                <option value="720">30 Days (Semester Pass)</option>
-                <option value="8760">1 Year (VIP Scholar)</option>
-              </select>
-              <button 
-                type="submit"
-                disabled={grantingPass}
-                style={{ 
-                  background: '#10b981', 
-                  color: '#fff', 
-                  border: 'none', 
-                  padding: '0.75rem 1.5rem', 
-                  borderRadius: '8px', 
-                  fontWeight: 800, 
-                  fontSize: '0.95rem', 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <Sparkles size={16} />
-                {grantingPass ? 'Granting...' : 'Grant Unlimited Pass'}
-              </button>
-            </form>
-
-            {grantResult && (
-              <div style={{ marginTop: '0.85rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-                ✓ {grantResult.message || 'VIP Pass successfully activated!'}
-              </div>
-            )}
-          </div>
-
-          {/* Mwalimu Transactions Table */}
-          <div className="cn-table-card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Recent Mwalimu AI M-Pesa Purchases</h3>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
-                  Micro-billing transactions verified by Paystack & activated on WhatsApp.
-                </p>
-              </div>
-              <button onClick={fetchMwalimuStats} className="cn-action-btn" title="Refresh Mwalimu telemetry">
-                <RefreshCw size={13} className={mwalimuLoading ? 'animate-spin' : ''} /> Refresh
-              </button>
-            </div>
-
-            <div className="cn-table-wrapper">
-              <table className="cn-data-table">
-                <thead>
-                  <tr>
-                    <th>Student Phone</th>
-                    <th>M-Pesa Receipt</th>
-                    <th>Plan</th>
-                    <th>Amount</th>
-                    <th>Date / Time (EAT)</th>
-                    <th>Status</th>
-                    <th>Quick Contact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(mwalimuData?.recentTransactions || []).length === 0 ? (
-                    <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                        No M-Pesa pass purchases recorded yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    (mwalimuData?.recentTransactions || []).map(tx => {
-                      const cleanPhone = (tx.phone || '').replace(/\D/g, '');
-                      const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
-                      return (
-                        <tr key={tx.id || tx.mpesa_receipt}>
-                          <td><strong style={{ color: '#fff' }}>{localPhone}</strong></td>
-                          <td><span className="cn-code-tag">{tx.mpesa_receipt || '—'}</span></td>
-                          <td><span className="cn-pkg-badge">{tx.plan === 'semester_30d' ? '30-Day Semester VIP' : tx.plan === 'weekend_3d' ? '3-Day Weekend' : '24h Cram Pass'}</span></td>
-                          <td><strong style={{ color: '#00e676' }}>KSh {tx.amount}</strong></td>
-                          <td style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-                            {new Date(tx.created_at).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
-                          </td>
-                          <td><span className="cn-status-pill active">COMPLETED</span></td>
-                          <td>
-                            <a 
-                              href={`https://wa.me/${cleanPhone}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="cn-action-btn cn-btn-wa"
-                              style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-                            >
-                              <MessageSquare size={12} /> WhatsApp
-                            </a>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Student Directory Table */}
-          <div className="cn-table-card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Student Directory & Pass Expiry</h3>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
-                  Active students, access tiers, and question consumption tracking.
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  className={`cn-pill-btn ${mwalimuFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setMwalimuFilter('all')}
-                >
-                  All ({(mwalimuData?.activeUsers || []).length})
-                </button>
-                <button 
-                  className={`cn-pill-btn ${mwalimuFilter === 'active' ? 'active' : ''}`}
-                  onClick={() => setMwalimuFilter('active')}
-                >
-                  VIP Active
-                </button>
-              </div>
-            </div>
-
-            <div className="cn-table-wrapper">
-              <table className="cn-data-table">
-                <thead>
-                  <tr>
-                    <th>Student Phone</th>
-                    <th>Access Tier</th>
-                    <th>Valid Until</th>
-                    <th>Queries Today</th>
-                    <th>Status</th>
-                    <th>Quick Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(mwalimuData?.activeUsers || []).length === 0 ? (
-                    <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                        No registered students yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    (mwalimuData?.activeUsers || []).filter(u => {
-                      if (mwalimuFilter === 'active') return u.valid_until && new Date(u.valid_until) > new Date();
-                      return true;
-                    }).map(u => {
-                      const cleanPhone = (u.phone || '').replace(/\D/g, '');
-                      const localPhone = cleanPhone.startsWith('254') ? '0' + cleanPhone.slice(3) : cleanPhone;
-                      const isVip = u.valid_until && new Date(u.valid_until) > new Date();
-                      return (
-                        <tr key={u.phone}>
-                          <td><strong style={{ color: '#fff' }}>{localPhone}</strong></td>
-                          <td>
-                            <span style={{ 
-                              padding: '2px 8px', 
-                              borderRadius: '4px', 
-                              fontSize: '0.78rem', 
-                              fontWeight: 700, 
-                              background: isVip ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.06)', 
-                              color: isVip ? '#34d399' : '#94a3b8' 
-                            }}>
-                              {isVip ? '👑 VIP Pro' : '⭐ Free Daily Tier'}
-                            </span>
-                          </td>
-                          <td style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>
-                            {u.valid_until ? new Date(u.valid_until).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' }) : 'Expired'}
-                          </td>
-                          <td style={{ fontSize: '0.85rem', color: '#fff' }}>{u.queries_today || 0} / 3</td>
-                          <td>
-                            <span className={`cn-status-pill ${isVip ? 'active' : 'expired'}`}>
-                              {isVip ? 'ACTIVE' : 'FREE / EXPIRED'}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <a 
-                                href={`https://wa.me/${cleanPhone}`} 
-                                target="_blank" 
-                                rel="noreferrer" 
-                                className="cn-action-btn cn-btn-wa"
-                                style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-                              >
-                                <MessageSquare size={12} /> Chat
-                              </a>
-                              <button 
-                                onClick={() => handleGrantMwalimuPass(null, cleanPhone, 24)} 
-                                className="cn-action-btn"
-                                style={{ padding: '3px 8px', fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.2)', borderColor: '#10b981' }}
-                                title="Grant 24h VIP pass"
-                              >
-                                +24h VIP
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════════════════
-          TAB 5: HOTLINE INSTANT DISPATCH
+          TAB 4: HOTLINE INSTANT DISPATCH
       ══════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'hotline' && (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
