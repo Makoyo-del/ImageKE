@@ -8,6 +8,12 @@ const AcademyDashboard = lazy(() => import('./components/academy/AcademyDashboar
 const HookBunkerDocs = lazy(() => import('./components/hookbunker/HookBunkerDocs').then(m => ({ default: m.HookBunkerDocs })));
 const HookBunkerLanding = lazy(() => import('./components/hookbunker/HookBunkerLanding').then(m => ({ default: m.HookBunkerLanding })));
 
+const StorefrontHub = lazy(() => import('./components/store/StorefrontHub'));
+const DebtFreedomLanding = lazy(() => import('./components/store/DebtFreedomLanding'));
+const FreelancerPricingLanding = lazy(() => import('./components/store/FreelancerPricingLanding'));
+const DigitalStoreOps = lazy(() => import('./components/store/DigitalStoreOps'));
+
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 
 function ProcessingOverlay({ message }) {
@@ -39,6 +45,12 @@ const getPathFromHash = () => {
   ) {
     return 'academy-dashboard';
   }
+
+  
+  if (hash === '#/assets/debt-clock' || hash === '#/assets/debt-freedom-engine') return 'store-debt-freedom';
+  if (hash === '#/assets/freelancer-rate' || hash === '#/assets/freelancer-pricing-os') return 'store-freelancer-pricing';
+  if (hash === '#/store/admin' || hash === '#/vault/admin') return 'store-admin';
+  if (hash === '#/assets' || hash === '#/store' || hash === '#/vault') return 'store-hub';
 
   if (hash === '#/terms') return 'terms';
   if (hash === '#/privacy') return 'privacy';
@@ -494,6 +506,34 @@ function App() {
             setCurrentPath(path);
             window.location.hash = `#/${path}`;
           }} />
+        )}
+
+        
+        {currentPath === 'store-hub' && <StorefrontHub />}
+        {currentPath === 'store-debt-freedom' && <DebtFreedomLanding />}
+        {currentPath === 'store-freelancer-pricing' && <FreelancerPricingLanding />}
+        {currentPath === 'store-admin' && (
+          <div style={{
+            backgroundColor: '#09090b',
+            minHeight: '100vh',
+            padding: '40px 20px',
+            fontFamily: "'Plus Jakarta Sans', sans-serif"
+          }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <a 
+                  href="#/admin" 
+                  style={{ color: '#a1a1aa', textDecoration: 'none', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  &larr; Master Admin Console
+                </a>
+              </div>
+              <DigitalStoreOps onNavigate={(path) => {
+                setCurrentPath(path);
+                window.location.hash = `#/${path}`;
+              }} />
+            </div>
+          </div>
         )}
 
         {currentPath === 'hookbunker-landing' && (

@@ -34,3 +34,8 @@ credentials*.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local Campaign Folders
+August campaigns/
+reddit plan/
+whatsapp_bot_cover.jpg

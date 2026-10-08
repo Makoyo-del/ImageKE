@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import hookBunkerRouter from './hookbunker.js';
 import academyRouter from './academy.js';
 import campusNetRouter from './campusnet.js';
+import digitalStoreRouter from './digitalStore.js';
 import { supabase } from './supabase.js';
 
 dotenv.config();
@@ -71,7 +72,7 @@ app.use(
   express.json({
     limit: '8mb',
     verify: (req, _res, buf) => {
-      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/campusnet/webhook' || req.originalUrl === '/api/rider/webhook') {
+      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/campusnet/webhook' || req.originalUrl === '/api/rider/webhook' || req.originalUrl.startsWith('/api/store/webhook')) {
         req.rawBody = buf;
       }
     },
@@ -87,6 +88,9 @@ app.use('/api/campusnet', campusNetRouter);
 
 // 3. Academy / Internal Admin Auth (Mentor dashboard & private management)
 app.use('/api/academy', academyRouter);
+
+// 4. Digital Assets Store (Zero-Trust Checkout & Dual Fulfillment)
+app.use('/api/store', digitalStoreRouter);
 
 // 4. Resilient Legacy Rider Webhook Alias -> routes to CampusNet Webhook
 // Prevents 404s for any in-flight retries or services still referencing the legacy /api/rider/webhook URL
