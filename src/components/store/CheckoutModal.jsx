@@ -392,9 +392,7 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
                         Tap to Retry
                       </button>
                       <a
-                        href="https://wa.me/254717799516?text=Hi%20Duncan,%20I'm%20having%20trouble%20checking%20out%20on%20the%20digital%20vault"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="mailto:duncan@duncanmakoyo.com?subject=Checkout%20Assistance%20-%20Digital%20Vault&body=Hi%20Duncan,%20I'm%20having%20trouble%20checking%20out%20on%20the%20digital%20vault."
                         style={{
                           color: '#10b981',
                           fontSize: '11px',
@@ -402,7 +400,7 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
                           textDecoration: 'none'
                         }}
                       >
-                        WhatsApp Support →
+                        Email Support (duncan@duncanmakoyo.com) →
                       </a>
                     </div>
                   </div>

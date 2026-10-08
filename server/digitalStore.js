@@ -441,7 +441,7 @@ export class EmailFulfillmentService {
         Designed & Built by <strong>Duncan Makoyo</strong> • Makoyocart Ventures
       </p>
       <p style="margin: 0;">
-        Questions or custom enterprise workflows? Reply to this email or reach out on <a href="https://wa.me/254758530492" style="color: #10b981; text-decoration: none;">WhatsApp (+254 758 530 492)</a>.
+        Questions or custom enterprise workflows? Reply directly to this email or contact <a href="mailto:duncan@duncanmakoyo.com" style="color: #10b981; text-decoration: none;">duncan@duncanmakoyo.com</a>.
       </p>
     </div>
   </div>
@@ -485,7 +485,7 @@ ${downloadUrl}
 Amount Paid: ${amountFormatted}
 Payment Reference: ${paymentRef}
 
-Need help? Reply to this email or WhatsApp +254 758 530 492.
+Need help? Reply directly to this email or contact duncan@duncanmakoyo.com.
     `.trim();
 
     // If Resend API Key is configured, send real transactional email
@@ -1154,7 +1154,7 @@ router.post('/lookup-order', lookupLimiter, async (req, res) => {
     if (orders.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'No active orders found for that email or reference. Please verify or reach out to support on WhatsApp.'
+        error: 'No active orders found for that email or reference. Please verify or reach out to support at duncan@duncanmakoyo.com.'
       });
     }
 
