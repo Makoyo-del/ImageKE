@@ -24,15 +24,29 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
   const [error, setError] = useState('');
   const [completedOrder, setCompletedOrder] = useState(null);
 
-  // Load Paystack Inline script if not already present
-  useEffect(() => {
-    if (!document.getElementById('paystack-inline-js')) {
+  const loadPaystackScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.PaystackPop) { resolve(window.PaystackPop); return; }
+      if (document.getElementById('paystack-inline-script')) {
+        const check = setInterval(() => {
+          if (window.PaystackPop) {
+            clearInterval(check);
+            resolve(window.PaystackPop);
+          }
+        }, 100);
+        return;
+      }
       const script = document.createElement('script');
-      script.id = 'paystack-inline-js';
+      script.id = 'paystack-inline-script';
       script.src = 'https://js.paystack.co/v1/inline.js';
-      script.async = true;
+      script.onload = () => resolve(window.PaystackPop);
+      script.onerror = () => reject(new Error('Failed to load secure payment script.'));
       document.body.appendChild(script);
-    }
+    });
+  };
+
+  useEffect(() => {
+    loadPaystackScript().catch(err => console.warn('Preload paystack:', err.message));
   }, []);
 
   const formattedPrice = currency === 'KES'
@@ -65,38 +79,43 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
       const { paystack, orderNumber } = res.data;
 
       // 2. Trigger Paystack Inline Popup
-      if (typeof window.PaystackPop === 'undefined') {
-        throw new Error('Paystack checkout popup is loading. Please try again in 2 seconds.');
+      const PaystackPop = await loadPaystackScript();
+      if (!PaystackPop) {
+        throw new Error('Payment gateway is still loading. Please tap Retry.');
       }
 
-      const handler = window.PaystackPop.setup({
+      // NOTE: callback and onClose MUST be regular functions (NOT async functions)
+      // because Paystack inline.js strictly checks ({}.toString.call(fn) === '[object Function]')
+      const handler = PaystackPop.setup({
         key: paystack.publicKey || 'pk_live_12716854d554f3ef561e6dc73ebd073832d00ae6',
         email: email.trim().toLowerCase(),
         amount: res.data.pricing.subunitAmount,
         currency: res.data.pricing.currency,
         ref: paystack.reference,
-        callback: async function (response) {
-          // 3. Instant client-side verification
-          setVerifying(true);
-          try {
-            const verifyRes = await axios.post(`${API_URL}/api/store/verify-payment`, {
-              reference: response.reference,
-              productId: product.productId,
-              email: email.trim()
-            });
+        callback: function (response) {
+          // Instant client-side verification inside async IIFE
+          (async () => {
+            setVerifying(true);
+            try {
+              const verifyRes = await axios.post(`${API_URL}/api/store/verify-payment`, {
+                reference: response.reference,
+                productId: product.productId,
+                email: email.trim()
+              });
 
-            if (verifyRes.data?.success && verifyRes.data?.order) {
-              setCompletedOrder(verifyRes.data.order);
-            } else {
-              throw new Error(verifyRes.data?.error || 'Verification pending.');
+              if (verifyRes.data?.success && verifyRes.data?.order) {
+                setCompletedOrder(verifyRes.data.order);
+              } else {
+                throw new Error(verifyRes.data?.error || 'Verification pending.');
+              }
+            } catch (vErr) {
+              console.error('Verification error:', vErr);
+              // Even if client call fails, the backend webhook fulfills it
+              setError('Payment completed! Your download link has been dispatched to your email.');
+            } finally {
+              setVerifying(false);
             }
-          } catch (vErr) {
-            console.error('Verification error:', vErr);
-            // Even if client call fails, the webhook fulfills it
-            setError('Payment completed! Your download link has been dispatched to your email.');
-          } finally {
-            setVerifying(false);
-          }
+          })();
         },
         onClose: function () {
           setLoading(false);
@@ -113,6 +132,8 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
         friendly = 'The payment gateway is temporarily routing your transaction. Tap Retry to proceed with card or M-Pesa.';
       } else if (raw.toLowerCase().includes('network') || raw.toLowerCase().includes('timeout')) {
         friendly = 'Connection took longer than expected. Please verify your internet and tap Retry.';
+      } else if (raw.includes('Attribute callback') || raw.includes('function') || raw.includes('undefined') || raw.includes('TypeError')) {
+        friendly = 'Payment screen was interrupted. Tap Retry to launch secure checkout.';
       } else if (raw && !raw.includes('status code') && !raw.includes('AxiosError') && !raw.includes('code:')) {
         friendly = raw;
       }
