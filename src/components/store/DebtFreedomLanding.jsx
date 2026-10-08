@@ -25,6 +25,7 @@ import './store.css';
 export default function DebtFreedomLanding() {
   const [currency, setCurrency] = useState(() => localStorage.getItem('dm_store_currency') || 'USD');
   const [checkoutProduct, setCheckoutProduct] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [showLookup, setShowLookup] = useState(false);
   const [legalType, setLegalType] = useState(null);
 
@@ -441,11 +442,14 @@ export default function DebtFreedomLanding() {
         </div>
       </footer>
 
-      {showCheckout && (
+      {(showCheckout || checkoutProduct) && (
         <CheckoutModal
-          product={product}
+          product={checkoutProduct || product}
           currency={currency}
-          onClose={() => setShowCheckout(false)}
+          onClose={() => {
+            setShowCheckout(false);
+            setCheckoutProduct(null);
+          }}
         />
       )}
 
