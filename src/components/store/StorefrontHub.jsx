@@ -387,7 +387,7 @@ export default function StorefrontHub() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <a
-                  href="#/assets/debt-clock"
+                  href="#/assets/debt-freedom-engine"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -526,7 +526,7 @@ export default function StorefrontHub() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <a
-                  href="#/assets/freelancer-rate"
+                  href="#/assets/freelancer-pricing-os"
                   style={{
                     display: 'flex',
                     alignItems: 'center',

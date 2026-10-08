@@ -24,7 +24,7 @@ import './store.css';
 
 export default function DebtFreedomLanding() {
   const [currency, setCurrency] = useState(() => localStorage.getItem('dm_store_currency') || 'USD');
-  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState(null);
   const [showLookup, setShowLookup] = useState(false);
   const [legalType, setLegalType] = useState(null);
 
@@ -125,7 +125,7 @@ export default function DebtFreedomLanding() {
 
             <button
               type="button"
-              onClick={() => setShowCheckout(true)}
+              onClick={() => setCheckoutProduct(product)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -195,7 +195,7 @@ export default function DebtFreedomLanding() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => setShowCheckout(true)}
+              onClick={() => setCheckoutProduct(product)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -388,10 +388,7 @@ export default function DebtFreedomLanding() {
 
           <button
             type="button"
-            onClick={() => {
-              // trigger bundle purchase
-              setShowCheckout(true);
-            }}
+            onClick={() => setCheckoutProduct(bundleProduct)}
             style={{
               padding: '12px 24px',
               background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
