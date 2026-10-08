@@ -342,19 +342,23 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
 
             {/* Price Badge */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
               backgroundColor: '#18181b',
               border: '1px solid #27272a',
               borderRadius: '10px',
               padding: '14px 18px',
               marginBottom: '20px'
             }}>
-              <span style={{ fontSize: '13px', color: '#d4d4d8', fontWeight: 600 }}>Total Due Today</span>
-              <span style={{ fontSize: '22px', fontWeight: 800, color: '#10b981', fontFamily: "'Outfit', sans-serif" }}>
-                {formattedPrice}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', color: '#d4d4d8', fontWeight: 600 }}>Total Due Today</span>
+                <span style={{ fontSize: '22px', fontWeight: 800, color: '#10b981', fontFamily: "'Outfit', sans-serif" }}>
+                  {formattedPrice}
+                </span>
+              </div>
+              {currency === 'USD' && (
+                <div style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '6px', borderTop: '1px solid #27272a', paddingTop: '6px' }}>
+                  Billed in KES via Paystack as <strong style={{ color: '#34d399' }}>KSh {Number(product.priceKes || 250).toLocaleString('en-KE')}</strong> (M-Pesa STK Push, Airtel & International Cards supported).
+                </div>
+              )}
             </div>
 
             {error && (
@@ -485,7 +489,9 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
                 ) : (
                   <>
                     <Lock size={16} />
-                    Pay {formattedPrice} with Paystack
+                    {currency === 'USD' 
+                      ? `Pay KSh ${Number(product.priceKes || 250).toLocaleString('en-KE')} (${formattedPrice}) with Paystack`
+                      : `Pay ${formattedPrice} with Paystack`}
                   </>
                 )}
               </button>

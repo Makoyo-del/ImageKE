@@ -114,7 +114,8 @@ export class DigitalProductService {
     const normCurrency = (requestedCurrency || 'USD').toUpperCase().trim();
     
     if (normCurrency === 'KES') {
-      const priceKes = Number(product.price_kes) || 250.0;
+      const rawKes = Number(product.price_kes) || 250.0;
+      const priceKes = rawKes <= 0 ? 10.0 : Math.max(10.0, rawKes); // Enforce KES 10 minimum for M-Pesa STK Push
       return {
         amount: priceKes,
         currency: 'KES',
@@ -211,6 +212,14 @@ export class PaystackGatewayService {
 
     let activeCurrency = (currency || 'USD').toUpperCase();
     let activeSubunits = subunitAmount;
+
+    // Fast auto-conversion to KES if merchant Paystack only handles KES (Paystack Kenya)
+    if (activeCurrency === 'USD' && fallbackKesSubunit) {
+      console.log(`[PaystackGateway] Merchant is KES-only. Directly routing checkout in KES (${fallbackKesSubunit} cents / KSh ${fallbackKesSubunit / 100})...`);
+      activeCurrency = 'KES';
+      activeSubunits = fallbackKesSubunit;
+    }
+
     let response;
 
     try {
@@ -923,8 +932,10 @@ router.post('/initialize-checkout', checkoutLimiter, async (req, res) => {
     // 3. Generate internal order tracking reference
     const orderNumber = digitalOrderService.generateOrderNumber();
 
-    // 4. Fallback KES amount in case USD is not active on merchant Paystack
-    const fallbackKesSubunit = Math.round(Number(product.price_kes || 250) * 100);
+    // 4. Safe KES amount with Choice Bank / Safaricom STK Push floor (>= KES 10.00 / 1,000 cents)
+    const rawKes = Number(product.price_kes || 250);
+    const safeKes = rawKes <= 0 ? 10 : Math.max(10, rawKes);
+    const fallbackKesSubunit = Math.round(safeKes * 100);
 
     // 5. Initialize transaction on Paystack with automatic currency self-healing
     const paystackSession = await paystackGatewayService.initializeTransaction({

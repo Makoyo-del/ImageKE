@@ -52,6 +52,23 @@ export default function StorefrontHub() {
   const singleProducts = products.filter(p => !p.isBundle);
   const bundleProduct = products.find(p => p.isBundle) || products[2];
 
+  const totalIndividualUsd = singleProducts.reduce((sum, p) => sum + Number(p.priceUsd || 0), 0);
+  const totalIndividualKes = singleProducts.reduce((sum, p) => sum + Number(p.priceKes || 0), 0);
+  const bundleUsd = Number(bundleProduct?.priceUsd || 0);
+  const bundleKes = Number(bundleProduct?.priceKes || 0);
+
+  const hasSavings = currency === 'KES'
+    ? (totalIndividualKes > 0 && bundleKes < totalIndividualKes)
+    : (totalIndividualUsd > 0 && bundleUsd < totalIndividualUsd);
+
+  const savingsPercent = (totalIndividualUsd > 0 && bundleUsd < totalIndividualUsd)
+    ? Math.round(((totalIndividualUsd - bundleUsd) / totalIndividualUsd) * 100)
+    : 0;
+
+  const regularPriceDisplay = currency === 'KES'
+    ? `Separately: KSh ${totalIndividualKes.toLocaleString('en-KE')}`
+    : `Separately: ${totalIndividualUsd.toFixed(2)}`;
+
   return (
     <div className="dm-store" style={{
       backgroundColor: '#09090b',
@@ -593,7 +610,9 @@ export default function StorefrontHub() {
                 marginBottom: '12px'
               }}>
                 <Sparkles size={13} />
-                Executive Solopreneur Toolkit • 60% Bundle Savings
+                {hasSavings && savingsPercent > 0
+                  ? `Executive Solopreneur Toolkit • Save ${savingsPercent}% Bundle Discount`
+                  : 'Executive Solopreneur Toolkit • All-In-One Unified Package'}
               </div>
 
               <h2 style={{
@@ -629,13 +648,17 @@ export default function StorefrontHub() {
 
             <div style={{ textAlign: 'right', minWidth: '220px' }}>
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '12px', color: '#71717a', textDecoration: 'line-through' }}>
-                  {currency === 'KES' ? 'Regular: KSh 3,200' : 'Regular: $24.99'}
-                </div>
+                {hasSavings && (
+                  <div style={{ fontSize: '13px', color: '#71717a', textDecoration: 'line-through', fontWeight: 600 }}>
+                    {regularPriceDisplay}
+                  </div>
+                )}
                 <div style={{ fontSize: '32px', fontWeight: 800, color: '#fbbf24', fontFamily: "'Outfit', sans-serif" }}>
                   {getFormattedPrice(bundleProduct || { priceUsd: 9.99, priceKes: 1299 })}
                 </div>
-                <div style={{ fontSize: '11px', color: '#a1a1aa' }}>One-time payment • Lifetime access</div>
+                <div style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                  {hasSavings ? `Save ${savingsPercent}% vs individual purchases` : 'One-time payment • Lifetime access'}
+                </div>
               </div>
 
               <button

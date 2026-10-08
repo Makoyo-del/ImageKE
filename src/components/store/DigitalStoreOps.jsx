@@ -90,6 +90,83 @@ export function DigitalStoreOps({ onNavigate }) {
   const [editingPrices, setEditingPrices] = useState({});
   const [savingProduct, setSavingProduct] = useState({});
 
+  // Live Currency Sync & Pricing Engine
+  const [exchangeRate, setExchangeRate] = useState(() => {
+    try {
+      const cached = localStorage.getItem('dm_store_exchange_rate');
+      return cached ? Number(cached) : 130;
+    } catch {
+      return 130;
+    }
+  });
+  const [autoConvertKes, setAutoConvertKes] = useState(true);
+  const [savingAllProducts, setSavingAllProducts] = useState(false);
+
+  const convertUsdToKes = (usdVal, rate = exchangeRate) => {
+    const num = parseFloat(usdVal);
+    if (isNaN(num) || num <= 0) return 0;
+    const raw = Math.round(num * rate);
+    // Safe minimum floor of KSh 10 so Paystack M-Pesa STK push via Choice Bank never rejects
+    return Math.max(10, raw);
+  };
+
+  const handleUsdPriceChange = (product, val) => {
+    const productId = product.id;
+    const current = editingPrices[productId] || {
+      priceUsd: product.price_usd,
+      priceKes: product.price_kes,
+      isActive: product.is_active
+    };
+    const newKes = autoConvertKes ? convertUsdToKes(val, exchangeRate) : current.priceKes;
+    setEditingPrices((prev) => ({
+      ...prev,
+      [productId]: {
+        ...current,
+        priceUsd: val,
+        priceKes: newKes
+      }
+    }));
+  };
+
+  const handleRateUpdate = (newRate) => {
+    const rateNum = Number(newRate) || 130;
+    setExchangeRate(rateNum);
+    try {
+      localStorage.setItem('dm_store_exchange_rate', String(rateNum));
+    } catch (_) {}
+    if (autoConvertKes) {
+      setEditingPrices((prev) => {
+        const next = { ...prev };
+        products.forEach((p) => {
+          const curr = next[p.id] || {
+            priceUsd: p.price_usd,
+            priceKes: p.price_kes,
+            isActive: p.is_active
+          };
+          next[p.id] = {
+            ...curr,
+            priceKes: convertUsdToKes(curr.priceUsd, rateNum)
+          };
+        });
+        return next;
+      });
+    }
+  };
+
+  const handleSaveAllProducts = async () => {
+    setSavingAllProducts(true);
+    try {
+      for (const p of products) {
+        await handleUpdateProduct(p);
+      }
+      showToast('All products and pricing synchronized to live store!');
+    } catch (err) {
+      showToast('Failed to sync all products: ' + err.message, true);
+    } finally {
+      setSavingAllProducts(false);
+    }
+  };
+
   const showToast = (msg, isError = false) => {
     setToastMessage({ text: msg, isError });
     setTimeout(() => setToastMessage(null), 3500);
@@ -841,149 +918,590 @@ export function DigitalStoreOps({ onNavigate }) {
       )}
 
       {/* TAB 2: PRODUCT CATALOG & PRICING */}
-      {activeTab === 'products' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-          {products.map((p) => {
-            const currentEdits = editingPrices[p.id] || {
-              priceUsd: p.price_usd,
-              priceKes: p.price_kes,
-              isActive: p.is_active
-            };
+      {activeTab === 'products' && (() => {
+        const singleProducts = products.filter((p) => !p.is_bundle);
+        const bundleProduct = products.find((p) => p.is_bundle) || products[0];
 
-            return (
-              <div key={p.id} style={{
-                backgroundColor: '#121215',
-                border: '1px solid #27272a',
-                borderRadius: '12px',
-                padding: '24px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+        // Compute total individual products value
+        const totalSingleUsd = singleProducts.reduce((sum, p) => {
+          const edits = editingPrices[p.id];
+          const usd = edits?.priceUsd !== undefined ? Number(edits.priceUsd) : Number(p.price_usd || 0);
+          return sum + (isNaN(usd) ? 0 : usd);
+        }, 0);
+
+        const totalSingleKes = singleProducts.reduce((sum, p) => {
+          const edits = editingPrices[p.id];
+          const kes = edits?.priceKes !== undefined ? Number(edits.priceKes) : Number(p.price_kes || 0);
+          return sum + (isNaN(kes) ? 0 : kes);
+        }, 0);
+
+        // Bundle edits & savings calculation
+        const bundleEdits = bundleProduct ? (editingPrices[bundleProduct.id] || {
+          priceUsd: bundleProduct.price_usd,
+          priceKes: bundleProduct.price_kes,
+          isActive: bundleProduct.is_active
+        }) : { priceUsd: 0, priceKes: 0, isActive: true };
+
+        const bundleUsdNum = Number(bundleEdits.priceUsd || 0);
+        const bundleKesNum = Number(bundleEdits.priceKes || 0);
+
+        const bundleSavingsPercent = totalSingleUsd > 0 && bundleUsdNum < totalSingleUsd
+          ? Math.round(((totalSingleUsd - bundleUsdNum) / totalSingleUsd) * 100)
+          : 0;
+
+        const isBundleCheaperThanSingle = singleProducts.some((p) => {
+          const pUsd = Number(editingPrices[p.id]?.priceUsd ?? p.price_usd ?? 0);
+          return bundleUsdNum < pUsd;
+        });
+
+        const isBundleMoreExpensive = bundleUsdNum >= totalSingleUsd && totalSingleUsd > 0;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            {/* ─── LIVE CURRENCY & AUTOMATIC EXCHANGE RATE CONTROL BAR ─── */}
+            <div style={{
+              backgroundColor: '#121215',
+              border: '1.5px solid #27272a',
+              borderRadius: '14px',
+              padding: '20px 24px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '20px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <Sparkles size={16} style={{ color: '#10b981' }} />
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Live USD-to-KES Pricing Engine
+                  </span>
                   <span style={{
                     fontSize: '11px',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    color: currentEdits.isActive ? '#10b981' : '#71717a',
-                    backgroundColor: currentEdits.isActive ? 'rgba(16, 185, 129, 0.1)' : '#18181b',
-                    padding: '3px 8px',
-                    borderRadius: '4px'
+                    fontWeight: 700,
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '2px 8px',
+                    borderRadius: '9999px'
                   }}>
-                    {currentEdits.isActive ? 'Active on Store' : 'Draft / Hidden'}
-                  </span>
-
-                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#71717a' }}>
-                    {p.id}
+                    Paystack Synced
                   </span>
                 </div>
-
-                <h3 style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: '17px',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  marginBottom: '8px'
-                }}>
-                  {p.name}
-                </h3>
-                <p style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '18px', minHeight: '36px' }}>
-                  {p.tagline}
+                <p style={{ fontSize: '12px', color: '#a1a1aa', margin: 0, maxWidth: '620px', lineHeight: 1.5 }}>
+                  Set your prices in <strong style={{ color: '#ffffff' }}>USD only</strong>. The engine automatically computes and synchronizes KES for Paystack (enforcing a safe <strong style={{ color: '#34d399' }}>KSh 10 floor</strong> so M-Pesa STK push via Choice Bank never errors).
                 </p>
+              </div>
 
-                {/* Vault Storage Path */}
-                <div style={{
-                  backgroundColor: '#18181b',
-                  borderRadius: '6px',
-                  padding: '8px 12px',
-                  fontSize: '11px',
-                  fontFamily: 'monospace',
-                  color: '#71717a',
-                  marginBottom: '20px',
-                  wordBreak: 'break-all'
-                }}>
-                  Vault: {p.vault_storage_path}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#09090b', padding: '6px 12px', borderRadius: '8px', border: '1px solid #27272a' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#d4d4d8' }}>1 USD =</span>
+                  <input
+                    type="number"
+                    value={exchangeRate}
+                    onChange={(e) => handleRateUpdate(e.target.value)}
+                    style={{
+                      width: '65px',
+                      backgroundColor: '#18181b',
+                      border: '1px solid #3f3f46',
+                      borderRadius: '6px',
+                      color: '#34d399',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      padding: '4px 6px',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#a1a1aa' }}>KES</span>
                 </div>
 
-                {/* Pricing Fields */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#a1a1aa', fontWeight: 700, marginBottom: '6px' }}>
-                      Price (USD $)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={currentEdits.priceUsd}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditingPrices((prev) => ({
-                          ...prev,
-                          [p.id]: { ...currentEdits, priceUsd: val }
-                        }));
-                      }}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[128, 130, 135].map((rate) => (
+                    <button
+                      key={rate}
+                      type="button"
+                      onClick={() => handleRateUpdate(rate)}
                       style={{
-                        width: '100%',
-                        backgroundColor: '#09090b',
+                        padding: '4px 8px',
+                        backgroundColor: exchangeRate === rate ? '#10b981' : '#18181b',
+                        color: exchangeRate === rate ? '#000000' : '#a1a1aa',
                         border: '1px solid #27272a',
                         borderRadius: '6px',
-                        padding: '8px 10px',
-                        color: '#ffffff',
-                        fontSize: '13px',
-                        fontWeight: 700
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
                       }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: '#a1a1aa', fontWeight: 700, marginBottom: '6px' }}>
-                      Price (KES KSh)
-                    </label>
-                    <input
-                      type="number"
-                      step="1"
-                      value={currentEdits.priceKes}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditingPrices((prev) => ({
-                          ...prev,
-                          [p.id]: { ...currentEdits, priceKes: val }
-                        }));
-                      }}
-                      style={{
-                        width: '100%',
-                        backgroundColor: '#09090b',
-                        border: '1px solid #27272a',
-                        borderRadius: '6px',
-                        padding: '8px 10px',
-                        color: '#ffffff',
-                        fontSize: '13px',
-                        fontWeight: 700
-                      }}
-                    />
-                  </div>
+                    >
+                      {rate}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Save Button */}
                 <button
-                  onClick={() => handleUpdateProduct(p)}
-                  disabled={savingProduct[p.id]}
+                  type="button"
+                  onClick={handleSaveAllProducts}
+                  disabled={savingAllProducts}
                   style={{
-                    width: '100%',
-                    padding: '10px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    backgroundColor: '#10b981',
                     color: '#000000',
                     border: 'none',
                     borderRadius: '8px',
-                    fontSize: '13px',
                     fontWeight: 800,
-                    cursor: 'pointer'
+                    fontSize: '13px',
+                    cursor: savingAllProducts ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
                   }}
                 >
-                  {savingProduct[p.id] ? 'Saving...' : 'Update Product Pricing'}
+                  <RefreshCw size={14} className={savingAllProducts ? 'animate-spin' : ''} />
+                  {savingAllProducts ? 'Syncing...' : 'Save & Sync All to Store'}
                 </button>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+
+            {/* ─── SECTION 1: INDIVIDUAL MASTER PRODUCTS ─── */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h4 style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <Package size={18} style={{ color: '#38bdf8' }} />
+                  1. Individual Master Spreadsheets
+                </h4>
+                <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
+                  Edit in USD &bull; KES auto-syncs at {exchangeRate} KES / $1
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                {singleProducts.map((p) => {
+                  const currentEdits = editingPrices[p.id] || {
+                    priceUsd: p.price_usd,
+                    priceKes: p.price_kes,
+                    isActive: p.is_active
+                  };
+                  const isTestPrice = Number(currentEdits.priceUsd) > 0 && Number(currentEdits.priceUsd) < 0.10;
+
+                  return (
+                    <div key={p.id} style={{
+                      backgroundColor: '#121215',
+                      border: '1px solid #27272a',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            color: currentEdits.isActive ? '#10b981' : '#71717a',
+                            backgroundColor: currentEdits.isActive ? 'rgba(16, 185, 129, 0.1)' : '#18181b',
+                            padding: '3px 8px',
+                            borderRadius: '4px'
+                          }}>
+                            {currentEdits.isActive ? 'Active on Store' : 'Draft / Hidden'}
+                          </span>
+                          <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#71717a' }}>
+                            {p.product_id || p.id}
+                          </span>
+                        </div>
+
+                        <h3 style={{
+                          fontFamily: "'Outfit', sans-serif",
+                          fontSize: '17px',
+                          fontWeight: 800,
+                          color: '#ffffff',
+                          marginBottom: '8px'
+                        }}>
+                          {p.name}
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '16px', minHeight: '36px', lineHeight: 1.5 }}>
+                          {p.tagline}
+                        </p>
+
+                        {/* Pricing Fields */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#38bdf8', fontWeight: 800, marginBottom: '6px' }}>
+                              Price (USD $) *Edit Here*
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={currentEdits.priceUsd}
+                              onChange={(e) => handleUsdPriceChange(p, e.target.value)}
+                              style={{
+                                width: '100%',
+                                backgroundColor: '#09090b',
+                                border: '1.5px solid #38bdf8',
+                                borderRadius: '6px',
+                                padding: '8px 10px',
+                                color: '#ffffff',
+                                fontSize: '14px',
+                                fontWeight: 800,
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#10b981', fontWeight: 700, marginBottom: '6px' }}>
+                              Price (KES KSh) *Auto*
+                            </label>
+                            <input
+                              type="number"
+                              step="1"
+                              value={currentEdits.priceKes}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditingPrices((prev) => ({
+                                  ...prev,
+                                  [p.id]: { ...currentEdits, priceKes: val }
+                                }));
+                              }}
+                              style={{
+                                width: '100%',
+                                backgroundColor: '#09090b',
+                                border: '1px solid #27272a',
+                                borderRadius: '6px',
+                                padding: '8px 10px',
+                                color: '#34d399',
+                                fontSize: '14px',
+                                fontWeight: 800,
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {isTestPrice && (
+                          <div style={{
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            color: '#fbbf24',
+                            marginBottom: '16px'
+                          }}>
+                            ⚡ Live Test Mode: Auto-set to KSh 10 safe minimum so Choice Bank M-Pesa STK push succeeds.
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => handleUpdateProduct(p)}
+                        disabled={savingProduct[p.id]}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#000000',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {savingProduct[p.id] ? 'Saving...' : 'Update Product Pricing'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Individual Products Sum Bar */}
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 18px',
+                backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '13px', color: '#d4d4d8', fontWeight: 600 }}>
+                  Combined Individual Products Value (Debt Freedom + Freelancer Pricing):
+                </span>
+                <span style={{ fontSize: '15px', color: '#38bdf8', fontWeight: 800, fontFamily: 'monospace' }}>
+                  ${totalSingleUsd.toFixed(2)} USD &bull; KSh {totalSingleKes.toLocaleString('en-KE')} KES
+                </span>
+              </div>
+            </div>
+
+            {/* ─── SECTION 2: COMPLETE SOLOPRENEUR BUNDLE ─── */}
+            {bundleProduct && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h4 style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: '16px',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <Sparkles size={18} style={{ color: '#fbbf24' }} />
+                    2. Complete Solopreneur OS Bundle (Combines All Above)
+                  </h4>
+                  <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>
+                    👑 All-In-One Unified Package
+                  </span>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#121215',
+                  border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                  borderRadius: '14px',
+                  padding: '24px',
+                  boxShadow: '0 8px 30px rgba(245, 158, 11, 0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      color: bundleEdits.isActive ? '#fbbf24' : '#71717a',
+                      backgroundColor: bundleEdits.isActive ? 'rgba(245, 158, 11, 0.15)' : '#18181b',
+                      padding: '3px 10px',
+                      borderRadius: '9999px',
+                      border: '1px solid rgba(245, 158, 11, 0.3)'
+                    }}>
+                      Includes 2 Master Templates &bull; Master Bundle
+                    </span>
+
+                    <span style={{ fontSize: '12px', color: '#a1a1aa' }}>
+                      Baseline Combined Value: <strong style={{ color: '#ffffff' }}>${totalSingleUsd.toFixed(2)}</strong> (KSh {totalSingleKes.toLocaleString('en-KE')})
+                    </span>
+                  </div>
+
+                  <h3 style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: '19px',
+                    fontWeight: 800,
+                    color: '#ffffff',
+                    marginBottom: '8px'
+                  }}>
+                    {bundleProduct.name}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '16px', lineHeight: 1.5 }}>
+                    {bundleProduct.tagline}
+                  </p>
+
+                  {/* 1-Click Quick Preset Buttons */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#a1a1aa', fontWeight: 700, marginBottom: '8px' }}>
+                      Quick Bundle Pricing Presets:
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = (totalSingleUsd * 0.6).toFixed(2);
+                          handleUsdPriceChange(bundleProduct, val);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                          border: '1px solid rgba(245, 158, 11, 0.4)',
+                          color: '#fbbf24',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        40% Bundle Savings (${(totalSingleUsd * 0.6).toFixed(2)})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = (totalSingleUsd * 0.5).toFixed(2);
+                          handleUsdPriceChange(bundleProduct, val);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                          border: '1px solid rgba(245, 158, 11, 0.4)',
+                          color: '#fbbf24',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        50% Bundle Savings (${(totalSingleUsd * 0.5).toFixed(2)})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = totalSingleUsd.toFixed(2);
+                          handleUsdPriceChange(bundleProduct, val);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#18181b',
+                          border: '1px solid #3f3f46',
+                          color: '#d4d4d8',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Match Combined Total (${totalSingleUsd.toFixed(2)})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pricing Inputs */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#fbbf24', fontWeight: 800, marginBottom: '6px' }}>
+                        Bundle Price (USD $) *Edit Here*
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={bundleEdits.priceUsd}
+                        onChange={(e) => handleUsdPriceChange(bundleProduct, e.target.value)}
+                        style={{
+                          width: '100%',
+                          backgroundColor: '#09090b',
+                          border: '1.5px solid #fbbf24',
+                          borderRadius: '6px',
+                          padding: '10px 12px',
+                          color: '#ffffff',
+                          fontSize: '15px',
+                          fontWeight: 800,
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', color: '#10b981', fontWeight: 700, marginBottom: '6px' }}>
+                        Bundle Price (KES KSh) *Auto-Calculated*
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={bundleEdits.priceKes}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingPrices((prev) => ({
+                            ...prev,
+                            [bundleProduct.id]: { ...bundleEdits, priceKes: val }
+                          }));
+                        }}
+                        style={{
+                          width: '100%',
+                          backgroundColor: '#09090b',
+                          border: '1px solid #27272a',
+                          borderRadius: '6px',
+                          padding: '10px 12px',
+                          color: '#34d399',
+                          fontSize: '15px',
+                          fontWeight: 800,
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Real-time Math & Savings Verification */}
+                  <div style={{ marginBottom: '20px' }}>
+                    {bundleSavingsPercent > 0 && (
+                      <div style={{
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        fontSize: '12px',
+                        color: '#34d399',
+                        fontWeight: 600
+                      }}>
+                        ✅ Customer Savings: <strong>{bundleSavingsPercent}%</strong> ($
+                        {(totalSingleUsd - bundleUsdNum).toFixed(2)} off vs buying individual templates).
+                      </div>
+                    )}
+
+                    {isBundleMoreExpensive && (
+                      <div style={{
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        fontSize: '12px',
+                        color: '#fbbf24',
+                        fontWeight: 600
+                      }}>
+                        ⚠️ Notice: Bundle price (${bundleUsdNum.toFixed(2)}) is equal to or higher than buying individually (${totalSingleUsd.toFixed(2)}). Click a preset above to apply a bundle discount.
+                      </div>
+                    )}
+
+                    {isBundleCheaperThanSingle && (
+                      <div style={{
+                        marginTop: '8px',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        borderRadius: '8px',
+                        padding: '10px 14px',
+                        fontSize: '12px',
+                        color: '#38bdf8'
+                      }}>
+                        ℹ️ Testing Notice: Bundle (${bundleUsdNum.toFixed(2)}) is currently lower than an individual product.
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleUpdateProduct(bundleProduct)}
+                    disabled={savingProduct[bundleProduct.id]}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: '#000000',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 6px 16px rgba(245, 158, 11, 0.3)'
+                    }}
+                  >
+                    {savingProduct[bundleProduct.id] ? 'Saving...' : 'Update Bundle Pricing'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* TAB 3: CUSTOMER SUPPORT LINK GENERATOR */}
       {activeTab === 'generator' && (
