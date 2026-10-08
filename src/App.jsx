@@ -12,6 +12,7 @@ const StorefrontHub = lazy(() => import('./components/store/StorefrontHub'));
 const DebtFreedomLanding = lazy(() => import('./components/store/DebtFreedomLanding'));
 const FreelancerPricingLanding = lazy(() => import('./components/store/FreelancerPricingLanding'));
 const DigitalStoreOps = lazy(() => import('./components/store/DigitalStoreOps'));
+const TokenDownloadResolver = lazy(() => import('./components/store/TokenDownloadResolver'));
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -51,6 +52,14 @@ const getPathFromHash = () => {
   if (hash === '#/assets/freelancer-rate' || hash === '#/assets/freelancer-pricing-os') return 'store-freelancer-pricing';
   if (hash === '#/store/admin' || hash === '#/vault/admin') return 'store-admin';
   if (hash === '#/assets' || hash === '#/store' || hash === '#/vault') return 'store-hub';
+
+  if (
+    hash.startsWith('#/api/store/download') ||
+    hash.startsWith('#/download') ||
+    hash.startsWith('#/store/download')
+  ) {
+    return 'store-token-download';
+  }
 
   if (hash === '#/terms') return 'terms';
   if (hash === '#/privacy') return 'privacy';
@@ -512,6 +521,7 @@ function App() {
         {currentPath === 'store-hub' && <StorefrontHub />}
         {currentPath === 'store-debt-freedom' && <DebtFreedomLanding />}
         {currentPath === 'store-freelancer-pricing' && <FreelancerPricingLanding />}
+        {currentPath === 'store-token-download' && <TokenDownloadResolver />}
         {currentPath === 'store-admin' && (
           <div style={{
             backgroundColor: '#09090b',

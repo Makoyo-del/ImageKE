@@ -28,6 +28,7 @@ const PAYSTACK_PUBLIC_KEY = (process.env.PAYSTACK_PUBLIC_KEY || '').trim();
 const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
 const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL || 'Makoyocart Vault <alerts@duncanmakoyo.com>').trim();
 const APP_BASE_URL = (process.env.APP_BASE_URL || 'https://duncanmakoyo.com').replace(/\/$/, '');
+const API_BASE_URL = (process.env.API_BASE_URL || process.env.RENDER_EXTERNAL_URL || 'https://imageke-api.onrender.com').replace(/\/$/, '');
 
 // Create dedicated service_role Supabase client with persistSession disabled
 export const supabaseStore = createClient(
@@ -658,18 +659,32 @@ export class DigitalOrderService {
    */
   async dispatchAsyncEmail(order, product, signedUrl) {
     try {
-      const downloadLink = `${APP_BASE_URL}/api/store/download/${order.download_token}`;
+      // 1. Direct Supabase Storage signed download URL is best because it immediately starts download
+      let finalDownloadUrl = signedUrl;
+      if (!finalDownloadUrl && product.file_vault_path) {
+        try {
+          finalDownloadUrl = await this.vaultService.generateSignedDownloadUrl(product.file_vault_path, 259200);
+        } catch (e) {
+          console.warn('[dispatchAsyncEmail] Could not sign vault URL:', e.message);
+        }
+      }
+
+      // 2. Fallback to API resolver on Render server if signed URL generation fails
+      if (!finalDownloadUrl) {
+        finalDownloadUrl = `${API_BASE_URL}/api/store/download/${order.download_token}`;
+      }
+
       const amountFormatted =
         order.currency === 'KES'
           ? `KSh ${Number(order.amount_paid).toLocaleString('en-KE')}`
-          : `$${Number(order.amount_paid).toFixed(2)}`;
+          : `${Number(order.amount_paid).toFixed(2)}`;
 
       const emailResult = await this.emailService.sendOrderFulfillmentEmail({
         customerEmail: order.customer_email,
         customerName: order.customer_name,
         orderNumber: order.order_number,
         productName: order.product_name,
-        downloadUrl: downloadLink,
+        downloadUrl: finalDownloadUrl,
         googleSheetsUrl: product.google_sheets_copy_url,
         amountFormatted,
         paymentRef: order.payment_reference
@@ -1192,7 +1207,7 @@ router.post('/resend-receipt', lookupLimiter, async (req, res) => {
       .single();
 
     const product = await digitalProductService.getProductById(dbOrder.product_id);
-    const signedUrl = await storageVaultService.generateSignedDownloadUrl(product.file_vault_path, 7200);
+    const signedUrl = await storageVaultService.generateSignedDownloadUrl(product.file_vault_path, 259200);
 
     await digitalOrderService.dispatchAsyncEmail(dbOrder, product, signedUrl);
 
