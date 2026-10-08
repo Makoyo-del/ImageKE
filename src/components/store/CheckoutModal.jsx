@@ -106,7 +106,18 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
       handler.openIframe();
     } catch (err) {
       console.error('Checkout error:', err);
-      setError(err.response?.data?.error || err.message || 'Checkout initialization failed.');
+      const raw = (err.response?.data?.error || err.response?.data?.message || err.message || '').toString();
+      let friendly = 'Unable to connect to the secure payment processor. Please check your connection and try again.';
+
+      if (raw.includes('403') || raw.toLowerCase().includes('currency')) {
+        friendly = 'The payment gateway is temporarily routing your transaction. Tap Retry to proceed with card or M-Pesa.';
+      } else if (raw.toLowerCase().includes('network') || raw.toLowerCase().includes('timeout')) {
+        friendly = 'Connection took longer than expected. Please verify your internet and tap Retry.';
+      } else if (raw && !raw.includes('status code') && !raw.includes('AxiosError') && !raw.includes('code:')) {
+        friendly = raw;
+      }
+
+      setError(friendly);
       setLoading(false);
     }
   };
@@ -327,19 +338,54 @@ export default function CheckoutModal({ product, currency = 'USD', onClose }) {
 
             {error && (
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                color: '#f87171',
-                padding: '12px',
-                borderRadius: '8px',
-                fontSize: '13px',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: '10px',
+                padding: '14px',
                 marginBottom: '16px'
               }}>
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span>{error}</span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <AlertCircle size={18} color="#f87171" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#fca5a5', fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}>
+                      Unable to proceed with checkout
+                    </div>
+                    <div style={{ color: '#d4d4d8', fontSize: '12px', lineHeight: 1.5 }}>
+                      {error}
+                    </div>
+                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        style={{
+                          backgroundColor: '#27272a',
+                          border: '1px solid #3f3f46',
+                          color: '#ffffff',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Tap to Retry
+                      </button>
+                      <a
+                        href="https://wa.me/254717799516?text=Hi%20Duncan,%20I'm%20having%20trouble%20checking%20out%20on%20the%20digital%20vault"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: '#10b981',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          textDecoration: 'none'
+                        }}
+                      >
+                        WhatsApp Support →
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

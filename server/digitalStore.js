@@ -178,18 +178,20 @@ export class PaystackGatewayService {
   /**
    * Initialize Paystack inline transaction
    */
-  async initializeTransaction({ email, subunitAmount, currency, metadata, callbackUrl }) {
+  async initializeTransaction({ email, subunitAmount, currency, metadata, callbackUrl, fallbackKesSubunit }) {
     if (!this.secretKey) {
       throw new Error('Payment gateway is not configured with a valid secret key.');
     }
 
-    const payload = {
+    const makePayload = (curr, amt) => ({
       email: email.trim().toLowerCase(),
-      amount: subunitAmount,
-      currency: currency.toUpperCase(),
+      amount: amt,
+      currency: curr.toUpperCase(),
       callback_url: callbackUrl || `${APP_BASE_URL}/assets`,
       metadata: {
         ...metadata,
+        chargedCurrency: curr.toUpperCase(),
+        chargedSubunits: amt,
         custom_fields: [
           {
             display_name: 'Product Name',
@@ -204,15 +206,47 @@ export class PaystackGatewayService {
         ]
       },
       channels: ['card', 'mobile_money', 'bank', 'ussd', 'qr', 'apple_pay']
-    };
-
-    const response = await axios.post(`${this.baseUrl}/transaction/initialize`, payload, {
-      headers: {
-        Authorization: `Bearer ${this.secretKey}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 12000
     });
+
+    let activeCurrency = (currency || 'USD').toUpperCase();
+    let activeSubunits = subunitAmount;
+    let response;
+
+    try {
+      response = await axios.post(`${this.baseUrl}/transaction/initialize`, makePayload(activeCurrency, activeSubunits), {
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 12000
+      });
+    } catch (err) {
+      const respData = err.response?.data;
+      const statusCode = err.response?.status;
+      const isUnsupported =
+        statusCode === 403 ||
+        respData?.code === 'unsupported_currency' ||
+        (respData?.message && respData.message.toLowerCase().includes('currency not supported'));
+
+      // If USD/EUR/GBP is not enabled on this Paystack merchant account, self-heal to KES
+      if (activeCurrency !== 'KES' && isUnsupported && fallbackKesSubunit) {
+        console.warn(`[PaystackGateway] ${activeCurrency} rejected by merchant account (403). Auto-recovering to KES (${fallbackKesSubunit} cents)...`);
+        activeCurrency = 'KES';
+        activeSubunits = fallbackKesSubunit;
+
+        response = await axios.post(`${this.baseUrl}/transaction/initialize`, makePayload(activeCurrency, activeSubunits), {
+          headers: {
+            Authorization: `Bearer ${this.secretKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 12000
+        });
+      } else {
+        const errorMsg = respData?.message || err.message;
+        console.error('[PaystackGateway Init Error]', statusCode, errorMsg);
+        throw new Error(errorMsg || 'Unable to connect to Paystack payment gateway.');
+      }
+    }
 
     if (!response.data || !response.data.status) {
       throw new Error(response.data?.message || 'Failed to initialize Paystack checkout.');
@@ -221,7 +255,9 @@ export class PaystackGatewayService {
     return {
       authorizationUrl: response.data.data.authorization_url,
       accessCode: response.data.data.access_code,
-      reference: response.data.data.reference
+      reference: response.data.data.reference,
+      chargedCurrency: activeCurrency,
+      chargedSubunitAmount: activeSubunits
     };
   }
 
@@ -872,11 +908,15 @@ router.post('/initialize-checkout', checkoutLimiter, async (req, res) => {
     // 3. Generate internal order tracking reference
     const orderNumber = digitalOrderService.generateOrderNumber();
 
-    // 4. Initialize transaction on Paystack
+    // 4. Fallback KES amount in case USD is not active on merchant Paystack
+    const fallbackKesSubunit = Math.round(Number(product.price_kes || 250) * 100);
+
+    // 5. Initialize transaction on Paystack with automatic currency self-healing
     const paystackSession = await paystackGatewayService.initializeTransaction({
       email: email.trim().toLowerCase(),
       subunitAmount: verified.subunitAmount,
       currency: verified.currency,
+      fallbackKesSubunit,
       metadata: {
         productId: product.product_id,
         productName: product.name,
@@ -888,6 +928,12 @@ router.post('/initialize-checkout', checkoutLimiter, async (req, res) => {
       }
     });
 
+    const isChargedInKes = paystackSession.chargedCurrency === 'KES';
+    const finalAmount = isChargedInKes ? Number(product.price_kes || 250) : verified.amount;
+    const finalDisplay = isChargedInKes 
+      ? `KSh ${Number(product.price_kes || 250).toLocaleString('en-KE')}`
+      : verified.displayFormatted;
+
     res.json({
       success: true,
       orderNumber,
@@ -896,10 +942,11 @@ router.post('/initialize-checkout', checkoutLimiter, async (req, res) => {
         name: product.name
       },
       pricing: {
-        amount: verified.amount,
-        currency: verified.currency,
-        subunitAmount: verified.subunitAmount,
-        displayFormatted: verified.displayFormatted
+        amount: finalAmount,
+        currency: paystackSession.chargedCurrency,
+        subunitAmount: paystackSession.chargedSubunitAmount,
+        displayFormatted: finalDisplay,
+        wasConvertedToKes: isChargedInKes && verified.currency !== 'KES'
       },
       paystack: {
         reference: paystackSession.reference,
@@ -909,8 +956,11 @@ router.post('/initialize-checkout', checkoutLimiter, async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('[POST /api/store/initialize-checkout Error]', err.message);
-    res.status(500).json({ success: false, error: err.message || 'Checkout initialization failed.' });
+    console.error('[POST /api/store/initialize-checkout Error]', err.response?.data || err.message);
+    const friendlyMsg = err.message && !err.message.includes('status code') && !err.message.includes('AxiosError')
+      ? err.message
+      : 'We were unable to open the payment gateway right now. Please verify your details and try again.';
+    res.status(500).json({ success: false, error: friendlyMsg });
   }
 });
 
@@ -1440,7 +1490,7 @@ router.patch('/admin/products/:productId', authenticateStoreAdmin, async (req, r
     if (error) throw error;
 
     // Clear cache
-    productService.clearCache();
+    digitalProductService.clearCache();
 
     res.json({
       success: true,
