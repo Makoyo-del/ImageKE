@@ -467,7 +467,7 @@ function App() {
               }}>
                 <div><strong style={{ color: '#ffffff' }}>Entity:</strong> MAKOYOCART VENTURES (BN-WLSP9KP9)</div>
                 <div><strong style={{ color: '#ffffff' }}>Designated Controller:</strong> Duncan Ombiro Makoyo</div>
-                <div><strong style={{ color: '#ffffff' }}>Official Email:</strong> <a href="mailto:info@duncanmakoyo.com" style={{ color: '#ff5414', textDecoration: 'none' }}>info@duncanmakoyo.com</a> / <a href="mailto:duncanmakoyo@gmail.com" style={{ color: '#ff5414', textDecoration: 'none' }}>duncanmakoyo@gmail.com</a></div>
+                <div><strong style={{ color: '#ffffff' }}>Official Email:</strong> <a href="mailto:duncan@duncanmakoyo.com" style={{ color: '#ff5414', textDecoration: 'none' }}>duncan@duncanmakoyo.com</a> / <a href="mailto:duncanmakoyo@gmail.com" style={{ color: '#ff5414', textDecoration: 'none' }}>duncanmakoyo@gmail.com</a></div>
                 <div><strong style={{ color: '#ffffff' }}>WhatsApp / Direct Phone:</strong> <a href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" style={{ color: '#00e676', textDecoration: 'none' }}>+254 794 877 125</a></div>
                 <div><strong style={{ color: '#ffffff' }}>Physical Address:</strong> Mwamosioma, Kisii-Kilgoris Road, Darajambili, P.O. Box 54, 40200 - Kisii, Kenya</div>
               </div>

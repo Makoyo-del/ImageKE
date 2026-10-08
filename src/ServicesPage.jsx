@@ -14,7 +14,9 @@ import {
   Network,
   Activity,
   Layers,
-  CheckCircle2
+  CheckCircle2,
+  ShoppingBag,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -101,6 +103,22 @@ export default function ServicesPage({ onNavigateToPath }) {
             <button onClick={() => scrollTo('campusnet')} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', transition: 'color 0.2s' }}>Campus Wi-Fi</button>
             <button onClick={() => scrollTo('whatsapp')} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', transition: 'color 0.2s' }}>WhatsApp Engine</button>
             <button onClick={() => scrollTo('payments')} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', transition: 'color 0.2s' }}>Payment Infra</button>
+            <a href="#/assets" style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              padding: '0.45rem 0.9rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease'
+            }}>
+              <ShoppingBag size={14} /> Storefront
+            </a>
             <button onClick={() => scrollTo('contact')} style={{
               background: '#ff5414',
               color: '#ffffff',
@@ -171,6 +189,23 @@ export default function ServicesPage({ onNavigateToPath }) {
           }}>
             Explore Active Ventures <ArrowRight size={16} />
           </button>
+          <a href="#/assets" style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.18) 100%)',
+            color: '#34d399',
+            border: '1.5px solid rgba(16, 185, 129, 0.5)',
+            padding: '0.9rem 1.8rem',
+            borderRadius: '10px',
+            fontWeight: 700,
+            fontSize: '1rem',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 18px rgba(16, 185, 129, 0.2)',
+            transition: 'all 0.2s ease'
+          }}>
+            <ShoppingBag size={18} style={{ color: '#34d399' }} /> Digital Storefront
+          </a>
           <a href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" style={{
             background: 'var(--profit-green-bg, rgba(0, 230, 118, 0.14))',
             color: '#00e676',
@@ -442,6 +477,158 @@ export default function ServicesPage({ onNavigateToPath }) {
         </div>
       </section>
 
+      {/* ── Venture 4: Financial & Solopreneur OS Storefront ── */}
+      <section id="storefront" style={{ padding: '5rem 1.5rem', borderTop: '1.5px solid rgba(255, 255, 255, 0.1)', background: 'rgba(10, 14, 20, 0.7)' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.06em' }}>
+              <ShoppingBag size={18} /> VENTURE 04 &bull; FINANCIAL &amp; SOLOPRENEUR OS STOREFRONT
+            </div>
+            <a
+              href="#/assets"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: '#34d399',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '0.4rem 0.9rem',
+                borderRadius: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              View Full Storefront <ArrowRight size={14} />
+            </a>
+          </div>
+          <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '2.4rem', fontWeight: 800, margin: '0 0 1rem', color: '#ffffff' }}>
+            Digital Products: Financial Models &amp; Solopreneur Toolkits
+          </h2>
+          <p style={{ color: '#cbd5e1', maxWidth: '780px', fontSize: '1.05rem', lineHeight: 1.65, margin: '0 0 2.5rem' }}>
+            Production-tested financial engines and operational spreadsheets engineered to eliminate financial guesswork. Instant digital delivery with multi-currency checkout (M-Pesa, Card, Bank) and automated fulfillment.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            {/* Product 1: Debt Freedom Engine */}
+            <div style={{
+              background: 'rgba(17, 19, 26, 0.94)',
+              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '18px',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 15px 35px -10px rgba(0,0,0,0.6)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '0.6rem', borderRadius: '10px' }}>
+                    <FileSpreadsheet style={{ color: '#10b981' }} size={24} />
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#34d399',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(16, 185, 129, 0.25)'
+                  }}>
+                    POPULAR
+                  </span>
+                </div>
+                <h3 style={{ fontFamily: "'Outfit', sans-serif", margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#ffffff', fontWeight: 700 }}>
+                  Debt Freedom &amp; Payoff Engine
+                </h3>
+                <p style={{ color: '#cbd5e1', fontSize: '0.92rem', lineHeight: 1.65, margin: '0 0 1.5rem' }}>
+                  Mathematical payoff projection model with snowball vs. avalanche payoff simulation, visual freedom date countdown, and real-time interest savings analysis.
+                </p>
+              </div>
+              <a
+                href="#/assets/debt-freedom-engine"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%)',
+                  color: '#34d399',
+                  border: '1.5px solid rgba(16, 185, 129, 0.4)',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Explore Debt Freedom Engine <ArrowRight size={15} />
+              </a>
+            </div>
+
+            {/* Product 2: Freelancer Pricing OS */}
+            <div style={{
+              background: 'rgba(17, 19, 26, 0.94)',
+              border: '1.5px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '18px',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 15px 35px -10px rgba(0,0,0,0.6)'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.15)', padding: '0.6rem', borderRadius: '10px' }}>
+                    <Layers style={{ color: '#38bdf8' }} size={24} />
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#38bdf8',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(56, 189, 248, 0.25)'
+                  }}>
+                    BUSINESS TOOLKIT
+                  </span>
+                </div>
+                <h3 style={{ fontFamily: "'Outfit', sans-serif", margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#ffffff', fontWeight: 700 }}>
+                  Freelancer Pricing &amp; Rate OS
+                </h3>
+                <p style={{ color: '#cbd5e1', fontSize: '0.92rem', lineHeight: 1.65, margin: '0 0 1.5rem' }}>
+                  Comprehensive rate calculation architecture for solopreneurs. Includes overhead factoring, billable hour efficiency, project tier quoting, and minimum acceptable rate thresholds.
+                </p>
+              </div>
+              <a
+                href="#/assets/freelancer-pricing-os"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(14, 165, 233, 0.15) 100%)',
+                  color: '#38bdf8',
+                  border: '1.5px solid rgba(56, 189, 248, 0.4)',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Explore Freelancer Pricing OS <ArrowRight size={15} />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Contact & Engineering Inquiry Section ── */}
       <section id="contact" style={{ padding: '6rem 1.5rem', borderTop: '1.5px solid rgba(255, 255, 255, 0.1)', background: '#090a0e' }}>
         <div style={{ maxWidth: '850px', margin: '0 auto' }}>
@@ -657,6 +844,7 @@ export default function ServicesPage({ onNavigateToPath }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <a href="#/assets" style={{ color: '#34d399', textDecoration: 'none', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem' }}><ShoppingBag size={14} /> Storefront</a>
             <button onClick={() => window.location.hash = '#/terms'} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>Terms</button>
             <button onClick={() => window.location.hash = '#/privacy'} style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600 }}>Privacy</button>
             <a href="https://wa.me/254794877125" target="_blank" rel="noopener noreferrer" style={{ color: '#00e676', textDecoration: 'none', fontWeight: 700 }}>WhatsApp</a>

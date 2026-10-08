@@ -76,7 +76,7 @@ export function LegalModal({ type, onClose }) {
             <p><strong style={{ color: '#ffffff' }}>1. Information We Collect:</strong> We collect only the essential information necessary for fulfillment and support: your email address, customer name (optional), IP address, and transaction references.</p>
             <p><strong style={{ color: '#ffffff' }}>2. Payment Card Security:</strong> We do not store, process, or transmit credit card or banking details on our servers. All financial transactions are processed securely through PCI-DSS Level 1 certified payment gateway Paystack.</p>
             <p><strong style={{ color: '#ffffff' }}>3. Data Usage & Protection:</strong> Your contact information is never sold or shared with third parties. It is solely used for delivering your purchase confirmation, order recovery, and critical security notices.</p>
-            <p><strong style={{ color: '#ffffff' }}>4. Data Deletion Rights:</strong> You may request complete erasure of your customer order record by contacting privacy@duncanmakoyo.com.</p>
+            <p><strong style={{ color: '#ffffff' }}>4. Data Deletion Rights:</strong> You may request complete erasure of your customer order record by contacting duncan@duncanmakoyo.com.</p>
           </div>
         )}
 

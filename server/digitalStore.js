@@ -26,7 +26,7 @@ const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').
 const PAYSTACK_SECRET_KEY = (process.env.PAYSTACK_SECRET_KEY || '').trim();
 const PAYSTACK_PUBLIC_KEY = (process.env.PAYSTACK_PUBLIC_KEY || '').trim();
 const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
-const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL || 'Makoyocart Vault <alerts@duncanmakoyo.com>').trim();
+const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL || 'Makoyocart Vault <duncan@duncanmakoyo.com>').trim();
 const APP_BASE_URL = (process.env.APP_BASE_URL || 'https://duncanmakoyo.com').replace(/\/$/, '');
 const API_BASE_URL = (process.env.API_BASE_URL || process.env.RENDER_EXTERNAL_URL || 'https://imageke-api.onrender.com').replace(/\/$/, '');
 
@@ -318,7 +318,7 @@ export class PaystackGatewayService {
 export class EmailFulfillmentService {
   constructor(apiKey, fromEmail) {
     this.apiKey = apiKey;
-    this.fromEmail = fromEmail || 'Makoyocart Vault <alerts@duncanmakoyo.com>';
+    this.fromEmail = fromEmail || 'Makoyocart Vault <duncan@duncanmakoyo.com>';
   }
 
   buildOrderFulfillmentHtml({
