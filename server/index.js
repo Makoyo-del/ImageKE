@@ -93,6 +93,9 @@ app.use('/api/academy', academyRouter);
 // 4. Digital Assets Store (Zero-Trust Checkout & Dual Fulfillment)
 app.use('/api/store', digitalStoreRouter);
 
+// 5. WhatsApp Commerce Bot (Autonomous Catalog, STK Checkout & pg-boss Queue)
+await mountShopBot(app);
+
 // 4. Resilient Legacy Rider Webhook Alias -> routes to CampusNet Webhook
 // Prevents 404s for any in-flight retries or services still referencing the legacy /api/rider/webhook URL
 app.post('/api/rider/webhook', (req, res, next) => {
@@ -242,8 +245,7 @@ app.use((err, _req, res, _next) => {
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 5000;
-app.listen(PORT, async () => {
-  await mountShopBot(app);
+app.listen(PORT, () => {
   console.log(`[Makoyocart Ventures Core API] Running on port ${PORT}`);
   console.log(`[Makoyocart Ventures Core API] Allowed origins: ${allowedOrigins.join(', ')}`);
 });
