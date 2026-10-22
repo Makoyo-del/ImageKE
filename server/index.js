@@ -1,5 +1,21 @@
 import dns from 'node:dns';
-try { dns.setDefaultResultOrder('ipv4first'); } catch {}
+try {
+  dns.setDefaultResultOrder('ipv4first');
+  const _origLookup = dns.lookup;
+  dns.lookup = function (hostname, options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = { family: 4 };
+    } else if (typeof options === 'object') {
+      options = { ...options, family: 4 };
+    } else if (typeof options === 'number') {
+      options = { family: 4 };
+    }
+    return _origLookup.call(this, hostname, options, callback);
+  };
+} catch (e) {
+  console.warn('[dns] IPv4 enforcement setup failed:', e.message);
+}
 import { mountShopBot } from './shopbot/mount.js';
 import express from 'express';
 import cors from 'cors';
