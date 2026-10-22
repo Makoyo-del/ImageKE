@@ -89,7 +89,7 @@ const wrap = (fn) => (req, res) =>
     if (e.code === '22P02' || e.code === '23503') return res.status(400).json({ error: 'Invalid reference.' });
     if (/ORDER_NOT_PAID|BAD_STATUS|ORDER_NOT_FOUND/.test(e.message)) return res.status(400).json({ error: e.message.replace(/^.*?:\s*/, '') });
     console.error('[admin]', e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: e.message || 'Server error' });
   });
 
 const num = (v, min = 0) => (Number.isFinite(Number(v)) && Number(v) >= min ? Number(v) : null);
@@ -119,7 +119,7 @@ export function adminRouter(boss) {
                     from shop.products p
                     left join shop.variants v on v.product_id = p.id
                     left join shop.inventory i on i.variant_id = v.id
-                   group by p.id order by p.sort, p.name`),
+                   group by p.id, p.name, p.description, p.category, p.image_url, p.active, p.sort order by p.sort, p.name`),
       pool.query(`select id, name, fee_kes::float as fee_kes, active from shop.delivery_zones order by sort, name`),
     ]);
     const lowStock = products.rows.flatMap((p) => p.variants).filter((v) => v.active && v.on_hand - v.reserved <= 3).length;
