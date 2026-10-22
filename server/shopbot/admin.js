@@ -141,12 +141,27 @@ export function adminRouter(boss) {
 
   // ── Dashboard snapshot ────────────────────────────────────────────────────
   r.get('/overview', wrap(async (_req, res) => {
-    const [m, orders, products, zones] = await Promise.all([
+    const [m, mToday, mWeek, mMonth, orders, products, zones] = await Promise.all([
       pool.query(`select count(*) filter (where payment_status='paid')::int as paid_orders,
                          coalesce(sum(total_kes) filter (where payment_status='paid'),0)::float as revenue_kes,
                          count(*) filter (where payment_status='paid' and fulfillment_status in ('pending','dispatched'))::int as open_orders,
                          count(*) filter (where payment_status in ('refund_due','mismatch'))::int as needs_attention
                     from shop.orders`),
+      pool.query(`select count(*) filter (where payment_status='paid')::int as paid_orders,
+                         coalesce(sum(total_kes) filter (where payment_status='paid'),0)::float as revenue_kes,
+                         count(*) filter (where payment_status='paid' and fulfillment_status in ('pending','dispatched'))::int as open_orders
+                    from shop.orders
+                   where created_at >= (timezone('Africa/Nairobi', now())::date)`),
+      pool.query(`select count(*) filter (where payment_status='paid')::int as paid_orders,
+                         coalesce(sum(total_kes) filter (where payment_status='paid'),0)::float as revenue_kes,
+                         count(*) filter (where payment_status='paid' and fulfillment_status in ('pending','dispatched'))::int as open_orders
+                    from shop.orders
+                   where created_at >= date_trunc('week', timezone('Africa/Nairobi', now()))`),
+      pool.query(`select count(*) filter (where payment_status='paid')::int as paid_orders,
+                         coalesce(sum(total_kes) filter (where payment_status='paid'),0)::float as revenue_kes,
+                         count(*) filter (where payment_status='paid' and fulfillment_status in ('pending','dispatched'))::int as open_orders
+                    from shop.orders
+                   where created_at >= date_trunc('month', timezone('Africa/Nairobi', now()))`),
       pool.query(`select o.id, o.order_no, o.wa_id, c.name as customer_name, o.zone_name, o.total_kes::float as total_kes,
                          o.payment_status, o.fulfillment_status, o.mpesa_receipt, o.created_at, o.paid_at,
                          (select string_agg(oi.qty || ' x ' || oi.name, '; ') from shop.order_items oi where oi.order_id = o.id) as items
@@ -156,7 +171,22 @@ export function adminRouter(boss) {
       pool.query(`select id, name, fee_kes::float as fee_kes, active from shop.delivery_zones order by sort, name`),
     ]);
     const lowStock = products.rows.flatMap((p) => p.variants).filter((v) => v.active && v.on_hand - v.reserved <= 3).length;
-    res.json({ metrics: { ...m.rows[0], low_stock: lowStock }, orders: orders.rows, products: products.rows, zones: zones.rows });
+    const timeBreakdowns = {
+      today: mToday.rows[0] || { paid_orders: 0, revenue_kes: 0, open_orders: 0 },
+      week: mWeek.rows[0] || { paid_orders: 0, revenue_kes: 0, open_orders: 0 },
+      month: mMonth.rows[0] || { paid_orders: 0, revenue_kes: 0, open_orders: 0 },
+      all: m.rows[0] || { paid_orders: 0, revenue_kes: 0, open_orders: 0 }
+    };
+    res.json({
+      metrics: {
+        ...m.rows[0],
+        low_stock: lowStock,
+        time_breakdowns: timeBreakdowns
+      },
+      orders: orders.rows,
+      products: products.rows,
+      zones: zones.rows
+    });
   }));
 
   // ── Orders: Pending -> Dispatched -> Delivered (customer is notified in chat) ──

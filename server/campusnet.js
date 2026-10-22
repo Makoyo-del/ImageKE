@@ -1280,9 +1280,26 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
       }
     });
 
-    // Today's revenue calculation (Nairobi EAT = UTC+3)
+    // Nairobi Time (EAT = UTC+3) Time-Range Breakdowns for Pure Independent Wi-Fi Sales
     const eatOffset = 3 * 60 * 60 * 1000;
-    const todayEatStr = new Date(now.getTime() + eatOffset).toISOString().slice(0, 10);
+    const nowEat = new Date(now.getTime() + eatOffset);
+    const todayEatStr = nowEat.toISOString().slice(0, 10);
+
+    const dayOfWeek = nowEat.getUTCDay(); // 0 is Sun, 1 is Mon...
+    const diffToMon = (dayOfWeek + 6) % 7;
+    const weekStartEat = new Date(nowEat);
+    weekStartEat.setUTCDate(weekStartEat.getUTCDate() - diffToMon);
+    weekStartEat.setUTCHours(0, 0, 0, 0);
+
+    const monthStartEat = new Date(Date.UTC(nowEat.getUTCFullYear(), nowEat.getUTCMonth(), 1, 0, 0, 0));
+
+    const timeBreakdowns = {
+      today: { gross_kes: 0, net_kes: 0, fee_kes: 0, count: 0 },
+      week: { gross_kes: 0, net_kes: 0, fee_kes: 0, count: 0 },
+      month: { gross_kes: 0, net_kes: 0, fee_kes: 0, count: 0 },
+      all: { gross_kes: 0, net_kes: 0, fee_kes: 0, count: 0 }
+    };
+
     let todayRevenue = 0;
     let todayTxCount = 0;
     let totalRevenue = 0;
@@ -1294,12 +1311,32 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
       if (t.paystack_reference) {
         paystackVerifiedRevenue += amt;
       }
-      const tEatStr = new Date(new Date(t.created_at).getTime() + eatOffset).toISOString().slice(0, 10);
+      const tEat = new Date(new Date(t.created_at).getTime() + eatOffset);
+      const tEatStr = tEat.toISOString().slice(0, 10);
+
+      timeBreakdowns.all.gross_kes += amt;
+      timeBreakdowns.all.count++;
+
       if (tEatStr === todayEatStr) {
         todayRevenue += amt;
         todayTxCount++;
+        timeBreakdowns.today.gross_kes += amt;
+        timeBreakdowns.today.count++;
+      }
+      if (tEat >= weekStartEat) {
+        timeBreakdowns.week.gross_kes += amt;
+        timeBreakdowns.week.count++;
+      }
+      if (tEat >= monthStartEat) {
+        timeBreakdowns.month.gross_kes += amt;
+        timeBreakdowns.month.count++;
       }
     });
+
+    for (const k of ['today', 'week', 'month', 'all']) {
+      timeBreakdowns[k].net_kes = Math.round(timeBreakdowns[k].gross_kes * 0.985);
+      timeBreakdowns[k].fee_kes = Math.round(timeBreakdowns[k].gross_kes * 0.015);
+    }
 
     // Directly query Paystack live transaction totals so revenue is 100% synchronized with Paystack dashboard
     let paystackLiveVolumeKes = null;
@@ -1474,7 +1511,8 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
         estimated_paystack_fee_kes: Math.round(totalRevenue * 0.015),
         estimated_net_revenue_kes: Math.round(totalRevenue * 0.985),
         total_customers_count: Object.keys(txsByPhone).length,
-        unclaimed_rewards_count: totalUnclaimedRewards
+        unclaimed_rewards_count: totalUnclaimedRewards,
+        time_breakdowns: timeBreakdowns
       },
       sessions: formattedSessions,
       loyalty: loyaltyList,

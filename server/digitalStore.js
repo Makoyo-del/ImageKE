@@ -1307,6 +1307,67 @@ router.get('/admin/overview', authenticateStoreAdmin, async (req, res) => {
     const emailsDelivered = orders.filter((o) => o.email_sent === true).length;
     const emailDeliveryRate = totalOrders > 0 ? Math.round((emailsDelivered / totalOrders) * 100) : 100;
 
+    // Time-range breakdowns in Nairobi EAT (UTC+3)
+    const eatOffset = 3 * 60 * 60 * 1000;
+    const nowEat = new Date(Date.now() + eatOffset);
+    const todayEatStr = nowEat.toISOString().slice(0, 10);
+    const dayOfWeek = nowEat.getUTCDay();
+    const diffToMon = (dayOfWeek + 6) % 7;
+    const weekStartEat = new Date(nowEat);
+    weekStartEat.setUTCDate(weekStartEat.getUTCDate() - diffToMon);
+    weekStartEat.setUTCHours(0, 0, 0, 0);
+    const monthStartEat = new Date(Date.UTC(nowEat.getUTCFullYear(), nowEat.getUTCMonth(), 1, 0, 0, 0));
+
+    const timeBreakdowns = {
+      today: { grossUsd: 0, grossKes: 0, paidOrders: 0, totalOrders: 0, downloads: 0 },
+      week: { grossUsd: 0, grossKes: 0, paidOrders: 0, totalOrders: 0, downloads: 0 },
+      month: { grossUsd: 0, grossKes: 0, paidOrders: 0, totalOrders: 0, downloads: 0 },
+      all: { grossUsd: Number(grossUsd.toFixed(2)), grossKes: Number(grossKes.toFixed(2)), paidOrders, totalOrders, downloads: totalDownloads }
+    };
+
+    orders.forEach((o) => {
+      const isPaid = o.payment_status === 'SUCCESS' || o.fulfillment_status === 'FULFILLED';
+      const amt = Number(o.amount_paid || 0);
+      const dl = Number(o.download_count || 0);
+      const tEat = new Date(new Date(o.created_at).getTime() + eatOffset);
+      const tEatStr = tEat.toISOString().slice(0, 10);
+
+      if (tEatStr === todayEatStr) {
+        timeBreakdowns.today.totalOrders++;
+        if (isPaid) {
+          timeBreakdowns.today.paidOrders++;
+          if (o.currency === 'USD') timeBreakdowns.today.grossUsd += amt;
+          else timeBreakdowns.today.grossKes += amt;
+        }
+        timeBreakdowns.today.downloads += dl;
+      }
+
+      if (tEat >= weekStartEat) {
+        timeBreakdowns.week.totalOrders++;
+        if (isPaid) {
+          timeBreakdowns.week.paidOrders++;
+          if (o.currency === 'USD') timeBreakdowns.week.grossUsd += amt;
+          else timeBreakdowns.week.grossKes += amt;
+        }
+        timeBreakdowns.week.downloads += dl;
+      }
+
+      if (tEat >= monthStartEat) {
+        timeBreakdowns.month.totalOrders++;
+        if (isPaid) {
+          timeBreakdowns.month.paidOrders++;
+          if (o.currency === 'USD') timeBreakdowns.month.grossUsd += amt;
+          else timeBreakdowns.month.grossKes += amt;
+        }
+        timeBreakdowns.month.downloads += dl;
+      }
+    });
+
+    for (const k of ['today', 'week', 'month']) {
+      timeBreakdowns[k].grossUsd = Number(timeBreakdowns[k].grossUsd.toFixed(2));
+      timeBreakdowns[k].grossKes = Number(timeBreakdowns[k].grossKes.toFixed(2));
+    }
+
     const productBreakdown = {};
     const channelBreakdown = {};
     orders.forEach((o) => {
@@ -1343,7 +1404,8 @@ router.get('/admin/overview', authenticateStoreAdmin, async (req, res) => {
         emailsDelivered,
         emailDeliveryRate,
         productBreakdown,
-        channelBreakdown
+        channelBreakdown,
+        time_breakdowns: timeBreakdowns
       },
       orders: orders.map((o) => ({
         id: o.id,

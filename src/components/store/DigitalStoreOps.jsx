@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   DollarSign,
+  Calendar,
   Package,
   RefreshCw,
   Send,
@@ -74,6 +75,7 @@ export function DigitalStoreOps({ onNavigate }) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'products' | 'generator'
   const [searchQuery, setSearchQuery] = useState('');
+  const [timeFilter, setTimeFilter] = useState('all'); // 'today' | 'week' | 'month' | 'all'
   
   // Action states
   const [actionLoading, setActionLoading] = useState({});
@@ -574,6 +576,56 @@ export function DigitalStoreOps({ onNavigate }) {
         </div>
       </div>
 
+      {/* DIRECT TIME FILTER BAR (PURE DIGITAL ASSET VAULT LEDGER) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '18px',
+        backgroundColor: '#121215',
+        border: '1px solid #27272a',
+        borderRadius: '12px',
+        padding: '10px 16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={16} color="#10b981" />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#f4f4f5' }}>
+            Store Sales Filter:
+          </span>
+          <span style={{ fontSize: '12px', color: '#71717a' }}>
+            Independent Digital Asset Vault Ledger
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {[
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: 'This Week' },
+            { id: 'month', label: 'This Month' },
+            { id: 'all', label: 'All Time' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setTimeFilter(f.id)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: timeFilter === f.id ? '1px solid #10b981' : '1px solid #27272a',
+                backgroundColor: timeFilter === f.id ? 'rgba(16, 185, 129, 0.15)' : '#18181b',
+                color: timeFilter === f.id ? '#10b981' : '#a1a1aa',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* METRIC CARDS */}
       <div style={{
         display: 'grid',
@@ -600,10 +652,10 @@ export function DigitalStoreOps({ onNavigate }) {
             fontFamily: "'Outfit', sans-serif",
             color: '#10b981'
           }}>
-            ${metrics.grossRevenueUsd.toFixed(2)}
+            ${Number(activeBreakdown.grossUsd || 0).toFixed(2)}
           </div>
           <div style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>
-            International cards & Apple Pay
+            {periodLabels[timeFilter]} cards & Apple Pay
           </div>
         </div>
 
@@ -626,10 +678,10 @@ export function DigitalStoreOps({ onNavigate }) {
             fontFamily: "'Outfit', sans-serif",
             color: '#10b981'
           }}>
-            KSh {metrics.grossRevenueKes.toLocaleString()}
+            KSh {Number(activeBreakdown.grossKes || 0).toLocaleString()}
           </div>
           <div style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>
-            Safaricom M-Pesa & local banks
+            {periodLabels[timeFilter]} Safaricom M-Pesa & banks
           </div>
         </div>
 
@@ -652,10 +704,10 @@ export function DigitalStoreOps({ onNavigate }) {
             fontFamily: "'Outfit', sans-serif",
             color: '#ffffff'
           }}>
-            {metrics.totalOrders}
+            {activeBreakdown.paidOrders ?? 0}
           </div>
           <div style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>
-            {metrics.paidOrders} successfully fulfilled
+            {periodLabels[timeFilter]} verified paid orders
           </div>
         </div>
 
@@ -678,10 +730,10 @@ export function DigitalStoreOps({ onNavigate }) {
             fontFamily: "'Outfit', sans-serif",
             color: '#f59e0b'
           }}>
-            {metrics.totalDownloads}
+            {activeBreakdown.downloads ?? 0}
           </div>
           <div style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>
-            {metrics.emailDeliveryRate}% Resend delivery rate
+            {periodLabels[timeFilter]} vault downloads
           </div>
         </div>
       </div>

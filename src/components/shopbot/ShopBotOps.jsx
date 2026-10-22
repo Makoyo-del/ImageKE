@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   MessageCircle, RefreshCw, Search, Truck, CheckCircle2, Package, MapPin, Plus,
   Save, AlertTriangle, DollarSign, Boxes, ClipboardList, ShieldCheck, Image as ImageIcon, Upload,
-  Trash2, Edit2, X
+  Trash2, Edit2, X, Calendar
 } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '../../supabase';
@@ -58,6 +58,7 @@ export function ShopBotOps() {
   const [toast, setToast] = useState(null);
   const [tab, setTab] = useState('orders'); // 'orders' | 'catalog' | 'zones'
   const [search, setSearch] = useState('');
+  const [timeFilter, setTimeFilter] = useState('all'); // 'today' | 'week' | 'month' | 'all'
   const [busy, setBusy] = useState({});
   const [edits, setEdits] = useState({}); // variantId -> {price_kes,on_hand} | zoneId -> {name,fee_kes}
   const [editingProduct, setEditingProduct] = useState(null); // { id, name, description, category, image_url }
@@ -195,10 +196,23 @@ export function ShopBotOps() {
   }, [data.orders, search]);
 
   const m = data.metrics || {};
+  const periodLabels = {
+    today: 'Today',
+    week: 'This Week',
+    month: 'This Month',
+    all: 'All Time'
+  };
+
+  const activeBreakdown = m.time_breakdowns?.[timeFilter] || {
+    paid_orders: m.paid_orders ?? 0,
+    revenue_kes: m.revenue_kes ?? 0,
+    open_orders: m.open_orders ?? 0
+  };
+
   const metricCards = [
-    { t: 'Paid Orders', v: m.paid_orders ?? 0, s: 'Confirmed via M-PESA', icon: <ShieldCheck size={16} color="#3b82f6" />, c: '#fff' },
-    { t: 'Revenue', v: kes(m.revenue_kes), s: 'Gross, paid orders only', icon: <DollarSign size={16} color={ACCENT} />, c: ACCENT },
-    { t: 'To Fulfil', v: m.open_orders ?? 0, s: 'Pending or dispatched', icon: <Truck size={16} color="#f59e0b" />, c: '#f59e0b' },
+    { t: 'Paid Orders', v: activeBreakdown.paid_orders ?? 0, s: `${periodLabels[timeFilter]} via M-PESA`, icon: <ShieldCheck size={16} color="#3b82f6" />, c: '#fff' },
+    { t: 'Revenue', v: kes(activeBreakdown.revenue_kes), s: `${periodLabels[timeFilter]} WhatsApp sales`, icon: <DollarSign size={16} color={ACCENT} />, c: ACCENT },
+    { t: 'To Fulfil', v: activeBreakdown.open_orders ?? m.open_orders ?? 0, s: 'Pending or dispatched', icon: <Truck size={16} color="#f59e0b" />, c: '#f59e0b' },
     { t: 'Stock Alerts', v: m.low_stock ?? 0, s: `${m.needs_attention ?? 0} order(s) need attention`, icon: <AlertTriangle size={16} color="#ef4444" />, c: (m.low_stock || m.needs_attention) ? '#ef4444' : '#fff' },
   ];
 
@@ -237,6 +251,56 @@ export function ShopBotOps() {
           {error}
         </div>
       )}
+
+      {/* DIRECT TIME FILTER BAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '18px',
+        backgroundColor: '#121215',
+        border: '1px solid #27272a',
+        borderRadius: '12px',
+        padding: '10px 16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={16} color={ACCENT} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#f4f4f5' }}>
+            Sales Window:
+          </span>
+          <span style={{ fontSize: '12px', color: '#71717a' }}>
+            Independent WhatsApp Commerce Orders
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {[
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: 'This Week' },
+            { id: 'month', label: 'This Month' },
+            { id: 'all', label: 'All Time' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setTimeFilter(f.id)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: timeFilter === f.id ? `1px solid ${ACCENT}` : '1px solid #27272a',
+                backgroundColor: timeFilter === f.id ? ACCENT_SOFT : '#18181b',
+                color: timeFilter === f.id ? ACCENT : '#a1a1aa',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* METRICS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '28px' }}>

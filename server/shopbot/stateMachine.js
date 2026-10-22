@@ -167,8 +167,11 @@ const view = {
     const max = Math.min(ctx.avail, 20);
     return [{
       type: 'buttons',
-      body: `${note ? note + '\n\n' : ''}*${ctx.product_name} – ${ctx.variant_label}*\nPrice: ${kes(ctx.price)} each\n\nHow many would you like? Tap a quantity below or type any number (1-${max}):`,
-      buttons: [1, 2, 3].filter((n) => n <= max).map((n) => ({ id: `Q:${n}`, title: `${n} pcs` })),
+      body: `${note ? note + '\n\n' : ''}*${ctx.product_name} – ${ctx.variant_label}*\nPrice: ${kes(ctx.price)} each\n\nHow many would you like? Tap a quantity below or type any number (1-${max}):\n\n_💡 Send */cancel* anytime to discard and start over._`,
+      buttons: [
+        ...[1, 2].filter((n) => n <= max).map((n) => ({ id: `Q:${n}`, title: `${n} pcs` })),
+        { id: 'CANCEL', title: '❌ Cancel' }
+      ],
     }];
   },
 
@@ -176,9 +179,12 @@ const view = {
     const { rows } = await client.query(`select id, name, fee_kes from shop.delivery_zones where active order by sort, name limit 10`);
     return [{
       type: 'list',
-      body: '📍 *Delivery Location*\nWhere should we deliver your order?',
+      body: '📍 *Delivery Location*\nWhere should we deliver your order?\n\n_💡 Send */cancel* anytime to discard and start over._',
       button: 'Select Area',
-      sections: [{ title: 'Delivery Areas', rows: rows.map((z) => ({ id: `Z:${z.id}`, title: z.name.slice(0, 24), description: `Delivery fee: ${kes(z.fee_kes)}` })) }],
+      sections: [
+        { title: 'Delivery Areas', rows: rows.map((z) => ({ id: `Z:${z.id}`, title: z.name.slice(0, 24), description: `Delivery fee: ${kes(z.fee_kes)}` })) },
+        { title: 'Options', rows: [{ id: 'CANCEL', title: '❌ Cancel Order', description: 'Discard and return to shop' }] }
+      ],
     }];
   },
 
@@ -196,11 +202,12 @@ const view = {
         `📲 *M-PESA STK Prompt to:* +${phone}` +
         (isAlternate
           ? `\n_(⚠️ Prompt sent to alternate phone. Receipt and updates stay in this WhatsApp chat)_`
-          : `\n_(Receipt and tracking will be sent to this WhatsApp)_`),
+          : `\n_(Receipt and tracking will be sent to this WhatsApp)_`) +
+        `\n\n_💡 Send */cancel* anytime to discard and start over._`,
       buttons: [
         { id: 'PAY', title: `Pay ${kes(ctx.total)}` },
         { id: 'PHONE', title: 'Other M-PESA No.' },
-        { id: 'CANCEL', title: 'Cancel Order' },
+        { id: 'CANCEL', title: '❌ Cancel Order' },
       ],
     }];
   },
@@ -239,6 +246,55 @@ export async function step({ client, waId, session, input, profileName }) {
   const R = (s, c, out, after = []) => ({ state: s, ctx: c, out, after });
   const toMenu = async (cat = null) => R('BROWSING', { wa_id: waId }, await view.menu(client, profileName, cat));
 
+  // ── Global: /cancel or Cancel Button (Works at ANY step to discard & forget session) ─
+  const CANCEL_REGEX = /^[\/\\]?(cancel|exit|stop|reset|quit|abort|end|start over)\b/i;
+  const isCancel = id === 'CANCEL' || CANCEL_REGEX.test(text);
+
+  if (isCancel) {
+    let cancelledOrderNo = ctx.order_no;
+    if (ctx.order_id) {
+      try {
+        await client.query(
+          `update shop.orders set payment_status='cancelled', updated_at=now()
+            where id=$1 and payment_status='unpaid'`, [ctx.order_id]);
+        await client.query(`select shop.release_order($1, 'released')`, [ctx.order_id]);
+        await client.query(`insert into shop.order_events(order_id, kind, note) values ($1, 'cancelled', 'Cancelled by customer via /cancel')`, [ctx.order_id]);
+      } catch (err) {
+        console.warn('[stateMachine] Error releasing ctx.order_id on cancel:', err.message);
+      }
+    }
+
+    try {
+      const { rows: lingering } = await client.query(
+        `update shop.orders set payment_status='cancelled', updated_at=now()
+          where wa_id=$1 and payment_status='unpaid' returning id, order_no`, [waId]);
+      for (const row of lingering) {
+        if (!cancelledOrderNo) cancelledOrderNo = row.order_no;
+        await client.query(`select shop.release_order($1, 'released')`, [row.id]).catch(() => {});
+        await client.query(`insert into shop.order_events(order_id, kind, note) values ($1, 'cancelled', 'Cancelled by customer via /cancel')`, [row.id]).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[stateMachine] Error releasing lingering orders on cancel:', err.message);
+    }
+
+    try {
+      await client.query(
+        `update shop.sessions set state='IDLE', ctx='{}'::jsonb, updated_at=now() where wa_id=$1`, [waId]);
+    } catch (err) {
+      console.warn('[stateMachine] Error clearing session on cancel:', err.message);
+    }
+
+    const cancelMsg = cancelledOrderNo
+      ? `❌ *Order ${cancelledOrderNo} has been cancelled.*\nYour session and reserved items have been released.`
+      : `❌ *Order cancelled & session reset.*\nAny in-progress checkout was discarded.`;
+
+    const menu = await view.menu(client, profileName);
+    return R('BROWSING', { wa_id: waId }, [
+      { type: 'text', text: `${cancelMsg}\n\nWhat would you like to explore next? 👇` },
+      ...menu
+    ]);
+  }
+
   // ── Global: Human Support Handover ──────────────────────────────────────────
   if (id === 'HUMAN' || HUMAN_TRIGGER.test(text)) {
     const alertJob = cfg.ownerWa ? [{
@@ -273,25 +329,14 @@ export async function step({ client, waId, session, input, profileName }) {
 
   // ── AWAITING_PAYMENT ────────────────────────────────────────────────────────
   if (state === 'AWAITING_PAYMENT') {
-    if (id === 'CANCEL') {
-      const r = await client.query(
-        `update shop.orders set payment_status='cancelled', updated_at=now()
-          where id=$1 and payment_status='unpaid' returning id`, [ctx.order_id]);
-      if (r.rowCount) {
-        await client.query(`select shop.release_order($1,'released')`, [ctx.order_id]);
-        await client.query(`insert into shop.order_events(order_id,kind,note) values ($1,'cancelled','Cancelled by customer')`, [ctx.order_id]);
-      }
-      const menu = await view.menu(client, profileName);
-      return R('BROWSING', { wa_id: waId }, [{ type: 'text', text: 'Order cancelled.' }, ...menu]);
-    }
     return R(state, ctx, [{
       type: 'buttons',
-      body: `⏳ Waiting for your M-PESA payment for *${ctx.order_no}*.\nCheck your phone and enter your PIN.`,
+      body: `⏳ Waiting for your M-PESA payment for *${ctx.order_no}*.\nCheck your phone and enter your PIN.\n\n_💡 Send */cancel* anytime to discard this order._`,
       buttons: [{ id: 'TRACK', title: '📦 Track order' }, { id: 'CANCEL', title: '❌ Cancel order' }],
     }]);
   }
 
-  if (id === 'MENU' || id === 'CANCEL' || GREETING.test(text)) return toMenu();
+  if (id === 'MENU' || GREETING.test(text)) return toMenu();
 
   switch (state) {
     // ── Browsing & Category Selection ─────────────────────────────────────────
@@ -418,7 +463,7 @@ export async function step({ client, waId, session, input, profileName }) {
       if (!p) {
         return R(state, ctx, [{
           type: 'text',
-          text: '❌ Invalid number. Please enter a valid Safaricom phone number, e.g. 0712345678 or 254712345678:'
+          text: '❌ Invalid number. Please enter a valid Safaricom phone number, e.g. 0712345678 or 254712345678:\n\n_💡 Send */cancel* to discard this order._'
         }]);
       }
       const c = { ...ctx, mpesa_phone: p };
@@ -433,7 +478,7 @@ export async function step({ client, waId, session, input, profileName }) {
       if (id === 'PHONE') {
         return R('ASK_PHONE', ctx, [{
           type: 'text',
-          text: `📱 Type the Safaricom number that should receive the M-PESA PIN prompt (e.g. 0712345678):`
+          text: `📱 Type the Safaricom number that should receive the M-PESA PIN prompt (e.g. 0712345678):\n\n_💡 Send */cancel* to discard this order._`
         }]);
       }
       if (id !== 'PAY') return R(state, ctx, view.confirm(ctx));

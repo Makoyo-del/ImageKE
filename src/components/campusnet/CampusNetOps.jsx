@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Wifi, 
+  Wifi,
+  Calendar, 
   Shield, 
   Phone, 
   MessageSquare, 
@@ -43,6 +44,7 @@ export function CampusNetOps({ onNavigate }) {
   
   // Tabs: 'sessions' | 'loyalty' | 'promos' | 'hotline'
   const [activeTab, setActiveTab] = useState('sessions');
+  const [revenueFilter, setRevenueFilter] = useState('all'); // 'today' | 'week' | 'month' | 'all'
   const [sessionFilter, setSessionFilter] = useState('active'); // 'active' | 'all'
   const [loyaltyFilter, setLoyaltyFilter] = useState('unclaimed'); // 'all' | 'unclaimed' | 'near_reward'
   const [searchQuery, setSearchQuery] = useState('');
@@ -303,6 +305,20 @@ export function CampusNetOps({ onNavigate }) {
 
   const activePromosCount = promos.filter(p => p.is_active).length;
 
+  const periodLabels = {
+    today: 'Today',
+    week: 'This Week',
+    month: 'This Month',
+    all: 'All Time'
+  };
+
+  const activeBreakdown = stats.time_breakdowns?.[revenueFilter] || {
+    gross_kes: stats.wifi_total_revenue_kes || stats.total_revenue_kes || 0,
+    net_kes: stats.estimated_net_revenue_kes || Math.round((stats.total_revenue_kes || 0) * 0.985),
+    fee_kes: stats.estimated_paystack_fee_kes || Math.round((stats.total_revenue_kes || 0) * 0.015),
+    count: stats.wifi_transactions_count || stats.total_transactions_count || 0
+  };
+
   return (
     <div className="cn-ops-container">
       {/* Network / Auth Error Banner with Retry */}
@@ -346,6 +362,56 @@ export function CampusNetOps({ onNavigate }) {
         </div>
       )}
 
+      {/* DIRECT TIME FILTER BAR (PURE WI-FI LEDGER) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '1.25rem',
+        background: 'rgba(15, 23, 42, 0.65)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '10px 16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={16} color="#00d4ff" />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#f1f5f9' }}>
+            Wi-Fi Revenue Filter:
+          </span>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+            Independent CampusNet Ledger
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {[
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: 'This Week' },
+            { id: 'month', label: 'This Month' },
+            { id: 'all', label: 'All Time' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setRevenueFilter(f.id)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: revenueFilter === f.id ? '1px solid #00d4ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                background: revenueFilter === f.id ? 'rgba(0, 212, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                color: revenueFilter === f.id ? '#00d4ff' : '#94a3b8',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 4 Stat Cards Row */}
       <div className="cn-stat-grid">
         {/* Card 1: Active Subscriptions */}
@@ -383,23 +449,23 @@ export function CampusNetOps({ onNavigate }) {
           </div>
         </div>
 
-        {/* Card 3: Paystack Wi-Fi Revenue */}
+        {/* Card 3: Pure Independent Wi-Fi Sales */}
         <div className="cn-stat-card cn-card-cyan">
           <div className="cn-stat-header">
-            <span className="cn-stat-title">CampusNet Wi-Fi Sales</span>
+            <span className="cn-stat-title">CampusNet Wi-Fi Sales ({periodLabels[revenueFilter]})</span>
             <span style={{ fontSize: '0.72rem', background: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(0, 212, 255, 0.3)' }}>
-              ⚡ Paystack 1.5% Fee
+              ⚡ Pure Wi-Fi Ledger
             </span>
           </div>
           <div className="cn-stat-value">
-            KSh {(stats.total_revenue_kes || 3154).toLocaleString()}
+            KSh {(activeBreakdown.gross_kes || 0).toLocaleString()}
           </div>
           <div className="cn-stat-subtext">
-            <span>Net: <strong style={{ color: '#00e676' }}>~KSh {(stats.estimated_net_revenue_kes || Math.round((stats.total_revenue_kes || 3154) * 0.985)).toLocaleString()}</strong></span>
+            <span>Net: <strong style={{ color: '#00e676' }}>~KSh {(activeBreakdown.net_kes || 0).toLocaleString()}</strong></span>
             <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
-            <span>Fee: ~KSh {(stats.estimated_paystack_fee_kes || Math.round((stats.total_revenue_kes || 3154) * 0.015)).toLocaleString()}</span>
+            <span>Fee: ~KSh {(activeBreakdown.fee_kes || 0).toLocaleString()}</span>
             <span style={{ margin: '0 6px', opacity: 0.5 }}>•</span>
-            <span>{stats.total_transactions_count || 103} paid</span>
+            <span>{activeBreakdown.count || 0} paid</span>
           </div>
         </div>
 
@@ -433,20 +499,20 @@ export function CampusNetOps({ onNavigate }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '1.4rem' }}>📶</span>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Hostel Wi-Fi Gross Sales</div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Hostel Wi-Fi ({periodLabels[revenueFilter]})</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#00d4ff' }}>
-              KSh {(stats.wifi_total_revenue_kes || stats.total_revenue_kes || 0).toLocaleString()}
+              KSh {(activeBreakdown.gross_kes || 0).toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{stats.wifi_transactions_count || stats.total_transactions_count || 0} passes paid</div>
+            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{activeBreakdown.count || 0} passes paid ({periodLabels[revenueFilter].toLowerCase()})</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '1.4rem' }}>⚡</span>
           <div>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Estimated Net Earnings</div>
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Estimated Net ({periodLabels[revenueFilter]})</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#00e676' }}>
-              KSh {(stats.estimated_net_revenue_kes || Math.round((stats.total_revenue_kes || 0) * 0.985)).toLocaleString()}
+              KSh {(activeBreakdown.net_kes || 0).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#64748b' }}>After Paystack 1.5% processing</div>
           </div>
@@ -467,11 +533,11 @@ export function CampusNetOps({ onNavigate }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '1.4rem' }}>🏦</span>
             <div>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Paystack Live Total Volume</div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Shared Paystack Account (All 3)</div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#cbd5e1' }}>
                 KSh {Number(stats.paystack_account_volume_kes).toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Entire Paystack Account</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Combined Pool across Ventures</div>
             </div>
           </div>
         )}
