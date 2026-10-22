@@ -1240,9 +1240,10 @@ router.post('/resend-receipt', lookupLimiter, async (req, res) => {
 async function authenticateStoreAdmin(req, res, next) {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token || req.query.key);
-  const adminSecret = process.env.TOKEN_SECRET || process.env.ADMIN_API_KEY || 'campusnet_secret_admin_2026';
+  const adminSecret = (process.env.ADMIN_API_KEY || process.env.TOKEN_SECRET || '').trim();
 
-  if (token && (token === adminSecret || token === 'campusnet_secret_admin_2026' || token === '277720e688e81de86c3e6664a3a3053354ef33c9594d57b835e70485146d012d')) {
+  // Direct machine-to-machine admin secret check strictly from environment variable
+  if (token && adminSecret && token === adminSecret) {
     return next();
   }
 

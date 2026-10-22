@@ -30,13 +30,15 @@ import {
   Sliders,
   DollarSign,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { BunkerLayout, theme } from './theme';
 import { HookBunkerAuth } from './HookBunkerAuth';
 import { CampusNetOps } from '../campusnet/CampusNetOps';
 import { DigitalStoreOps } from '../store/DigitalStoreOps';
+import { ShopBotOps } from '../shopbot/ShopBotOps';
 import './HookBunkerDashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
@@ -853,10 +855,33 @@ export function HookBunkerDashboard({ onNavigate }) {
         >
           <Package size={17} /> Digital Asset Vault
         </button>
+
+        <button
+          onClick={() => { setActiveOpsModule('shopbot'); localStorage.setItem('makoyocart_active_ops_module', 'shopbot'); }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '0.65rem 1.4rem',
+            borderRadius: '10px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            background: activeOpsModule === 'shopbot' ? '#8b5cf6' : 'transparent',
+            color: activeOpsModule === 'shopbot' ? '#ffffff' : theme.textMuted,
+            transition: 'all 0.2s ease',
+            boxShadow: activeOpsModule === 'shopbot' ? '0 4px 15px rgba(139,92,246,0.35)' : 'none'
+          }}
+        >
+          <MessageCircle size={17} /> WhatsApp Commerce
+        </button>
       </div>
 
       {activeOpsModule === 'campusnet' ? (
         <CampusNetOps onNavigate={onNavigate} />
+      ) : activeOpsModule === 'shopbot' ? (
+        <ShopBotOps onNavigate={onNavigate} />
       ) : activeOpsModule === 'store' ? (
         <DigitalStoreOps onNavigate={onNavigate} />
       ) : (

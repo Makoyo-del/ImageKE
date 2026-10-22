@@ -1,3 +1,4 @@
+import { mountShopBot } from './shopbot/mount.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -72,7 +73,7 @@ app.use(
   express.json({
     limit: '8mb',
     verify: (req, _res, buf) => {
-      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/campusnet/webhook' || req.originalUrl === '/api/rider/webhook' || req.originalUrl.startsWith('/api/store/webhook')) {
+      if (req.originalUrl === '/api/paystack/webhook' || req.originalUrl === '/api/campusnet/webhook' || req.originalUrl === '/api/rider/webhook' || req.originalUrl.startsWith('/api/store/webhook') || req.originalUrl.startsWith('/api/shopbot')) {
         req.rawBody = buf;
       }
     },
@@ -241,7 +242,8 @@ app.use((err, _req, res, _next) => {
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await mountShopBot(app);
   console.log(`[Makoyocart Ventures Core API] Running on port ${PORT}`);
   console.log(`[Makoyocart Ventures Core API] Allowed origins: ${allowedOrigins.join(', ')}`);
 });
