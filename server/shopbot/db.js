@@ -2,11 +2,11 @@ import pg from 'pg';
 import { cfg } from './config.js';
 
 export const pool = new pg.Pool({
-  connectionString: cfg.databaseUrl,
+  connectionString: cfg.databaseUrl || undefined,
   max: 8,
   idleTimeoutMillis: 30_000,
   application_name: 'shopbot-app',
-  ssl: cfg.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+  ssl: cfg.databaseUrl && !cfg.databaseUrl.includes('localhost') ? { rejectUnauthorized: false } : false,
 });
 pool.on('error', (e) => console.error('[pg pool]', e.message));
 

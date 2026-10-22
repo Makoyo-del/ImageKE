@@ -10,17 +10,16 @@ const safeEq = (a, b) => {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 };
 
-export function startServer(boss) {
-  const app = express();
-  app.disable('x-powered-by');
+export function shopBotRouter(boss) {
+  const router = express.Router();
 
-  app.get('/health', (_req, res) => res.json({ ok: true }));
+  router.get('/health', (_req, res) => res.json({ ok: true, service: 'shopbot' }));
 
   // Owner dashboard API (workspace portal -> bot). Isolated, auth-gated router.
-  app.use('/admin', adminRouter(boss));
+  router.use('/admin', adminRouter(boss));
 
   // ── Meta verification handshake ────────────────────────────────────────────
-  app.get('/webhook', (req, res) => {
+  router.get('/webhook', (req, res) => {
     if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === cfg.wa.verifyToken) {
       return res.status(200).send(req.query['hub.challenge']);
     }
@@ -28,16 +27,16 @@ export function startServer(boss) {
   });
 
   // ── Meta inbound messages ──────────────────────────────────────────────────
-  // Raw body is required for HMAC verification.
-  app.post('/webhook', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+  router.post('/webhook', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
     try {
       if (cfg.wa.appSecret) {
+        const raw = Buffer.isBuffer(req.body) ? req.body : req.rawBody || Buffer.from(JSON.stringify(req.body));
         const expected =
-          'sha256=' + crypto.createHmac('sha256', cfg.wa.appSecret).update(req.body).digest('hex');
+          'sha256=' + crypto.createHmac('sha256', cfg.wa.appSecret).update(raw).digest('hex');
         if (!safeEq(expected, req.get('x-hub-signature-256'))) return res.sendStatus(401);
       }
 
-      const body = JSON.parse(req.body.toString('utf8'));
+      const body = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
       if (body.object !== 'whatsapp_business_account') return res.sendStatus(200);
 
       const jobs = [];
@@ -50,12 +49,9 @@ export function startServer(boss) {
           for (const msg of v.messages ?? []) {
             jobs.push({ msg, profileName: names[msg.from] ?? null });
           }
-          // v.statuses (delivery receipts) intentionally ignored.
         }
       }
 
-      // One tiny INSERT per message (~ms). Enqueue BEFORE acking so nothing is lost;
-      // if Postgres is down we return 500 and Meta retries.
       await Promise.all(jobs.map((j) => boss.send(Q.INBOUND, j)));
       return res.sendStatus(200);
     } catch (e) {
@@ -65,16 +61,15 @@ export function startServer(boss) {
   });
 
   // ── Paystack webhook (optional accelerator; polling is the safety net) ─────
-  app.post('/paystack/webhook', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+  router.post('/paystack/webhook', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
     try {
-      const sig = crypto.createHmac('sha512', cfg.paystackSecret).update(req.body).digest('hex');
+      const raw = Buffer.isBuffer(req.body) ? req.body : req.rawBody || Buffer.from(JSON.stringify(req.body));
+      const sig = crypto.createHmac('sha512', cfg.paystackSecret).update(raw).digest('hex');
       if (!safeEq(sig, req.get('x-paystack-signature'))) return res.sendStatus(401);
 
-      const evt = JSON.parse(req.body.toString('utf8'));
+      const evt = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
       const ref = evt?.data?.reference;
-      // Ignore Wi-Fi billing events that share the same Paystack account.
       if (typeof ref === 'string' && ref.startsWith('SB-') && String(evt.event).startsWith('charge.')) {
-        // Payload is never trusted: the worker re-verifies with Paystack's API.
         await boss.send(Q.PAYMENT, { reference: ref, attempt: 1 });
       }
       return res.sendStatus(200);
@@ -84,6 +79,13 @@ export function startServer(boss) {
     }
   });
 
+  return router;
+}
+
+export function startServer(boss) {
+  const app = express();
+  app.disable('x-powered-by');
+  app.use('/', shopBotRouter(boss));
   const server = app.listen(cfg.port, () => console.log(`[web] listening on :${cfg.port}`));
   return server;
 }

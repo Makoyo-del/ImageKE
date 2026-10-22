@@ -211,3 +211,5 @@ export async function startWorkers(boss) {
 
   console.log(`[worker] started (concurrency ${cfg.workerConcurrency})`);
 }
+
+export const registerWorkers = startWorkers;

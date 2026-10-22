@@ -16,7 +16,7 @@ export async function initBoss() {
     schema: 'pgboss',
     max: 5,
     application_name: 'shopbot-boss',
-    ssl: cfg.databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
+    ssl: cfg.databaseUrl && !cfg.databaseUrl.includes('localhost') ? { rejectUnauthorized: false } : false,
   });
   boss.on('error', (e) => console.error('[pg-boss]', e.message));
 
