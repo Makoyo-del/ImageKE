@@ -89,8 +89,10 @@ export function shopBotRouter(boss, getLastError) {
         for (const change of entry.changes ?? []) {
           const v = change.value ?? {};
           // Shared-app safety: only handle OUR number.
-          if (v.metadata?.phone_number_id && v.metadata.phone_number_id !== cfg.wa.phoneNumberId) {
-            console.warn(`[webhook] Skipping message for non-matching phone_id: ${v.metadata.phone_number_id} (expected ${cfg.wa.phoneNumberId})`);
+          const incomingPid = String(v.metadata?.phone_number_id || '').trim();
+          const expectedPid = String(cfg.wa.phoneNumberId || '').trim();
+          if (incomingPid && incomingPid !== expectedPid) {
+            console.warn(`[webhook] Skipping message for non-matching phone_id: ${incomingPid} (expected ${expectedPid})`);
             continue;
           }
           const names = Object.fromEntries((v.contacts ?? []).map((c) => [c.wa_id, c.profile?.name]));

@@ -58,22 +58,22 @@ export function normalizeDatabaseUrl(raw) {
 export const cfg = {
   isConfigured,
   port: Number(process.env.PORT || 10000),
-  role: process.env.ROLE || 'all',
-  businessName: process.env.BUSINESS_NAME || 'Makoyocart Ventures',
+  role: (process.env.ROLE || 'all').trim(),
+  businessName: (process.env.BUSINESS_NAME || 'Makoyocart Ventures').trim(),
   ownerWa: (process.env.OWNER_WA_NUMBER || '').replace(/\D/g, ''),
-  databaseUrl: normalizeDatabaseUrl(process.env.DATABASE_URL),
+  databaseUrl: normalizeDatabaseUrl((process.env.DATABASE_URL || '').trim()),
   wa: {
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
-    token: process.env.WHATSAPP_API_TOKEN,
-    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN,
-    appSecret: process.env.META_APP_SECRET || '',
+    phoneNumberId: (process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim(),
+    token: (process.env.WHATSAPP_API_TOKEN || '').trim(),
+    verifyToken: (process.env.WHATSAPP_VERIFY_TOKEN || '').trim(),
+    appSecret: (process.env.META_APP_SECRET || '').trim(),
     graph: 'https://graph.facebook.com/v21.0',
   },
-  paystackSecret: process.env.PAYSTACK_SECRET_KEY,
+  paystackSecret: (process.env.PAYSTACK_SECRET_KEY || '').trim(),
   workerConcurrency: Number(process.env.WORKER_CONCURRENCY || 4),
   ownerTemplate: {
-    name: process.env.OWNER_TEMPLATE_NAME || '',
-    lang: process.env.OWNER_TEMPLATE_LANG || 'en',
+    name: (process.env.OWNER_TEMPLATE_NAME || '').trim(),
+    lang: (process.env.OWNER_TEMPLATE_LANG || 'en').trim(),
   },
   // Dashboard API: verifies the Supabase session of the logged-in workspace user.
   admin: {
