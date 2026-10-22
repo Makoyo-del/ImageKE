@@ -117,15 +117,29 @@ async function notifyPaid(orderId) {
 }
 
 // Owner changed the fulfilment status in the dashboard -> tell the customer.
+// OR customer requested human support -> alert the owner!
 async function processNotify(job) {
+  if (job.data?.type === 'human_handover') {
+    const { waId, customerName, message } = job.data;
+    const owner = cfg.ownerWa || process.env.ADMIN_PHONE || '254758530492';
+    if (owner) {
+      await sendText(owner,
+        `🚨 *ShopBot Support Alert!*\n\n` +
+        `Customer *${customerName || 'Customer'}* (+${waId}) requested human assistance:\n` +
+        `"${message || 'Talk to Agent'}"\n\n` +
+        `👉 Reply to customer: https://wa.me/${waId}`).catch((e) => console.warn('[worker notify owner]', e.message));
+    }
+    return;
+  }
+
   const { orderId, status } = job.data;
-  const { rows: [o] } = await pool.query('select wa_id, order_no, fulfillment_status from shop.orders where id = $1', [orderId]);
+  const { rows: [o] } = await pool.query('select wa_id, order_no, fulfillment_status, zone_name from shop.orders where id = $1', [orderId]);
   if (!o || o.fulfillment_status !== status) return; // superseded by a newer status
   const msg = {
-    dispatched: `🚚 Good news! Order *${o.order_no}* has been *dispatched* and is on its way.`,
-    delivered: `✅ Order *${o.order_no}* has been *delivered*. Thank you for shopping with us!`,
-    cancelled: `✖️ Order *${o.order_no}* was cancelled. We'll contact you about your refund.`,
-    pending: `⏳ Order *${o.order_no}* is being prepared.`,
+    dispatched: `🚚 *Order Update:* Good news! Order *${o.order_no}* has been *DISPATCHED* and is on the way to *${o.zone_name || 'your location'}*.\n\nOur delivery rider is en route. Reply *Track* anytime to see live updates.`,
+    delivered: `✅ *Order Delivered!*\nYour order *${o.order_no}* has been marked as *DELIVERED*. Thank you for shopping with ${cfg.businessName}!\n\nWe hope you love your items! If you need anything, tap below:`,
+    cancelled: `✖️ *Order Cancelled:*\nOrder *${o.order_no}* was cancelled. We'll contact you about your refund.`,
+    pending: `⏳ *Order Update:*\nOrder *${o.order_no}* is being prepared for dispatch.`,
   }[status];
   if (msg) await sendOut(o.wa_id, { type: 'buttons', body: msg, buttons: [{ id: 'TRACK', title: '📦 Track order' }, { id: 'MENU', title: '🛍️ Shop' }] });
 }

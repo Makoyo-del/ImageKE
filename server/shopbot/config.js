@@ -60,7 +60,7 @@ export const cfg = {
   port: Number(process.env.PORT || 10000),
   role: (process.env.ROLE || 'all').trim(),
   businessName: (process.env.BUSINESS_NAME || 'Makoyocart Ventures').trim(),
-  ownerWa: (process.env.OWNER_WA_NUMBER || '').replace(/\D/g, ''),
+  ownerWa: (process.env.OWNER_WA_NUMBER || process.env.ADMIN_PHONE || '254758530492').replace(/\D/g, ''),
   databaseUrl: normalizeDatabaseUrl((process.env.DATABASE_URL || '').trim()),
   wa: {
     phoneNumberId: (process.env.WHATSAPP_PHONE_NUMBER_ID || '').trim(),

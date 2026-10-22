@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   MessageCircle, RefreshCw, Search, Truck, CheckCircle2, Package, MapPin, Plus,
   Save, AlertTriangle, DollarSign, Boxes, ClipboardList, ShieldCheck, Image as ImageIcon, Upload,
-  Trash2, Edit2, X, Calendar
+  Trash2, Edit2, X, Calendar, FileText
 } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '../../supabase';
@@ -60,6 +60,7 @@ export function ShopBotOps() {
   const [search, setSearch] = useState('');
   const [timeFilter, setTimeFilter] = useState('all'); // 'today' | 'week' | 'month' | 'all'
   const [busy, setBusy] = useState({});
+  const [downloadingReport, setDownloadingReport] = useState(null); // 'today' | 'week' | null
   const [edits, setEdits] = useState({}); // variantId -> {price_kes,on_hand} | zoneId -> {name,fee_kes}
   const [editingProduct, setEditingProduct] = useState(null); // { id, name, description, category, image_url }
   const [newProduct, setNewProduct] = useState({ name: '', description: '', category: 'General', image_url: '' });
@@ -68,6 +69,35 @@ export function ShopBotOps() {
   const [newZone, setNewZone] = useState({ name: '', fee_kes: '' });
 
   const say = (msg, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); };
+
+  const downloadReport = async (period) => {
+    setDownloadingReport(period);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      const res = await axios.get(`${SHOPBOT_URL}/admin/reports/pdf?period=${period}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : 'Bearer campusnet_secret_admin_2026'
+        },
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ShopBot_${period.toUpperCase()}_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      say(`Official ${period === 'week' ? 'Weekly' : 'Daily'} PDF Statement downloaded!`);
+    } catch (err) {
+      console.error('Failed to download report:', err);
+      alert('Failed to generate PDF report: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDownloadingReport(null);
+    }
+  };
 
   const uploadProductImage = async (file, onUploaded) => {
     if (!file) return;
@@ -241,9 +271,37 @@ export function ShopBotOps() {
             Catalog, live stock, delivery zones and order fulfilment. Customers see every status change in chat.
           </p>
         </div>
-        <button onClick={() => load(true)} disabled={refreshing} style={btn(false, refreshing)}>
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Syncing...' : 'Sync Orders'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => downloadReport('today')}
+            disabled={!!downloadingReport}
+            style={{
+              ...btn(false, !!downloadingReport),
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              borderColor: 'rgba(139, 92, 246, 0.35)',
+              color: ACCENT
+            }}
+            title="Download Today's Executive PDF Statement"
+          >
+            <FileText size={14} /> {downloadingReport === 'today' ? 'Generating PDF...' : 'Daily PDF Report'}
+          </button>
+          <button
+            onClick={() => downloadReport('week')}
+            disabled={!!downloadingReport}
+            style={{
+              ...btn(false, !!downloadingReport),
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              borderColor: 'rgba(139, 92, 246, 0.35)',
+              color: ACCENT
+            }}
+            title="Download This Week's Executive PDF Statement"
+          >
+            <FileText size={14} /> {downloadingReport === 'week' ? 'Generating PDF...' : 'Weekly PDF Report'}
+          </button>
+          <button onClick={() => load(true)} disabled={refreshing} style={btn(false, refreshing)}>
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Syncing...' : 'Sync Orders'}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -324,45 +382,88 @@ export function ShopBotOps() {
 
       {/* ORDERS */}
       {tab === 'orders' && (
-        <div style={{ ...card, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #27272a', position: 'relative' }}>
-            <Search size={14} color="#71717a" style={{ position: 'absolute', left: '32px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search order no, phone, item, zone, M-PESA ref..." style={{ ...input, paddingLeft: '34px' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* 8-Day Archival Notice Banner */}
+          <div style={{
+            background: 'rgba(139, 92, 246, 0.08)',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FileText size={18} color={ACCENT} />
+              <div>
+                <strong style={{ fontSize: '13px', color: '#fff', display: 'block' }}>
+                  Automatic 8-Day Archival Safeguard Active
+                </strong>
+                <span style={{ fontSize: '12px', color: '#cbd5e1' }}>
+                  Live operational orders are auto-pruned from Supabase after 8 days. Download your verified Daily or Weekly PDF Statement to retain permanent tax and sales records.
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => downloadReport('today')}
+                disabled={!!downloadingReport}
+                style={{ ...btn(false, !!downloadingReport), fontSize: '12px', padding: '6px 12px' }}
+              >
+                <FileText size={13} /> {downloadingReport === 'today' ? '...' : 'Today (PDF)'}
+              </button>
+              <button
+                onClick={() => downloadReport('week')}
+                disabled={!!downloadingReport}
+                style={{ ...btn(false, !!downloadingReport), fontSize: '12px', padding: '6px 12px' }}
+              >
+                <FileText size={13} /> {downloadingReport === 'week' ? '...' : 'This Week (PDF)'}
+              </button>
+            </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
-              <thead><tr>
-                <th style={th}>Order</th><th style={th}>Customer</th><th style={th}>Items & Zone</th>
-                <th style={th}>Total</th><th style={th}>Payment</th><th style={th}>Fulfilment</th><th style={th}>Action</th>
-              </tr></thead>
-              <tbody>
-                {orders.length === 0 && (
-                  <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: '#71717a', padding: '40px' }}>{loading ? 'Loading...' : 'No orders yet. Message your bot "Hi" to place a test order.'}</td></tr>
-                )}
-                {orders.map((o) => {
-                  const paid = o.payment_status === 'paid';
-                  return (
-                    <tr key={o.id}>
-                      <td style={td}><div style={{ fontWeight: 700 }}>{o.order_no}</div><div style={{ fontSize: '11px', color: '#71717a' }}>{fmtDate(o.created_at)}</div></td>
-                      <td style={td}><div>{o.customer_name || 'Customer'}</div><div style={{ fontSize: '11px', color: '#71717a' }}>+{o.wa_id}</div></td>
-                      <td style={td}><div>{o.items}</div><div style={{ fontSize: '11px', color: '#71717a' }}><MapPin size={10} /> {o.zone_name}</div></td>
-                      <td style={td}><div style={{ fontWeight: 700 }}>{kes(o.total_kes)}</div>{o.mpesa_receipt && <div style={{ fontSize: '11px', color: '#71717a' }}>{o.mpesa_receipt}</div>}</td>
-                      <td style={td}><Badge map={PAY_BADGE} k={o.payment_status} /></td>
-                      <td style={td}>{paid || o.fulfillment_status !== 'pending' ? <Badge map={FUL_BADGE} k={o.fulfillment_status} /> : <span style={{ color: '#52525b' }}>-</span>}</td>
-                      <td style={td}>
-                        {paid && o.fulfillment_status === 'pending' && (
-                          <button disabled={busy[`o${o.id}`]} onClick={() => setStatus(o, 'dispatched')} style={btn(true, busy[`o${o.id}`])}><Truck size={13} /> Dispatch</button>
-                        )}
-                        {paid && o.fulfillment_status === 'dispatched' && (
-                          <button disabled={busy[`o${o.id}`]} onClick={() => setStatus(o, 'delivered')} style={{ ...btn(false, busy[`o${o.id}`]), color: '#10b981', borderColor: 'rgba(16,185,129,0.4)' }}><CheckCircle2 size={13} /> Delivered</button>
-                        )}
-                        {o.payment_status === 'refund_due' && <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700 }}>Refund via Paystack</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+
+          <div style={{ ...card, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #27272a', position: 'relative' }}>
+              <Search size={14} color="#71717a" style={{ position: 'absolute', left: '32px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search order no, phone, item, zone, M-PESA ref..." style={{ ...input, paddingLeft: '34px' }} />
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                <thead><tr>
+                  <th style={th}>Order</th><th style={th}>Customer</th><th style={th}>Items & Zone</th>
+                  <th style={th}>Total</th><th style={th}>Payment</th><th style={th}>Fulfilment</th><th style={th}>Action</th>
+                </tr></thead>
+                <tbody>
+                  {orders.length === 0 && (
+                    <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: '#71717a', padding: '40px' }}>{loading ? 'Loading...' : 'No orders yet. Message your bot "Hi" to place a test order.'}</td></tr>
+                  )}
+                  {orders.map((o) => {
+                    const paid = o.payment_status === 'paid';
+                    return (
+                      <tr key={o.id}>
+                        <td style={td}><div style={{ fontWeight: 700 }}>{o.order_no}</div><div style={{ fontSize: '11px', color: '#71717a' }}>{fmtDate(o.created_at)}</div></td>
+                        <td style={td}><div>{o.customer_name || 'Customer'}</div><div style={{ fontSize: '11px', color: '#71717a' }}>+{o.wa_id}</div></td>
+                        <td style={td}><div>{o.items}</div><div style={{ fontSize: '11px', color: '#71717a' }}><MapPin size={10} /> {o.zone_name}</div></td>
+                        <td style={td}><div style={{ fontWeight: 700 }}>{kes(o.total_kes)}</div>{o.mpesa_receipt && <div style={{ fontSize: '11px', color: '#71717a' }}>{o.mpesa_receipt}</div>}</td>
+                        <td style={td}><Badge map={PAY_BADGE} k={o.payment_status} /></td>
+                        <td style={td}>{paid || o.fulfillment_status !== 'pending' ? <Badge map={FUL_BADGE} k={o.fulfillment_status} /> : <span style={{ color: '#52525b' }}>-</span>}</td>
+                        <td style={td}>
+                          {paid && o.fulfillment_status === 'pending' && (
+                            <button disabled={busy[`o${o.id}`]} onClick={() => setStatus(o, 'dispatched')} style={btn(true, busy[`o${o.id}`])}><Truck size={13} /> Dispatch</button>
+                          )}
+                          {paid && o.fulfillment_status === 'dispatched' && (
+                            <button disabled={busy[`o${o.id}`]} onClick={() => setStatus(o, 'delivered')} style={{ ...btn(false, busy[`o${o.id}`]), color: '#10b981', borderColor: 'rgba(16,185,129,0.4)' }}><CheckCircle2 size={13} /> Delivered</button>
+                          )}
+                          {o.payment_status === 'refund_due' && <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700 }}>Refund via Paystack</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

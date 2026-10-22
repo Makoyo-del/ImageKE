@@ -2,6 +2,8 @@ import express from 'express';
 import { cfg } from './config.js';
 import { pool, withTx } from './db.js';
 import { Q } from './queue.js';
+import { buildSalesReportPdf } from './reports.js';
+import { sendOut } from './whatsapp.js';
 
 // ─── CORS ───────────────────────────────────────────────────────────────────
 const DEFAULT_ORIGINS = [
@@ -213,11 +215,51 @@ export function adminRouter(boss) {
       }
     });
 
+    // 1. Direct Instant Customer WhatsApp Notification
+    if (o && o.wa_id) {
+      try {
+        const statusMsgs = {
+          dispatched: `🚚 *Order Update:* Good news! Order *${o.order_no}* has been *DISPATCHED* and is on the way to *${o.zone_name || 'your location'}*.\n\nOur delivery rider is en route. Reply *Track* anytime to see live updates.`,
+          delivered: `✅ *Order Delivered!*\nYour order *${o.order_no}* has been marked as *DELIVERED*. Thank you for shopping with ${cfg.businessName}!\n\nWe hope you love your items! If you need anything, tap below:`,
+          cancelled: `✖️ *Order Cancelled:*\nOrder *${o.order_no}* was cancelled.\nNote: ${req.body?.note || 'Cancelled by merchant'}.\n\nIf you have questions about your refund or need help, please tap Support below.`,
+          pending: `⏳ *Order Update:*\nYour order *${o.order_no}* is confirmed and currently being prepared for dispatch.`
+        };
+        const textMsg = statusMsgs[status];
+        if (textMsg) {
+          await sendOut(o.wa_id, {
+            type: 'buttons',
+            body: textMsg,
+            buttons: [{ id: 'TRACK', title: '📦 Track Order' }, { id: 'MENU', title: '🛍️ Shop More' }]
+          });
+          console.log(`[admin] Direct WhatsApp customer alert sent for order ${o.order_no} -> ${status}`);
+        }
+      } catch (alertErr) {
+        console.warn(`[admin] Direct alert error for ${o.order_no}:`, alertErr.message);
+      }
+    }
+
+    // 2. Queue backup notification job
     const b = typeof boss === 'function' ? boss() : boss;
     if (b && o && Q?.NOTIFY) {
       await b.send(Q.NOTIFY, { orderId: o.id, status: o.fulfillment_status }).catch((e) => console.warn('[boss send err]', e.message));
     }
     res.json({ ok: true, order: { id: o.id, fulfillment_status: o.fulfillment_status } });
+  }));
+
+  // ── Reports: Download Daily or Weekly PDF Report (Archival before 8-day prune) ──
+  r.get('/reports/pdf', wrap(async (req, res) => {
+    const period = req.query.period === 'week' ? 'week' : 'today';
+    const pdfBuffer = await buildSalesReportPdf({
+      period,
+      pool,
+      businessName: cfg.businessName
+    });
+
+    const nowStr = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="ShopBot_${period.toUpperCase()}_Report_${nowStr}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
   }));
 
   // ── Catalog ───────────────────────────────────────────────────────────────

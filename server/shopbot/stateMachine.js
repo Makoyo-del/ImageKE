@@ -1,6 +1,7 @@
 import { chargeMpesa } from './paystack.js';
 import { cfg } from './config.js';
 import { Q } from './queue.js';
+import { sendText } from './whatsapp.js';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 const kes = (n) => `KES ${Number(n).toLocaleString('en-KE')}`;
@@ -297,7 +298,22 @@ export async function step({ client, waId, session, input, profileName }) {
 
   // ── Global: Human Support Handover ──────────────────────────────────────────
   if (id === 'HUMAN' || HUMAN_TRIGGER.test(text)) {
-    const alertJob = cfg.ownerWa ? [{
+    const ownerPhone = cfg.ownerWa || process.env.ADMIN_PHONE || '254758530492';
+    if (ownerPhone) {
+      const alertMsg =
+        `🚨 *ShopBot Support Alert!*\n\n` +
+        `A customer is requesting human assistance:\n` +
+        `• Customer: *${profileName || 'Customer'}* (+${waId})\n` +
+        `• Request: "${text || 'Customer tapped Talk to Agent'}"\n` +
+        `• Time: ${nairobi(new Date())}\n\n` +
+        `👉 Tap to reply directly: https://wa.me/${waId}`;
+      sendText(ownerPhone, alertMsg).catch((err) => {
+        console.warn('[stateMachine] Direct owner handover alert warning:', err.message);
+      });
+      console.log(`[stateMachine] Owner support alert sent to ${ownerPhone} for customer ${waId}`);
+    }
+
+    const alertJob = ownerPhone ? [{
       queue: Q.NOTIFY,
       data: {
         type: 'human_handover',
