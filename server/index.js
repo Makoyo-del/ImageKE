@@ -1,3 +1,5 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dns from 'node:dns';
 try {
   dns.setDefaultResultOrder('ipv4first');
@@ -43,11 +45,16 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_
   console.warn('[WARN] SUPABASE_SERVICE_ROLE_KEY is not set or is using a placeholder. Database connections will fail.');
 }
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.set('trust proxy', 1);
 
 // ─── Security Headers ─────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 // ─── Rate Limiting (API routes only) ─────────────────────────────────────────
 const apiLimiter = rateLimit({
@@ -100,6 +107,9 @@ app.use(
 
 // ─── Essential Router Mounts ──────────────────────────────────────────────────
 // 1. HookBunker Webhook Proxy (Processes M-Pesa STK callbacks & developer logs)
+// Static product images for WhatsApp & store
+app.use('/products', express.static(path.join(__dirname, 'public/products'), { maxAge: '7d' }));
+
 app.use('/api/hookbunker', hookBunkerRouter);
 
 // 2. CampusNet Wi-Fi (Makoyocart Ventures captive portal & sessions)

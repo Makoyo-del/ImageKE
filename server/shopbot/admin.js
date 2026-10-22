@@ -164,6 +164,31 @@ export function adminRouter(boss) {
     res.json({ ok: true });
   }));
 
+  r.delete('/products/:id', wrap(async (req, res) => {
+    const { id } = req.params;
+    // Check if any variant is tied to historical order_items
+    const { rows: tied } = await pool.query(
+      `select 1 from shop.order_items oi
+       join shop.variants v on v.id = oi.variant_id
+       where v.product_id = $1 limit 1`,
+      [id]
+    );
+
+    if (tied.length > 0) {
+      // Historical orders exist! Soft-delete to preserve accounting & customer receipts
+      await pool.query(
+        `update shop.products set active = false where id = $1;
+         update shop.variants set active = false where product_id = $1;`,
+        [id]
+      );
+      return res.json({ ok: true, deleted: false, archived: true, message: 'Product archived (historical orders exist).' });
+    }
+
+    // Clean permanent delete (cascades to variants & inventory)
+    await pool.query('delete from shop.products where id = $1', [id]);
+    res.json({ ok: true, deleted: true, message: 'Product permanently deleted.' });
+  }));
+
   r.post('/variants', wrap(async (req, res) => {
     const { product_id } = req.body || {};
     const label = str(req.body?.label), price = num(req.body?.price_kes), stock = num(req.body?.stock) ?? 0;
@@ -183,6 +208,20 @@ export function adminRouter(boss) {
       `update shop.variants set label = coalesce($2,label), price_kes = coalesce($3,price_kes), active = coalesce($4,active) where id = $1`,
       [req.params.id, str(label), num(price_kes), typeof active === 'boolean' ? active : null]);
     res.json({ ok: true });
+  }));
+
+  r.delete('/variants/:id', wrap(async (req, res) => {
+    const { id } = req.params;
+    const { rows: tied } = await pool.query(
+      `select 1 from shop.order_items where variant_id = $1 limit 1`,
+      [id]
+    );
+    if (tied.length > 0) {
+      await pool.query('update shop.variants set active = false where id = $1', [id]);
+      return res.json({ ok: true, deleted: false, archived: true, message: 'Variant archived (orders exist).' });
+    }
+    await pool.query('delete from shop.variants where id = $1', [id]);
+    res.json({ ok: true, deleted: true, message: 'Variant deleted.' });
   }));
 
   // ── Inventory: absolute set. Row lock + CHECK constraint stop it dropping below reserved. ──

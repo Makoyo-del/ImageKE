@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   MessageCircle, RefreshCw, Search, Truck, CheckCircle2, Package, MapPin, Plus,
-  Save, AlertTriangle, DollarSign, Boxes, ClipboardList, ShieldCheck, Image as ImageIcon, Upload
+  Save, AlertTriangle, DollarSign, Boxes, ClipboardList, ShieldCheck, Image as ImageIcon, Upload,
+  Trash2, Edit2, X
 } from 'lucide-react';
 import axios from 'axios';
 import { supabase } from '../../supabase';
@@ -59,6 +60,7 @@ export function ShopBotOps() {
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState({});
   const [edits, setEdits] = useState({}); // variantId -> {price_kes,on_hand} | zoneId -> {name,fee_kes}
+  const [editingProduct, setEditingProduct] = useState(null); // { id, name, description, category, image_url }
   const [newProduct, setNewProduct] = useState({ name: '', description: '', category: 'General', image_url: '' });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newVariant, setNewVariant] = useState({}); // productId -> {label,sku,price_kes,stock}
@@ -148,6 +150,42 @@ export function ShopBotOps() {
       await api('patch', `/zones/${z.id}`, { name: e.name, fee_kes: e.fee_kes !== undefined ? Number(e.fee_kes) : undefined });
       setEdits((x) => { const n = { ...x }; delete n[z.id]; return n; });
     }, 'Delivery zone saved.');
+  };
+
+  const deleteProduct = (p) => {
+    if (!window.confirm(`Are you sure you want to delete "${p.name}"? It will be removed from your catalog.`)) return;
+    run(`del_p${p.id}`, async () => {
+      const res = await api('delete', `/products/${p.id}`);
+      if (res?.archived) {
+        say('Product deactivated & archived (kept for past order receipts).');
+      } else {
+        say('Product permanently deleted.');
+      }
+    });
+  };
+
+  const deleteVariant = (v) => {
+    if (!window.confirm(`Delete variant "${v.label}"?`)) return;
+    run(`del_v${v.id}`, async () => {
+      await api('delete', `/variants/${v.id}`);
+    }, 'Variant removed.');
+  };
+
+  const saveProductEdit = (pId) => {
+    const editData = editingProduct;
+    if (!editData || !editData.name?.trim()) {
+      say('Product name is required.', false);
+      return;
+    }
+    run(`save_p${pId}`, async () => {
+      await api('patch', `/products/${pId}`, {
+        name: editData.name.trim(),
+        description: editData.description?.trim(),
+        category: editData.category?.trim() || 'General',
+        image_url: editData.image_url?.trim() || null
+      });
+      setEditingProduct(null);
+    }, 'Product updated successfully.');
   };
 
   const orders = useMemo(() => {
@@ -327,48 +365,111 @@ export function ShopBotOps() {
           {data.products.map((p) => {
             const nv = newVariant[p.id] || { label: '', sku: '', price_kes: '', stock: '' };
             return (
-              <div key={p.id} style={{ ...card, overflow: 'hidden', opacity: p.active ? 1 : 0.6 }}>
-                <div style={{ padding: '14px 20px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {p.image_url ? (
-                      <img src={p.image_url} alt={p.name} style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #27272a' }} />
-                    ) : (
-                      <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#18181b', border: '1px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Package size={18} color={ACCENT} />
+              <div key={p.id} style={{ ...card, overflow: 'hidden', opacity: p.active ? 1 : 0.65 }}>
+                {editingProduct?.id === p.id ? (
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #27272a', backgroundColor: '#16161a', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: ACCENT }}>Edit Product Details</span>
+                      <button type="button" onClick={() => setEditingProduct(null)} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer' }}><X size={16} /></button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 2fr', gap: '12px' }}>
+                      <div>
+                        <div style={{ ...label, marginBottom: '6px' }}>Product Name *</div>
+                        <input required value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} style={input} />
                       </div>
-                    )}
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 800, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{p.name}</span>
-                        <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', backgroundColor: 'rgba(139, 92, 246, 0.15)', color: ACCENT, border: `1px solid rgba(139, 92, 246, 0.3)` }}>
-                          {p.category || 'General'}
-                        </span>
+                      <div>
+                        <div style={{ ...label, marginBottom: '6px' }}>Category</div>
+                        <input value={editingProduct.category} onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })} style={input} />
                       </div>
-                      {p.description && <div style={{ fontSize: '12px', color: '#71717a' }}>{p.description}</div>}
+                      <div>
+                        <div style={{ ...label, marginBottom: '6px' }}>Description</div>
+                        <input value={editingProduct.description || ''} onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })} style={input} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingTop: '8px', borderTop: '1px solid #27272a' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <label style={{ ...btn(false, uploadingImage), fontSize: '11px', cursor: uploadingImage ? 'wait' : 'pointer' }}>
+                          <Upload size={13} /> {uploadingImage ? 'Uploading...' : 'Replace Image (Max 1MB)'}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            disabled={uploadingImage}
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadProductImage(file, (url) => setEditingProduct(prev => ({ ...prev, image_url: url })));
+                            }}
+                          />
+                        </label>
+                        {editingProduct.image_url && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <img src={editingProduct.image_url} alt="Product" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover', border: `1px solid ${ACCENT}` }} />
+                            <button type="button" onClick={() => setEditingProduct(prev => ({ ...prev, image_url: '' }))} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '11px', cursor: 'pointer' }}>Remove Image</button>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button type="button" onClick={() => setEditingProduct(null)} style={btn(false)}>Cancel</button>
+                        <button type="button" disabled={busy[`save_p${p.id}`]} onClick={() => saveProductEdit(p.id)} style={btn(true, busy[`save_p${p.id}`])}>
+                          <Save size={13} /> {busy[`save_p${p.id}`] ? 'Saving...' : 'Save Product'}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <label style={{ ...btn(false, busy[`img${p.id}`]), fontSize: '11px', padding: '6px 10px', cursor: 'pointer' }}>
-                      <ImageIcon size={12} /> {p.image_url ? 'Change Image' : 'Add Image'}
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            uploadProductImage(file, (url) => {
-                              run(`img${p.id}`, () => api('patch', `/products/${p.id}`, { image_url: url }), 'Product image updated.');
-                            });
-                          }
-                        }}
-                      />
-                    </label>
-                    <button disabled={busy[`p${p.id}`]} onClick={() => run(`p${p.id}`, () => api('patch', `/products/${p.id}`, { active: !p.active }), p.active ? 'Hidden from bot.' : 'Visible in bot.')} style={btn(false, busy[`p${p.id}`])}>
-                      {p.active ? 'Hide from bot' : 'Show in bot'}
-                    </button>
+                ) : (
+                  <div style={{ padding: '14px 20px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #27272a' }} />
+                      ) : (
+                        <div style={{ width: '42px', height: '42px', borderRadius: '8px', backgroundColor: '#18181b', border: '1px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Package size={18} color={ACCENT} />
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 800, color: '#fff', fontFamily: "'Outfit', sans-serif" }}>{p.name}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', backgroundColor: 'rgba(139, 92, 246, 0.15)', color: ACCENT, border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                            {p.category || 'General'}
+                          </span>
+                          {!p.active && (
+                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', backgroundColor: '#27272a', color: '#a1a1aa' }}>
+                              Hidden
+                            </span>
+                          )}
+                        </div>
+                        {p.description && <div style={{ fontSize: '12px', color: '#71717a' }}>{p.description}</div>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button onClick={() => setEditingProduct({ ...p })} style={{ ...btn(false), fontSize: '11px', padding: '6px 10px' }}>
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <label style={{ ...btn(false, busy[`img${p.id}`]), fontSize: '11px', padding: '6px 10px', cursor: 'pointer' }}>
+                        <ImageIcon size={12} /> {p.image_url ? 'Photo' : 'Add Photo'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              uploadProductImage(file, (url) => {
+                                run(`img${p.id}`, () => api('patch', `/products/${p.id}`, { image_url: url }), 'Product image updated.');
+                              });
+                            }
+                          }}
+                        />
+                      </label>
+                      <button disabled={busy[`p${p.id}`]} onClick={() => run(`p${p.id}`, () => api('patch', `/products/${p.id}`, { active: !p.active }), p.active ? 'Hidden from bot.' : 'Visible in bot.')} style={{ ...btn(false, busy[`p${p.id}`]), fontSize: '11px', padding: '6px 10px' }}>
+                        {p.active ? 'Hide' : 'Show'}
+                      </button>
+                      <button disabled={busy[`del_p${p.id}`]} onClick={() => deleteProduct(p)} style={{ ...btn(false, busy[`del_p${p.id}`]), fontSize: '11px', padding: '6px 10px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }} title="Delete product">
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '720px' }}>
                     <thead><tr><th style={th}>Variant</th><th style={th}>SKU</th><th style={th}>Price (KES)</th><th style={th}>On hand</th><th style={th}>Reserved</th><th style={th}>Available</th><th style={th}></th></tr></thead>
@@ -386,9 +487,10 @@ export function ShopBotOps() {
                             <td style={{ ...td, color: v.reserved ? '#f59e0b' : '#71717a' }}>{v.reserved}</td>
                             <td style={{ ...td, fontWeight: 800, color: avail <= 0 ? '#ef4444' : avail <= 3 ? '#f59e0b' : '#10b981' }}>{avail <= 0 ? 'Sold out' : avail}</td>
                             <td style={td}>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button disabled={!dirty || busy[`v${v.id}`]} onClick={() => saveVariant(v)} style={btn(true, !dirty || busy[`v${v.id}`])}><Save size={13} /> Save</button>
-                                <button onClick={() => run(`va${v.id}`, () => api('patch', `/variants/${v.id}`, { active: !v.active }), v.active ? 'Variant hidden.' : 'Variant visible.')} style={btn(false)}>{v.active ? 'Hide' : 'Show'}</button>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button disabled={!dirty || busy[`v${v.id}`]} onClick={() => saveVariant(v)} style={{ ...btn(true, !dirty || busy[`v${v.id}`]), fontSize: '11px', padding: '6px 10px' }}><Save size={12} /> Save</button>
+                                <button onClick={() => run(`va${v.id}`, () => api('patch', `/variants/${v.id}`, { active: !v.active }), v.active ? 'Variant hidden.' : 'Variant visible.')} style={{ ...btn(false), fontSize: '11px', padding: '6px 10px' }}>{v.active ? 'Hide' : 'Show'}</button>
+                                <button disabled={busy[`del_v${v.id}`]} onClick={() => deleteVariant(v)} title="Delete variant" style={{ ...btn(false, busy[`del_v${v.id}`]), fontSize: '11px', padding: '6px 8px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}><Trash2 size={12} /></button>
                               </div>
                             </td>
                           </tr>

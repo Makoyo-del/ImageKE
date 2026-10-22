@@ -110,3 +110,43 @@ export const sendDocument = (to, mediaId, filename, caption) =>
   sendOut(to, { type: 'document', mediaId, filename, caption });
 
 export const sendTemplate = (to, name, lang, params) => sendOut(to, { type: 'template', name, lang, params });
+
+/**
+ * Send typing indicator to the customer on WhatsApp and mark the message as read.
+ * Graph API v21.0+ messages endpoint with status: "read" + typing_indicator: { type: "text" }
+ */
+export async function sendTypingIndicator(messageId) {
+  if (!messageId || !cfg.wa.phoneNumberId || !cfg.wa.token) return;
+  try {
+    const res = await fetch(`${cfg.wa.graph}/${cfg.wa.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${cfg.wa.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: messageId,
+        typing_indicator: {
+          type: 'text',
+        },
+      }),
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (!res.ok) {
+      // Fallback: standard mark as read if typing_indicator is rejected by the Graph version
+      await fetch(`${cfg.wa.graph}/${cfg.wa.phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cfg.wa.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          status: 'read',
+          message_id: messageId,
+        }),
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('[wa] typing indicator failed:', err.message);
+  }
+}
+

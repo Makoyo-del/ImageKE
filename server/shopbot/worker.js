@@ -2,7 +2,7 @@ import { cfg } from './config.js';
 import { pool, withTx, withUserTx } from './db.js';
 import { Q } from './queue.js';
 import { step } from './stateMachine.js';
-import { sendOut, sendText, sendDocument, sendTemplate, uploadPdf } from './whatsapp.js';
+import { sendOut, sendText, sendDocument, sendTemplate, uploadPdf, sendTypingIndicator } from './whatsapp.js';
 import { verify } from './paystack.js';
 import { buildReceiptPdf } from './receipt.js';
 
@@ -22,6 +22,11 @@ async function processInbound(job, boss) {
   const { msg, profileName } = job.data;
   const waId = msg.from;
   const after = [];
+
+  // Show animated typing indicator and blue ticks immediately on customer's WhatsApp
+  if (msg?.id) {
+    sendTypingIndicator(msg.id).catch((err) => console.warn('[worker] typing indicator err:', err.message));
+  }
 
   await withUserTx(waId, async (c) => {
     // Idempotency: Meta retries / duplicate jobs become no-ops.
