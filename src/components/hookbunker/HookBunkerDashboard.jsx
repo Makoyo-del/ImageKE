@@ -46,7 +46,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.co
 // Set VITE_INGESTION_BASE_URL in .env to mask the real backend (e.g. a custom Render domain or proxy subdomain).
 // This hides imageke-api.onrender.com from developers and is the standard enterprise approach.
 const INGESTION_BASE = import.meta.env.VITE_INGESTION_BASE_URL || API_URL;
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_live_12716854d554f3ef561e6dc73ebd073832d00ae6';
 
 export function HookBunkerDashboard({ onNavigate }) {
   const [user, setUser] = useState(null);
