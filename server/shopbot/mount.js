@@ -4,10 +4,11 @@ import { registerWorkers } from './worker.js';
 import { shopBotRouter } from './server.js';
 
 let bossInstance = null;
+let lastError = null;
 
 export async function mountShopBot(app) {
   // Always mount the shopBotRouter so Meta GET webhook handshake and health checks are immediately responsive
-  app.use('/api/shopbot', shopBotRouter(() => bossInstance));
+  app.use('/api/shopbot', shopBotRouter(() => bossInstance, () => lastError));
 
   if (!cfg.databaseUrl || !cfg.wa.token) {
     console.warn('[shopbot] DATABASE_URL or WHATSAPP_API_TOKEN not set. WhatsApp Commerce Bot is in dormant mode.');
@@ -18,9 +19,11 @@ export async function mountShopBot(app) {
     try {
       bossInstance = await createBoss();
       await registerWorkers(bossInstance);
+      lastError = null;
       console.log('✅ [shopbot] pg-boss queue & workers successfully connected.');
       return bossInstance;
     } catch (err) {
+      lastError = err.message;
       console.error('❌ [shopbot] pg-boss connection error (will retry in 15s):', err.message);
       setTimeout(tryStartBoss, 15_000);
       return null;
@@ -32,4 +35,8 @@ export async function mountShopBot(app) {
 
 export function getBoss() {
   return bossInstance;
+}
+
+export function getLastError() {
+  return lastError;
 }

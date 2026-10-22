@@ -10,16 +10,18 @@ const safeEq = (a, b) => {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 };
 
-export function shopBotRouter(boss) {
+export function shopBotRouter(boss, getLastError) {
   const router = express.Router();
   const resolveBoss = () => (typeof boss === 'function' ? boss() : boss);
 
   router.get('/health', (_req, res) => {
     const b = resolveBoss();
+    const err = typeof getLastError === 'function' ? getLastError() : null;
     res.json({
       ok: true,
       service: 'shopbot',
       queue: b ? 'connected' : 'initializing',
+      queue_error: b ? null : err,
       timestamp: new Date().toISOString(),
     });
   });
