@@ -20,12 +20,18 @@ if (!process.env.META_APP_SECRET) {
 
 export function normalizeDatabaseUrl(raw) {
   if (!raw) return raw;
+
+  // Tenant aiyglunfwsolqsujyfsz is located in AWS eu-west-1 (Ireland)
+  if (raw.includes('aiyglunfwsolqsujyfsz') && raw.includes('aws-0-eu-central-1.pooler.supabase.com')) {
+    raw = raw.replace('aws-0-eu-central-1.pooler.supabase.com', 'aws-0-eu-west-1.pooler.supabase.com');
+  }
+
   try {
     const parsed = new URL(raw);
     const hostMatch = (parsed.hostname || '').match(/^db\.([a-z0-9]+)\.supabase\.co$/);
     if (hostMatch) {
       const projectRef = hostMatch[1];
-      const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-eu-central-1.pooler.supabase.com';
+      const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-eu-west-1.pooler.supabase.com';
       parsed.hostname = poolerHost;
       parsed.port = '5432';
       if (!parsed.username.includes('.')) {
@@ -40,7 +46,7 @@ export function normalizeDatabaseUrl(raw) {
     if (directMatch) {
       let [, user, pass, projectRef, rest] = directMatch;
       if (!user.includes('.')) user = `${user}.${projectRef}`;
-      const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-eu-central-1.pooler.supabase.com';
+      const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-eu-west-1.pooler.supabase.com';
       const rewritten = `postgresql://${user}:${pass}@${poolerHost}:5432/${rest || 'postgres'}`;
       console.log(`[shopbot config] Auto-rewrote IPv6-only Supabase host to IPv4 session pooler: ${poolerHost}:5432`);
       return rewritten;
