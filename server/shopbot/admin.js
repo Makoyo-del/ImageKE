@@ -3,10 +3,19 @@ import { cfg } from './config.js';
 import { pool, withTx } from './db.js';
 import { Q } from './queue.js';
 
-// ─── CORS (workspace portal origin only) ────────────────────────────────────
+// ─── CORS ───────────────────────────────────────────────────────────────────
+const DEFAULT_ORIGINS = [
+  'https://duncanmakoyo.com',
+  'https://www.duncanmakoyo.com',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://imageke-api.onrender.com'
+];
+
 function cors(req, res, next) {
   const origin = req.get('origin');
-  if (origin && cfg.admin.origins.includes(origin)) {
+  const allowed = [...DEFAULT_ORIGINS, ...cfg.admin.origins];
+  if (origin && (allowed.includes(origin) || allowed.includes('*'))) {
     res.set({
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -18,21 +27,40 @@ function cors(req, res, next) {
   next();
 }
 
-// ─── Auth: validate the Supabase session JWT, then check the owner allow-list ─
+// ─── Auth: validate the Supabase session JWT, or server service secrets ──────
 const tokenCache = new Map(); // token -> { email, exp }
+const DEFAULT_ADMIN_EMAILS = [
+  'duncan@duncanmakoyo.com',
+  'duncanmakoyo@gmail.com',
+  'makoyoduncan@gmail.com',
+  'duncanmakoyo30@gmail.com',
+  'duncan@duncanmakoyo30.com'
+];
+
 async function auth(req, res, next) {
-  if (!cfg.admin.supabaseUrl || !cfg.admin.supabaseAnonKey || !cfg.admin.emails.length) {
-    return res.status(503).json({ error: 'Admin API not configured (SUPABASE_URL / SUPABASE_ANON_KEY / ADMIN_EMAILS).' });
-  }
   const h = req.get('authorization') || '';
-  const token = h.startsWith('Bearer ') ? h.slice(7) : '';
+  const token = h.startsWith('Bearer ') ? h.slice(7).trim() : (req.query.token || '').trim();
   if (!token) return res.status(401).json({ error: 'Missing token' });
+
+  // Direct secret match fallback (TOKEN_SECRET / PING_SECRET / ADMIN_API_KEY)
+  const masterSecret = (process.env.ADMIN_API_KEY || process.env.TOKEN_SECRET || process.env.PING_SECRET || '').trim();
+  if (masterSecret && token === masterSecret) {
+    req.admin = 'master_admin';
+    return next();
+  }
+
+  const supabaseUrl = cfg.admin.supabaseUrl || process.env.SUPABASE_URL || 'https://aiyglunfwsolqsujyfsz.supabase.co';
+  const supabaseKey = cfg.admin.supabaseAnonKey || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(503).json({ error: 'Admin auth provider not configured.' });
+  }
 
   let hit = tokenCache.get(token);
   if (!hit || hit.exp < Date.now()) {
     try {
-      const r = await fetch(`${cfg.admin.supabaseUrl}/auth/v1/user`, {
-        headers: { apikey: cfg.admin.supabaseAnonKey, Authorization: `Bearer ${token}` },
+      const r = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: supabaseKey, Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(8000),
       });
       if (!r.ok) return res.status(401).json({ error: 'Invalid session' });
@@ -44,7 +72,12 @@ async function auth(req, res, next) {
       return res.status(502).json({ error: 'Auth provider unreachable' });
     }
   }
-  if (!cfg.admin.emails.includes(hit.email)) return res.status(403).json({ error: 'Not an owner account' });
+
+  const allowedEmails = [...DEFAULT_ADMIN_EMAILS, ...cfg.admin.emails];
+  if (!allowedEmails.includes(hit.email)) {
+    return res.status(403).json({ error: 'Not an authorized owner account' });
+  }
+
   req.admin = hit.email;
   next();
 }

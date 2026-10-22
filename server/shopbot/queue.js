@@ -1,4 +1,5 @@
-import PgBoss from 'pg-boss';
+import * as pgbossModule from 'pg-boss';
+const PgBoss = pgbossModule.PgBoss || pgbossModule.default || pgbossModule;
 import { cfg } from './config.js';
 
 export const Q = {
@@ -36,3 +37,5 @@ export async function initBoss() {
 
   return boss;
 }
+
+export const createBoss = initBoss;
