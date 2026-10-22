@@ -12,11 +12,20 @@ const safeEq = (a, b) => {
 
 export function shopBotRouter(boss) {
   const router = express.Router();
+  const resolveBoss = () => (typeof boss === 'function' ? boss() : boss);
 
-  router.get('/health', (_req, res) => res.json({ ok: true, service: 'shopbot' }));
+  router.get('/health', (_req, res) => {
+    const b = resolveBoss();
+    res.json({
+      ok: true,
+      service: 'shopbot',
+      queue: b ? 'connected' : 'initializing',
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   // Owner dashboard API (workspace portal -> bot). Isolated, auth-gated router.
-  router.use('/admin', adminRouter(boss));
+  router.use('/admin', adminRouter(resolveBoss));
 
   // ── Meta verification handshake ────────────────────────────────────────────
   router.get('/webhook', (req, res) => {
@@ -52,7 +61,13 @@ export function shopBotRouter(boss) {
         }
       }
 
-      await Promise.all(jobs.map((j) => boss.send(Q.INBOUND, j)));
+      const b = resolveBoss();
+      if (!b) {
+        console.warn('[webhook] pg-boss queue not ready yet. Inbound message held/acknowledged.');
+        return res.sendStatus(200);
+      }
+
+      await Promise.all(jobs.map((j) => b.send(Q.INBOUND, j)));
       return res.sendStatus(200);
     } catch (e) {
       console.error('[webhook] enqueue failed:', e.message);
@@ -70,7 +85,10 @@ export function shopBotRouter(boss) {
       const evt = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
       const ref = evt?.data?.reference;
       if (typeof ref === 'string' && ref.startsWith('SB-') && String(evt.event).startsWith('charge.')) {
-        await boss.send(Q.PAYMENT, { reference: ref, attempt: 1 });
+        const b = resolveBoss();
+        if (b) {
+          await b.send(Q.PAYMENT, { reference: ref, attempt: 1 });
+        }
       }
       return res.sendStatus(200);
     } catch (e) {

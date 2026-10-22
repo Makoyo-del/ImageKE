@@ -18,13 +18,44 @@ if (!process.env.META_APP_SECRET) {
   console.warn('[shopbot config] META_APP_SECRET not set -> webhook signatures NOT verified (dev only!)');
 }
 
+export function normalizeDatabaseUrl(raw) {
+  if (!raw) return raw;
+  try {
+    const parsed = new URL(raw);
+    const hostMatch = (parsed.hostname || '').match(/^db\.([a-z0-9]+)\.supabase\.co$/);
+    if (hostMatch) {
+      const projectRef = hostMatch[1];
+      const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-eu-central-1.pooler.supabase.com';
+      parsed.hostname = poolerHost;
+      parsed.port = '5432';
+      if (!parsed.username.includes('.')) {
+        parsed.username = `${parsed.username}.${projectRef}`;
+      }
+      const rewritten = parsed.toString();
+      console.log(`[shopbot config] Auto-rewrote IPv6-only Supabase host to IPv4 session pooler: ${poolerHost}:5432`);
+      return rewritten;
+    }
+  } catch {
+    const directMatch = raw.match(/^postgresql:\/\/([^:]+):([^@]+)@db\.([a-z0-9]+)\.supabase\.co(?::\d+)?\/(.*)$/);
+    if (directMatch) {
+      let [, user, pass, projectRef, rest] = directMatch;
+      if (!user.includes('.')) user = `${user}.${projectRef}`;
+      const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-eu-central-1.pooler.supabase.com';
+      const rewritten = `postgresql://${user}:${pass}@${poolerHost}:5432/${rest || 'postgres'}`;
+      console.log(`[shopbot config] Auto-rewrote IPv6-only Supabase host to IPv4 session pooler: ${poolerHost}:5432`);
+      return rewritten;
+    }
+  }
+  return raw;
+}
+
 export const cfg = {
   isConfigured,
   port: Number(process.env.PORT || 10000),
   role: process.env.ROLE || 'all',
   businessName: process.env.BUSINESS_NAME || 'Makoyocart Ventures',
   ownerWa: (process.env.OWNER_WA_NUMBER || '').replace(/\D/g, ''),
-  databaseUrl: process.env.DATABASE_URL,
+  databaseUrl: normalizeDatabaseUrl(process.env.DATABASE_URL),
   wa: {
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
     token: process.env.WHATSAPP_API_TOKEN,

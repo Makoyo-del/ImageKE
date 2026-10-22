@@ -6,27 +6,28 @@ import { shopBotRouter } from './server.js';
 let bossInstance = null;
 
 export async function mountShopBot(app) {
+  // Always mount the shopBotRouter so Meta GET webhook handshake and health checks are immediately responsive
+  app.use('/api/shopbot', shopBotRouter(() => bossInstance));
+
   if (!cfg.databaseUrl || !cfg.wa.token) {
     console.warn('[shopbot] DATABASE_URL or WHATSAPP_API_TOKEN not set. WhatsApp Commerce Bot is in dormant mode.');
-    app.use('/api/shopbot', (_req, res) => {
-      res.status(503).json({ error: 'ShopBot is not configured. Please set DATABASE_URL and WHATSAPP_API_TOKEN in Render environment.' });
-    });
     return null;
   }
 
-  try {
-    bossInstance = await createBoss();
-    await registerWorkers(bossInstance);
-    app.use('/api/shopbot', shopBotRouter(bossInstance));
-    console.log('✅ [shopbot] WhatsApp Commerce Bot mounted at /api/shopbot (Webhook & Admin API active)');
-    return bossInstance;
-  } catch (err) {
-    console.error('❌ [shopbot] Failed to initialize pg-boss or mount shopbot:', err.message);
-    app.use('/api/shopbot', (_req, res) => {
-      res.status(500).json({ error: 'ShopBot service failed to initialize', details: err.message });
-    });
-    return null;
-  }
+  const tryStartBoss = async () => {
+    try {
+      bossInstance = await createBoss();
+      await registerWorkers(bossInstance);
+      console.log('✅ [shopbot] pg-boss queue & workers successfully connected.');
+      return bossInstance;
+    } catch (err) {
+      console.error('❌ [shopbot] pg-boss connection error (will retry in 15s):', err.message);
+      setTimeout(tryStartBoss, 15_000);
+      return null;
+    }
+  };
+
+  return await tryStartBoss();
 }
 
 export function getBoss() {
