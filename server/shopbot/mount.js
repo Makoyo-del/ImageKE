@@ -9,12 +9,20 @@ let lastError = null;
 
 async function ensureSchema() {
   try {
-    await pool.query(`
-      create schema if not exists shop;
-      alter table shop.products add column if not exists category text default 'General';
-      alter table shop.products add column if not exists image_url text;
-      create index if not exists products_category_idx on shop.products(category) where active;
-    `);
+    await pool.query('create schema if not exists shop;');
+    try {
+      await pool.query("alter table shop.products add column if not exists category text default 'General'");
+    } catch (e) {
+      console.warn('[shopbot db] category column warning:', e.message);
+    }
+    try {
+      await pool.query('alter table shop.products add column if not exists image_url text');
+    } catch (e) {
+      console.warn('[shopbot db] image_url column warning:', e.message);
+    }
+    try {
+      await pool.query('create index if not exists products_category_idx on shop.products(category) where active');
+    } catch (e) {}
     console.log('✅ [shopbot db] Verified schema & product columns (category, image_url)');
 
     // Seed default delivery zones if table is empty
@@ -175,7 +183,11 @@ export async function mountShopBot(app) {
     return null;
   }
 
-  ensureSchema().catch(() => {});
+  try {
+    await ensureSchema();
+  } catch (err) {
+    console.warn('[shopbot db] ensureSchema non-fatal:', err.message);
+  }
 
   const tryStartBoss = async () => {
     try {

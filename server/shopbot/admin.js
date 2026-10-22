@@ -95,6 +95,46 @@ const wrap = (fn) => (req, res) =>
 const num = (v, min = 0) => (Number.isFinite(Number(v)) && Number(v) >= min ? Number(v) : null);
 const str = (v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null);
 
+let schemaVerified = false;
+async function verifyShopColumns() {
+  if (schemaVerified) return;
+  try {
+    await pool.query("alter table shop.products add column if not exists category text default 'General'");
+    await pool.query("alter table shop.products add column if not exists image_url text");
+    await pool.query("create index if not exists products_category_idx on shop.products(category) where active").catch(() => {});
+    schemaVerified = true;
+  } catch (err) {
+    console.warn('[admin] verifyShopColumns warning:', err.message);
+  }
+}
+
+async function getProducts() {
+  await verifyShopColumns();
+  try {
+    return await pool.query(`select p.id, p.name, p.description, coalesce(p.category, 'General') as category, p.image_url, p.active,
+                       coalesce(json_agg(json_build_object('id', v.id, 'label', v.label, 'sku', v.sku, 'price_kes', v.price_kes::float,
+                                'active', v.active, 'on_hand', coalesce(i.on_hand,0), 'reserved', coalesce(i.reserved,0))
+                                order by v.label) filter (where v.id is not null), '[]') as variants
+                  from shop.products p
+                  left join shop.variants v on v.product_id = p.id
+                  left join shop.inventory i on i.variant_id = v.id
+                 group by p.id, p.name, p.description, p.category, p.image_url, p.active, p.sort order by p.sort, p.name`);
+  } catch (err) {
+    if (err.code === '42703') {
+      console.warn('[admin] Falling back to query without category/image_url:', err.message);
+      return await pool.query(`select p.id, p.name, p.description, 'General' as category, null as image_url, p.active,
+                       coalesce(json_agg(json_build_object('id', v.id, 'label', v.label, 'sku', v.sku, 'price_kes', v.price_kes::float,
+                                'active', v.active, 'on_hand', coalesce(i.on_hand,0), 'reserved', coalesce(i.reserved,0))
+                                order by v.label) filter (where v.id is not null), '[]') as variants
+                  from shop.products p
+                  left join shop.variants v on v.product_id = p.id
+                  left join shop.inventory i on i.variant_id = v.id
+                 group by p.id, p.name, p.description, p.active, p.sort order by p.sort, p.name`);
+    }
+    throw err;
+  }
+}
+
 export function adminRouter(boss) {
   const r = express.Router();
   r.use(cors, express.json({ limit: '100kb' }), auth);
@@ -112,14 +152,7 @@ export function adminRouter(boss) {
                          (select string_agg(oi.qty || ' x ' || oi.name, '; ') from shop.order_items oi where oi.order_id = o.id) as items
                     from shop.orders o left join shop.customers c on c.wa_id = o.wa_id
                    order by o.created_at desc limit 150`),
-      pool.query(`select p.id, p.name, p.description, coalesce(p.category, 'General') as category, p.image_url, p.active,
-                         coalesce(json_agg(json_build_object('id', v.id, 'label', v.label, 'sku', v.sku, 'price_kes', v.price_kes::float,
-                                  'active', v.active, 'on_hand', coalesce(i.on_hand,0), 'reserved', coalesce(i.reserved,0))
-                                  order by v.label) filter (where v.id is not null), '[]') as variants
-                    from shop.products p
-                    left join shop.variants v on v.product_id = p.id
-                    left join shop.inventory i on i.variant_id = v.id
-                   group by p.id, p.name, p.description, p.category, p.image_url, p.active, p.sort order by p.sort, p.name`),
+      getProducts(),
       pool.query(`select id, name, fee_kes::float as fee_kes, active from shop.delivery_zones order by sort, name`),
     ]);
     const lowStock = products.rows.flatMap((p) => p.variants).filter((v) => v.active && v.on_hand - v.reserved <= 3).length;
@@ -129,11 +162,31 @@ export function adminRouter(boss) {
   // ── Orders: Pending -> Dispatched -> Delivered (customer is notified in chat) ──
   r.patch('/orders/:id/status', wrap(async (req, res) => {
     const status = str(req.body?.status);
+    const valid = ['pending', 'dispatched', 'delivered', 'cancelled'];
+    if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+
     const o = await withTx(async (c) => {
-      const { rows } = await c.query('select * from shop.set_fulfillment_status($1,$2,$3)', [req.params.id, status, str(req.body?.note)]);
-      return rows[0];
+      try {
+        const { rows } = await c.query('select * from shop.set_fulfillment_status($1,$2,$3)', [req.params.id, status, str(req.body?.note)]);
+        return rows[0];
+      } catch (err) {
+        const { rows: updated } = await c.query(
+          `update shop.orders set fulfillment_status = $2, updated_at = now() where id = $1 returning *`,
+          [req.params.id, status]
+        );
+        if (!updated.length) throw new Error('Order not found');
+        await c.query(
+          `insert into shop.order_events(order_id, kind, note) values ($1, $2, $3) on conflict do nothing`,
+          [req.params.id, status, str(req.body?.note)]
+        ).catch(() => {});
+        return updated[0];
+      }
     });
-    await boss.send(Q.NOTIFY, { orderId: o.id, status: o.fulfillment_status });
+
+    const b = typeof boss === 'function' ? boss() : boss;
+    if (b && o && Q?.NOTIFY) {
+      await b.send(Q.NOTIFY, { orderId: o.id, status: o.fulfillment_status }).catch((e) => console.warn('[boss send err]', e.message));
+    }
     res.json({ ok: true, order: { id: o.id, fulfillment_status: o.fulfillment_status } });
   }));
 

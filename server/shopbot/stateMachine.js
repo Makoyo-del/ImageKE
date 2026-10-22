@@ -40,56 +40,80 @@ const view = {
 
     // 1. Check if we should present Category Hierarchy (if store has multiple categories & > 6 items)
     if (!filterCategory) {
-      const { rows: stats } = await client.query(`
-        select count(distinct p.category)::int as cat_count, count(distinct p.id)::int as prod_count
-          from shop.products p
-          join shop.variants v on v.product_id = p.id and v.active
-          join shop.inventory i on i.variant_id = v.id
-         where p.active and i.on_hand - i.reserved > 0`);
-
-      if (stats[0]?.cat_count > 1 && stats[0]?.prod_count > 6) {
-        const { rows: cats } = await client.query(`
-          select p.category, count(distinct p.id)::int as item_count
+      try {
+        const { rows: stats } = await client.query(`
+          select count(distinct p.category)::int as cat_count, count(distinct p.id)::int as prod_count
             from shop.products p
             join shop.variants v on v.product_id = p.id and v.active
             join shop.inventory i on i.variant_id = v.id
-           where p.active and i.on_hand - i.reserved > 0
-           group by p.category
-           order by p.category
-           limit 8`);
+           where p.active and i.on_hand - i.reserved > 0`);
 
-        return [{
-          type: 'list',
-          body: `${hello}\nWhat are you shopping for today? Browse by category 👇`,
-          button: 'Categories',
-          sections: [
-            {
-              title: 'Categories',
-              rows: [
-                ...cats.map((c) => ({ id: `CAT:${c.category}`, title: c.category.slice(0, 24), description: `${c.item_count} items available` })),
-                { id: 'CAT:ALL', title: 'View All Products', description: 'See complete catalog' }
-              ]
-            },
-            { title: 'Support & Orders', rows: [trackRow, humanRow] }
-          ]
-        }];
+        if (stats[0]?.cat_count > 1 && stats[0]?.prod_count > 6) {
+          const { rows: cats } = await client.query(`
+            select p.category, count(distinct p.id)::int as item_count
+              from shop.products p
+              join shop.variants v on v.product_id = p.id and v.active
+              join shop.inventory i on i.variant_id = v.id
+             where p.active and i.on_hand - i.reserved > 0
+             group by p.category
+             order by p.category
+             limit 8`);
+
+          return [{
+            type: 'list',
+            body: `${hello}\nWhat are you shopping for today? Browse by category 👇`,
+            button: 'Categories',
+            sections: [
+              {
+                title: 'Categories',
+                rows: [
+                  ...cats.map((c) => ({ id: `CAT:${c.category}`, title: c.category.slice(0, 24), description: `${c.item_count} items available` })),
+                  { id: 'CAT:ALL', title: 'View All Products', description: 'See complete catalog' }
+                ]
+              },
+              { title: 'Support & Orders', rows: [trackRow, humanRow] }
+            ]
+          }];
+        }
+      } catch (err) {
+        console.warn('[stateMachine] Category check non-fatal:', err.message);
       }
     }
 
     // 2. Display Products (filtered by category if chosen, else flat list)
-    const categoryClause = filterCategory && filterCategory !== 'ALL' ? 'and p.category = $1' : '';
-    const params = filterCategory && filterCategory !== 'ALL' ? [filterCategory] : [];
+    let rows = [];
+    try {
+      const categoryClause = filterCategory && filterCategory !== 'ALL' ? 'and p.category = $1' : '';
+      const params = filterCategory && filterCategory !== 'ALL' ? [filterCategory] : [];
 
-    const { rows } = await client.query(`
-      select p.id, p.name, p.image_url, p.category, min(v.price_kes) as from_price, sum(i.on_hand - i.reserved)::int as avail
-        from shop.products p
-        join shop.variants v  on v.product_id = p.id and v.active
-        join shop.inventory i on i.variant_id = v.id
-       where p.active and i.on_hand - i.reserved > 0 ${categoryClause}
-       group by p.id
-      having sum(i.on_hand - i.reserved) > 0
-       order by min(p.sort), p.name
-       limit 8`, params);
+      const res = await client.query(`
+        select p.id, p.name, p.image_url, p.category, min(v.price_kes) as from_price, sum(i.on_hand - i.reserved)::int as avail
+          from shop.products p
+          join shop.variants v  on v.product_id = p.id and v.active
+          join shop.inventory i on i.variant_id = v.id
+         where p.active and i.on_hand - i.reserved > 0 ${categoryClause}
+         group by p.id
+        having sum(i.on_hand - i.reserved) > 0
+         order by min(p.sort), p.name
+         limit 8`, params);
+      rows = res.rows;
+    } catch (err) {
+      if (err.code === '42703') {
+        const res = await client.query(`
+          select p.id, p.name, null as image_url, 'General' as category, min(v.price_kes) as from_price, sum(i.on_hand - i.reserved)::int as avail
+            from shop.products p
+            join shop.variants v  on v.product_id = p.id and v.active
+            join shop.inventory i on i.variant_id = v.id
+           where p.active and i.on_hand - i.reserved > 0
+           group by p.id
+          having sum(i.on_hand - i.reserved) > 0
+           order by min(p.sort), p.name
+           limit 8`);
+        rows = res.rows;
+      } else {
+        throw err;
+      }
+    }
 
     if (!rows.length) {
       return [{
@@ -280,8 +304,20 @@ export async function step({ client, waId, session, input, profileName }) {
 
       if (!id.startsWith('P:')) return toMenu();
 
-      const { rows: prodRows } = await client.query(
-        `select id, name, description, image_url from shop.products where id = $1 and active`, [id.slice(2)]);
+      let prodRows = [];
+      try {
+        const res = await client.query(
+          `select id, name, description, image_url from shop.products where id = $1 and active`, [id.slice(2)]);
+        prodRows = res.rows;
+      } catch (err) {
+        if (err.code === '42703') {
+          const res = await client.query(
+            `select id, name, description, null as image_url from shop.products where id = $1 and active`, [id.slice(2)]);
+          prodRows = res.rows;
+        } else {
+          throw err;
+        }
+      }
       if (!prodRows.length) return toMenu();
       const product = prodRows[0];
 
@@ -322,7 +358,18 @@ export async function step({ client, waId, session, input, profileName }) {
     // ── Variant Selection ─────────────────────────────────────────────────────
     case 'PICK_VARIANT': {
       const reprompt = async (note) => {
-        const { rows: [p] } = await client.query(`select id, name, description, image_url from shop.products where id = $1`, [ctx.product_id]);
+        let p;
+        try {
+          const { rows } = await client.query(`select id, name, description, image_url from shop.products where id = $1`, [ctx.product_id]);
+          p = rows[0];
+        } catch (err) {
+          if (err.code === '42703') {
+            const { rows } = await client.query(`select id, name, description, null as image_url from shop.products where id = $1`, [ctx.product_id]);
+            p = rows[0];
+          } else {
+            throw err;
+          }
+        }
         const { rows } = await client.query(
           `select v.id, v.label, v.price_kes, (i.on_hand - i.reserved)::int as avail
              from shop.variants v join shop.inventory i on i.variant_id = v.id
