@@ -1,3 +1,5 @@
+import dns from 'node:dns';
+try { dns.setDefaultResultOrder('ipv4first'); } catch {}
 import { mountShopBot } from './shopbot/mount.js';
 import express from 'express';
 import cors from 'cors';

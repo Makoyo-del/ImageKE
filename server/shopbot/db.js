@@ -1,3 +1,6 @@
+import dns from 'node:dns';
+try { dns.setDefaultResultOrder('ipv4first'); } catch {}
+
 import pg from 'pg';
 import { cfg } from './config.js';
 
@@ -29,7 +32,7 @@ export async function withTx(fn) {
 /** Transaction that also serialises all work for one WhatsApp user (ordered, race-free). */
 export function withUserTx(waId, fn) {
   return withTx(async (c) => {
-    await c.query('select pg_advisory_xact_lock(hashtextextended($1, 0))', [`shopbot:${waId}`]);
+    await c.query('select pg_advisory_xact_lock(hashtext($1))', [waId]);
     return fn(c);
   });
 }
