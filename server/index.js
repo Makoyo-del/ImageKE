@@ -174,10 +174,10 @@ app.get(['/api/ping', '/ping'], pingLimiter, (req, res) => {
 });
 
 // ─── Resend Email Utility Helper ──────────────────────────────────────────────
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, from }) {
   if (process.env.RESEND_API_KEY) {
     try {
-      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Makoyocart Ventures <alerts@duncanmakoyo.com>';
+      const fromEmail = from || process.env.RESEND_FROM_EMAIL || 'Duncan Makoyo <duncan@duncanmakoyo.com>';
       const payload = {
         from: fromEmail,
         to: Array.isArray(to) ? to : [to],
@@ -259,6 +259,108 @@ app.post('/api/submit-service-request', formLimiter, async (req, res) => {
 app.post('/api/paystack/webhook', (req, res, next) => {
   req.url = '/webhook';
   return campusNetRouter(req, res, next);
+});
+
+
+// ─── Shopify Catalog Audit Inbound Lead Webhook ─────────────────────────────
+// Receives forwarded lead submissions from Hostinger audit landing pages (tracker.php)
+// Dispatches instant 24/7 email notifications to Duncan via Resend API
+app.post(['/lead-webhook', '/api/lead-webhook'], async (req, res) => {
+  const { store, name, email, choice, note, ip, user_agent, referrer, timestamp } = req.body || {};
+
+  if (!store || !email) {
+    return res.status(400).json({ status: 'error', message: 'Missing store or email parameter.' });
+  }
+
+  const cleanName = (name && typeof name === 'string') ? name.trim() : 'Anonymous Merchant';
+  const cleanEmail = (email && typeof email === 'string') ? email.trim() : '';
+  const cleanStore = (store && typeof store === 'string') ? store.trim() : 'Unknown Store';
+  const cleanChoice = choice === 'full_upgrade' ? 'Full Catalog Upgrade ($395–$550)' : 'Push 5 Free Samples to Drafts ($0)';
+  const cleanNote = (note && typeof note === 'string') ? note.trim() : 'None provided';
+  const auditUrl = `https://duncanmakoyo.com/audits/${cleanStore}/`;
+
+  console.log(`[Lead Webhook] Inbound lead from ${cleanStore}: ${cleanName} (${cleanEmail}) - ${cleanChoice}`);
+
+  const notificationHtml = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0B281C; color: #FAF7F2; border: 1px solid #164e33; border-radius: 16px; overflow: hidden; padding: 32px 24px;">
+      <div style="border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 16px; margin-bottom: 20px;">
+        <span style="background: #B8F36A; color: #0B281C; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px;">
+          ⚡ NEW SHOPIFY AUDIT LEAD
+        </span>
+        <h1 style="color: #FFFFFF; font-size: 22px; font-weight: 800; margin: 12px 0 4px; line-height: 1.2;">
+          ${cleanName} requested ${cleanChoice}
+        </h1>
+        <p style="color: #A7E3BD; font-size: 13px; margin: 0;">
+          Store: <strong>${cleanStore}</strong> • Generated via Catalog X-Ray Proof-of-Work
+        </p>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; width: 130px; font-weight: 600;">Store Slug:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; font-weight: bold;">${cleanStore}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600;">Prospect Name:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; font-weight: bold;">${cleanName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600;">Prospect Email:</td>
+            <td style="padding: 6px 0;"><a href="mailto:${cleanEmail}" style="color: #B8F36A; font-weight: bold; text-decoration: underline;">${cleanEmail}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600;">Selected Tier:</td>
+            <td style="padding: 6px 0; color: #B8F36A; font-weight: bold;">${cleanChoice}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600; vertical-align: top;">Merchant Note:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; line-height: 1.5;">${cleanNote}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600;">Audit Link:</td>
+            <td style="padding: 6px 0;"><a href="${auditUrl}" style="color: #B8F36A; text-decoration: underline;">${auditUrl}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600;">Timestamp:</td>
+            <td style="padding: 6px 0; color: #889988;">${timestamp || new Date().toISOString()}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #A7E3BD; font-weight: 600;">IP Address:</td>
+            <td style="padding: 6px 0; color: #889988;">${ip || '—'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="mailto:${cleanEmail}?subject=Re:%20Shopify%20Catalog%20Upgrade%20for%20${encodeURIComponent(cleanStore)}&body=Hey%20${encodeURIComponent(cleanName)},%0D%0A%0D%0AI%20received%20your%20request%20on%20your%20catalog%20audit%20report.%20"
+           style="background: #B8F36A; color: #0B281C; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 28px; border-radius: 12px; text-decoration: none; display: inline-block;">
+          Reply to ${cleanName} Directly →
+        </a>
+      </div>
+    </div>
+  `;
+
+  try {
+    const emailResult = await sendEmail({
+      to: ['duncan@duncanmakoyo.com', 'duncanmakoyo@gmail.com'],
+      from: 'Shopify Catalog Lead <duncan@duncanmakoyo.com>',
+      subject: `🚨 [Shopify Lead] ${cleanStore} — ${cleanName} (${cleanChoice})`,
+      html: notificationHtml,
+      text: `New Inbound Lead from ${cleanStore}:\nName: ${cleanName}\nEmail: ${cleanEmail}\nChoice: ${cleanChoice}\nNote: ${cleanNote}\nAudit URL: ${auditUrl}\nTimestamp: ${timestamp || new Date().toISOString()}`
+    });
+
+    return res.status(200).json({
+      status: 'ok',
+      store: cleanStore,
+      email: cleanEmail,
+      notified: emailResult.success,
+      message: 'Lead received and notification dispatched.'
+    });
+  } catch (err) {
+    console.error('[lead-webhook error]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to process lead notification.' });
+  }
 });
 
 // ─── 404 & Global Error Handlers ─────────────────────────────────────────────
