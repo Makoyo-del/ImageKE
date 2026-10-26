@@ -433,15 +433,54 @@ export async function activateVoucherForTransaction({
       .eq('reference', reference);
   }
 
-  // 4. Upsert session for phone MAC-randomization restoration
+  // 4. Upsert session for phone MAC-randomization restoration (with Stacking & Expiration Protection)
   if (cleanPhone && cleanPhone.length >= 9) {
+    let sessionVoucherCode = voucherCode;
+    let sessionVoucherPassword = voucherPassword;
+    let sessionValidUntil = validUntil;
+
+    try {
+      const { data: existingSession } = await supabase
+        .from('campusnet_sessions')
+        .select('*')
+        .eq('phone', cleanPhone)
+        .maybeSingle();
+
+      if (existingSession && existingSession.valid_until) {
+        const existingExpiry = new Date(existingSession.valid_until);
+        const nowTime = new Date();
+
+        if (existingExpiry > nowTime) {
+          // Existing session is still unexpired: Stack the new duration on top of remaining time
+          const stackedDate = new Date(existingExpiry.getTime() + durationHours * 3600 * 1000);
+
+          if (existingExpiry > validUntil) {
+            // Existing pass is superior (e.g. 7-day pass vs 1-hour panic purchase)
+            // Retain the higher-tier voucher and extend its expiration date
+            console.log(`[CampusNet Session Protection] Phone ${cleanPhone} has active superior pass until ${existingExpiry.toISOString()}. Stacking +${durationHours}h -> ${stackedDate.toISOString()} while retaining voucher ${existingSession.voucher_code}`);
+            sessionVoucherCode = existingSession.voucher_code || voucherCode;
+            sessionVoucherPassword = existingSession.voucher_password || voucherPassword;
+            sessionValidUntil = stackedDate;
+          } else {
+            // New pass is higher/equal duration (upgrading pass)
+            console.log(`[CampusNet Session Upgrade] Phone ${cleanPhone} upgrading pass. Stacking +${durationHours}h -> ${stackedDate.toISOString()} with new voucher ${voucherCode}`);
+            sessionVoucherCode = voucherCode;
+            sessionVoucherPassword = voucherPassword;
+            sessionValidUntil = stackedDate;
+          }
+        }
+      }
+    } catch (sErr) {
+      console.warn('[CampusNet Session Protection] Error checking existing session:', sErr.message);
+    }
+
     await supabase.from('campusnet_sessions').upsert(
       {
         phone: cleanPhone,
         mac_address: clientMac,
-        voucher_code: voucherCode,
-        voucher_password: voucherPassword,
-        valid_until: validUntil.toISOString()
+        voucher_code: sessionVoucherCode,
+        voucher_password: sessionVoucherPassword,
+        valid_until: sessionValidUntil.toISOString()
       },
       { onConflict: 'phone' }
     );
@@ -711,24 +750,74 @@ router.post('/session/restore', async (req, res) => {
   const { clean: cleanPhone } = formatPhone(phone);
 
   try {
-    const { data: session, error } = await supabase
+    let { data: session, error } = await supabase
       .from('campusnet_sessions')
       .select('*')
       .eq('phone', cleanPhone)
       .maybeSingle();
 
+    const clientMac = (new_mac && new_mac !== '$(mac)') ? new_mac : '';
+
     if (error || !session) {
-      return res.status(404).json({ error: 'No active subscription found for this phone number.' });
+      // Self-healing fallback: Check if an unexpired voucher exists in campusnet_vouchers
+      const now = new Date();
+      const { data: fallbackVoucher } = await supabase
+        .from('campusnet_vouchers')
+        .select('*')
+        .eq('assigned_phone', cleanPhone)
+        .eq('status', 'assigned')
+        .gt('expires_at', now.toISOString())
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackVoucher) {
+        console.log(`[CampusNet Self-Healing] Recovered active voucher ${fallbackVoucher.code} for ${cleanPhone} expiring ${fallbackVoucher.expires_at}`);
+        session = {
+          phone: cleanPhone,
+          mac_address: clientMac || fallbackVoucher.assigned_mac || '00:00:00:00:00:00',
+          voucher_code: fallbackVoucher.code,
+          voucher_password: fallbackVoucher.password,
+          valid_until: fallbackVoucher.expires_at
+        };
+        await supabase.from('campusnet_sessions').upsert(session, { onConflict: 'phone' });
+      } else {
+        return res.status(404).json({ error: 'No active subscription found for this phone number.' });
+      }
     }
 
-    const validUntil = new Date(session.valid_until);
+    let validUntil = new Date(session.valid_until);
     if (new Date() > validUntil) {
-      await supabase.from('campusnet_sessions').delete().eq('phone', cleanPhone);
-      return res.status(400).json({ error: 'Your Wi-Fi pass has expired. Please purchase a new pass.' });
+      // Check if an unexpired voucher exists in campusnet_vouchers before deleting
+      const now = new Date();
+      const { data: alternativeVoucher } = await supabase
+        .from('campusnet_vouchers')
+        .select('*')
+        .eq('assigned_phone', cleanPhone)
+        .eq('status', 'assigned')
+        .gt('expires_at', now.toISOString())
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (alternativeVoucher) {
+        console.log(`[CampusNet Self-Healing] Expired session replaced with active voucher ${alternativeVoucher.code} for ${cleanPhone}`);
+        session = {
+          phone: cleanPhone,
+          mac_address: clientMac || alternativeVoucher.assigned_mac || '00:00:00:00:00:00',
+          voucher_code: alternativeVoucher.code,
+          voucher_password: alternativeVoucher.password,
+          valid_until: alternativeVoucher.expires_at
+        };
+        validUntil = new Date(session.valid_until);
+        await supabase.from('campusnet_sessions').upsert(session, { onConflict: 'phone' });
+      } else {
+        await supabase.from('campusnet_sessions').delete().eq('phone', cleanPhone);
+        return res.status(400).json({ error: 'Your Wi-Fi pass has expired. Please purchase a new pass.' });
+      }
     }
 
     // Security check: If MAC is changing, verify optional code or confirm device ownership
-    const clientMac = (new_mac && new_mac !== '$(mac)') ? new_mac : '';
     if (clientMac && session.mac_address && session.mac_address !== '00:00:00:00:00:00' && clientMac !== session.mac_address) {
       if (code) {
         const cleanCode = code.trim().toUpperCase();
