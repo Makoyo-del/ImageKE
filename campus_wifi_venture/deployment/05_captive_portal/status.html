@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Connected — Makoyocart CampusNet 50 Mbps Wi-Fi</title>
+ <style>
+:root{--bg-canvas:#090a0f;--bg-card:#12151f;--brand-orange:#ff5414;--brand-orange-glow:rgba(255, 84, 20, 0.38);--profit-green:#00e676;--profit-green-bg:rgba(0, 230, 118, 0.14);--profit-green-border:rgba(0, 230, 118, 0.4);--text-pure:#ffffff;--text-high:#f1f5f9;--text-mid:#cbd5e1;--text-muted:#94a3b8;--border-glass:rgba(255, 255, 255, 0.12);--card-inner:rgba(255, 255, 255, 0.04);}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;-webkit-tap-highlight-color:transparent;}
+body{background-color:var(--bg-canvas);background-image:radial-gradient(circle at 85% 10%, rgba(255, 84, 20, 0.20) 0%, transparent 60%), radial-gradient(circle at 15% 90%, rgba(0, 230, 118, 0.12) 0%, transparent 50%);color:var(--text-high);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px 14px;line-height:1.5;}
+.card{width:100%;max-width:440px;background:var(--bg-card);border:1.5px solid var(--border-glass);border-radius:26px;padding:28px 20px;box-shadow:0 28px 55px rgba(0, 0, 0, 0.9);text-align:center;}
+.status-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.status-pill{display:inline-flex;align-items:center;gap:7px;background:var(--profit-green-bg);border:1.5px solid var(--profit-green-border);color:var(--profit-green);padding:5px 14px;border-radius:999px;font-size:12px;font-weight:800;}
+.pulse-dot{width:8px;height:8px;background-color:var(--profit-green);border-radius:50%;box-shadow:0 0 8px var(--profit-green);}
+.brand-title{font-size:24px;font-weight:900;color:var(--text-pure);margin-bottom:3px;}
+.brand-title span{color:var(--brand-orange);}
+.brand-sub{font-size:12.5px;color:var(--text-muted);margin-bottom:20px;}
+.timer-card{background:rgba(255, 84, 20, 0.09);border:2px solid rgba(255, 84, 20, 0.42);border-radius:20px;padding:20px 16px;margin-bottom:20px;}
+.timer-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.timer-label{font-size:11.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-mid);font-weight:800;}
+.package-badge{background:rgba(255, 255, 255, 0.1);color:var(--text-pure);padding:3px 10px;border-radius:8px;font-size:11.5px;font-weight:800;}
+.timer-val{font-size:31px;font-weight:900;color:var(--text-pure);margin:6px 0;}
+.timer-footer{font-size:12px;color:var(--text-muted);}
+.timer-footer strong{color:var(--text-high);}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;text-align:left;}
+.stat-box{background:var(--card-inner);border:1.5px solid var(--border-glass);border-radius:14px;padding:12px 14px;}
+.stat-box .title{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;}
+.stat-box .val{font-size:14.5px;font-weight:800;color:var(--text-pure);word-break:break-all;}
+.tip-box{background:rgba(0, 230, 118, 0.08);border:1px solid rgba(0, 230, 118, 0.3);border-radius:14px;padding:12px 14px;text-align:left;font-size:12px;color:var(--text-mid);margin-bottom:18px;}
+.tip-box strong{color:var(--profit-green);display:block;margin-bottom:2px;}
+.btn-group{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+.btn{width:100%;height:48px;border-radius:14px;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;cursor:pointer;border:none;}
+.btn-topup{background:linear-gradient(135deg, #e03a00 0%, var(--brand-orange) 100%);color:#ffffff;box-shadow:0 8px 20px var(--brand-orange-glow);}
+.btn-logout{background:rgba(239, 68, 68, 0.12);border:1.5px solid rgba(239, 68, 68, 0.35);color:#fca5a5;}
+.support-box{background:rgba(255, 255, 255, 0.03);border:1.5px solid var(--border-glass);border-radius:14px;padding:14px;font-size:12px;color:var(--text-muted);}
+.support-box a{color:var(--brand-orange);font-weight:800;text-decoration:none;}
+</style>
+ <script>
+  $(if refresh-timeout)
+  setInterval(function() { window.location.reload(); }, $(refresh-timeout) * 1000);
+  $(endif)
+ </script>
+</head>
+<body>
+<div class="card">
+ <div class="status-row">
+  <div class="status-pill">
+  <span class="pulse-dot"></span>
+  <span id="network-status">Connected • 50 Mbps High-Speed</span>
+  </div>
+ </div>
+ <h1 class="brand-title">Makoyocart <span>CampusNet</span></h1>
+ <p class="brand-sub">Makoyocart Ventures • Reg: BN-WLSP9KP9 • Kisii</p>
+ <div class="timer-card">
+  <div class="timer-header">
+  <span class="timer-label">Continuous Pass Time Left</span>
+  <span class="package-badge" id="pkg-name-badge">Active Pass</span>
+  </div>
+  <div class="timer-val" id="countdown-val">
+  <span id="mt-time-raw">$(if session-time-left)$(session-time-left)$(elif uptime-left)$(uptime-left)$(else)Active Pass$(endif)</span>
+  </div>
+  <div class="timer-footer">
+  Valid Until: <strong id="expiry-text">Checking...</strong>
+  </div>
+ </div>
+ <div class="stats-grid">
+  <div class="stat-box">
+  <div class="title">Connected Time</div>
+  <div class="val" id="stat-uptime">$(uptime)</div>
+  </div>
+  <div class="stat-box">
+  <div class="title">Data Used</div>
+  <div class="val" id="stat-bytes">$(bytes-out-nice)</div>
+  </div>
+  <div class="stat-box">
+  <div class="title">IP Address</div>
+  <div class="val" id="stat-ip">$(ip)</div>
+  </div>
+  <div class="stat-box">
+  <div class="title">Device MAC</div>
+  <div class="val" id="stat-mac" style="font-size:12px; font-family:monospace;">$(mac)</div>
+  </div>
+ </div>
+ <div class="tip-box">
+  <strong>💡 Tip: Stay Connected Without Sign-Outs</strong>
+  In your phone's Wi-Fi settings for <b>CampusNet</b>, set <b>Private Wi-Fi Address / MAC</b> to <b>Off (Fixed Device MAC)</b> so your phone stays logged in automatically even when your screen is locked.
+ </div>
+ <div class="btn-group">
+  <a href="login.html" class="btn btn-topup">
+  <span>⚡</span> Buy / Extend Wi-Fi Pass
+  </a>
+  <a id="btn-logout" href="$(link-logout)" class="btn btn-logout">
+  Disconnect Device
+  </a>
+ </div>
+ <div class="support-box">
+  24/7 Hostel Wi-Fi Helpline: <a href="tel:0794877125">0794877125</a> •
+  <a href="https://wa.me/254794877125?text=Hello%20Makoyocart%20Support,%20I%20need%20help%20with%20my%20WiFi%20session" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>
+ </div>
+</div>
+<script>
+ const BACKEND_BASE = "https://imageke-api.onrender.com/api/campusnet";
+ const CLIENT_MAC = "$(mac)" || "";
+ const CLIENT_USER = "$(username)" || "";
+ let remainingSeconds = 0;
+ let timerTicker = null;
+ function parseRouterTimeToSeconds(str) {
+  if (!str || str.indexOf('$(') !== -1) return 0;
+  var s = str.trim().toLowerCase();
+  var days = (s.match(/(\d+)d/) || [0, 0])[1];
+  var hours = (s.match(/(\d+)h/) || [0, 0])[1];
+  var mins = (s.match(/(\d+)m/) || [0, 0])[1];
+  var secs = (s.match(/(\d+)s/) || [0, 0])[1];
+  return (parseInt(days, 10) * 86400) +
+  (parseInt(hours, 10) * 3600) +
+  (parseInt(mins, 10) * 60) +
+  parseInt(secs, 10);
+ }
+ function formatSecondsToDisplay(sec) {
+  if (sec <= 0) return "Pass Expired";
+  var d = Math.floor(sec / 86400);
+  var h = Math.floor((sec % 86400) / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = sec % 60;
+  if (d > 0) {
+  return d + "d " + String(h).padStart(2, '0') + "h " + String(m).padStart(2, '0') + "m";
+  }
+  return String(h).padStart(2, '0') + "h " + String(m).padStart(2, '0') + "m " + String(s).padStart(2, '0') + "s";
+ }
+ function startLiveCountdown(seconds) {
+  remainingSeconds = seconds;
+  var display = document.getElementById('countdown-val');
+  if (timerTicker) clearInterval(timerTicker);
+  display.innerText = formatSecondsToDisplay(remainingSeconds);
+  timerTicker = setInterval(function() {
+  remainingSeconds--;
+  if (remainingSeconds <= 0) {
+  clearInterval(timerTicker);
+  display.innerText = "Pass Expired";
+  display.style.color = "#fca5a5";
+  } else {
+  display.innerText = formatSecondsToDisplay(remainingSeconds);
+  }
+  }, 1000);
+ }
+ async function loadDynamicSession() {
+  var timeEl = document.getElementById('mt-time-raw');
+  var rawText = timeEl ? timeEl.innerText.trim() : "";
+  var parsedSec = parseRouterTimeToSeconds(rawText);
+  if (parsedSec > 0) {
+  startLiveCountdown(parsedSec);
+  }
+  try {
+  var q = new URLSearchParams();
+  if (CLIENT_USER && CLIENT_USER.indexOf('$(') === -1) q.append('username', CLIENT_USER);
+  if (CLIENT_MAC && CLIENT_MAC.indexOf('$(') === -1) q.append('mac', CLIENT_MAC);
+  var savedPhone = '';
+  try { savedPhone = localStorage.getItem('cn_saved_phone') || ''; } catch (e) {}
+  if (savedPhone) q.append('phone', savedPhone);
+  var res = await fetch(BACKEND_BASE + '/session/status?' + q.toString());
+  if (res.ok) {
+  var data = await res.json();
+  if (data.package_name) {
+  document.getElementById('pkg-name-badge').innerText = data.package_name;
+  }
+  if (data.valid_until) {
+  var exp = new Date(data.valid_until);
+  document.getElementById('expiry-text').innerText = exp.toLocaleString();
+  var secLeft = Math.floor((exp.getTime() - Date.now()) / 1000);
+  if (secLeft > 0) startLiveCountdown(secLeft);
+  }
+  }
+  } catch (e) {}
+ }
+ window.onload = loadDynamicSession;
+</script>
+</body>
+</html>

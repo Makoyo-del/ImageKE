@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node --dns-result-order=ipv4first index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "test:campusnet": "node --test test_campusnet_upgrade.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

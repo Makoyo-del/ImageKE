@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Makoyocart CampusNet — 50 Mbps Hostel Wi-Fi</title>
+<style>
+:root{--bg-canvas:#090a0f;--bg-card:#12151f;--bg-card-hover:#191d2b;--brand-orange:#ff5414;--brand-orange-light:#ff743d;--brand-orange-glow:rgba(255, 84, 20, 0.38);--mpesa-green:#00e676;--mpesa-bg:rgba(0, 230, 118, 0.14);--airtel-red:#ff3b5c;--airtel-bg:rgba(255, 59, 92, 0.15);--text-pure:#ffffff;--text-high:#f1f5f9;--text-mid:#cbd5e1;--text-muted:#94a3b8;--border-glass:rgba(255, 255, 255, 0.12);--border-strong:rgba(255, 255, 255, 0.22);}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;-webkit-tap-highlight-color:transparent;}
+body{background-color:var(--bg-canvas);background-image:radial-gradient(circle at 85% 8%, rgba(255, 84, 20, 0.20) 0%, transparent 55%), radial-gradient(circle at 12% 90%, rgba(0, 230, 118, 0.10) 0%, transparent 50%);color:var(--text-high);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 12px 36px;line-height:1.45;}
+.container{width:100%;max-width:450px;background:var(--bg-card);border:1.5px solid var(--border-glass);border-radius:26px;padding:22px 18px;box-shadow:0 24px 50px rgba(0, 0, 0, 0.85);position:relative;}
+.brand-header{text-align:center;margin-bottom:16px;}
+.brand-pill-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.edition-badge{background:rgba(255, 84, 20, 0.18);border:1px solid rgba(255, 84, 20, 0.45);color:#ff8559;font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:0.4px;}
+.network-badge{display:inline-flex;align-items:center;gap:6px;background:var(--mpesa-bg);border:1px solid rgba(0, 230, 118, 0.4);color:var(--mpesa-green);font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;}
+.pulse-dot{width:7px;height:7px;background:var(--mpesa-green);border-radius:50%;box-shadow:0 0 8px var(--mpesa-green);}
+.hero-title{font-size:25px;font-weight:900;color:var(--text-pure);letter-spacing:-0.5px;margin-bottom:3px;}
+.hero-title span{color:var(--brand-orange);}
+.hero-subtext{font-size:13px;color:var(--text-mid);}
+.welcome-banner{display:none;background:linear-gradient(135deg, rgba(0, 230, 118, 0.16) 0%, rgba(16, 185, 129, 0.24) 100%);border:1.5px solid var(--mpesa-green);border-radius:18px;padding:14px 15px;margin-bottom:16px;text-align:left;box-shadow:0 10px 25px rgba(0, 230, 118, 0.18);}
+.welcome-title{font-size:14px;font-weight:800;color:var(--mpesa-green);margin-bottom:3px;display:flex;align-items:center;justify-content:space-between;}
+.welcome-sub{font-size:12.5px;color:var(--text-pure);margin-bottom:10px;}
+.btn-one-tap-reconnect{width:100%;height:46px;background:var(--mpesa-green);color:#04130a;border:none;border-radius:12px;font-size:14.5px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(0, 230, 118, 0.35);}
+.alert-box{display:none;align-items:center;gap:10px;background:rgba(239, 68, 68, 0.14);border:1.5px solid rgba(239, 68, 68, 0.45);color:#fecaca;padding:12px 14px;border-radius:14px;font-size:13px;font-weight:600;margin-bottom:14px;}
+.step-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;}
+.step-badge-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:var(--text-pure);}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--brand-orange);color:#ffffff;font-size:12px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.step-hint{font-size:11.5px;color:var(--text-muted);font-weight:600;}
+.packages-grid{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;}
+.pkg-card{background:rgba(255, 255, 255, 0.03);border:1.5px solid var(--border-glass);border-radius:16px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;position:relative;transition:border-color 0.15s, background 0.15s, transform 0.12s;}
+.pkg-card:hover{background:var(--bg-card-hover);border-color:var(--border-strong);}
+.pkg-card.active{background:rgba(255, 84, 20, 0.13);border:2px solid var(--brand-orange);box-shadow:0 6px 20px rgba(255, 84, 20, 0.22);}
+.pkg-card.pkg-disabled{opacity:0.62;}
+.pkg-left{display:flex;flex-direction:column;gap:2px;padding-right:10px;}
+.pkg-title-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.pkg-name{font-size:15px;font-weight:800;color:var(--text-pure);}
+.pkg-tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:0.3px;}
+.tag-orange{background:rgba(255, 84, 20, 0.22);color:#ff8c61;border:1px solid rgba(255, 84, 20, 0.45);}
+.tag-green{background:rgba(0, 230, 118, 0.16);color:#4ade80;border:1px solid rgba(0, 230, 118, 0.4);}
+.tag-purple{background:rgba(168, 85, 247, 0.22);color:#d8b4fe;border:1px solid rgba(168, 85, 247, 0.45);}
+.tag-cyan{background:rgba(6, 182, 212, 0.18);color:#67e8f9;border:1px solid rgba(6, 182, 212, 0.4);}
+.tag-amber{background:rgba(245, 158, 11, 0.2);color:#fcd34d;border:1px solid rgba(245, 158, 11, 0.45);}
+.pkg-desc{font-size:12px;color:var(--text-mid);}
+.pkg-right{text-align:right;flex-shrink:0;}
+.pkg-price{display:block;font-size:18px;font-weight:900;color:var(--text-pure);}
+.pkg-card.active .pkg-price{color:#ff7a47;}
+.pkg-unit{font-size:11px;color:var(--text-muted);font-weight:700;}
+.network-pills{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.net-pill{height:46px;border-radius:13px;border:1.5px solid var(--border-glass);background:rgba(255, 255, 255, 0.03);color:var(--text-mid);font-size:13.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all 0.15s;}
+.net-pill.active-mpesa{background:var(--mpesa-bg);border:2px solid var(--mpesa-green);color:var(--text-pure);box-shadow:0 4px 15px rgba(0, 230, 118, 0.18);}
+.net-pill.active-airtel{background:var(--airtel-bg);border:2px solid var(--airtel-red);color:var(--text-pure);box-shadow:0 4px 15px rgba(255, 59, 92, 0.22);}
+.net-dot{width:10px;height:10px;border-radius:50%;}
+.dot-mpesa{background:var(--mpesa-green);}
+.dot-airtel{background:var(--airtel-red);}
+.input-group{margin-bottom:14px;}
+.input-wrapper{position:relative;display:flex;align-items:center;}
+.input-icon{position:absolute;left:14px;font-size:18px;pointer-events:none;}
+.input-box{width:100%;height:54px;background:rgba(255, 255, 255, 0.05);border:1.5px solid var(--border-strong);border-radius:14px;padding:0 14px 0 44px;color:var(--text-pure);font-size:17px;font-weight:700;letter-spacing:0.4px;outline:none;}
+.input-box:focus{border-color:var(--brand-orange);background:rgba(255, 255, 255, 0.08);}
+.input-box::placeholder{color:var(--text-muted);font-weight:500;font-size:15px;}
+.btn-cta{width:100%;height:56px;background:linear-gradient(135deg, #e03a00 0%, var(--brand-orange) 100%);color:#ffffff;border:none;border-radius:15px;font-size:16.5px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 10px 25px var(--brand-orange-glow);transition:transform 0.12s;}
+.btn-cta:active{transform:scale(0.985);}
+.reconnect-box{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.btn-secondary{height:46px;background:rgba(255, 255, 255, 0.05);border:1.5px solid var(--border-glass);border-radius:13px;color:var(--text-high);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn-secondary:hover{border-color:var(--brand-orange);background:rgba(255, 84, 20, 0.1);}
+.support-footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--border-glass);text-align:center;font-size:12px;color:var(--text-muted);}
+.support-callout{margin-top:6px;display:inline-flex;align-items:center;gap:8px;background:rgba(255, 255, 255, 0.04);padding:6px 14px;border-radius:999px;font-weight:700;}
+.support-callout a{color:var(--brand-orange-light);text-decoration:none;font-weight:800;}
+.toast-container{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99999;width:92%;max-width:410px;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-radius:14px;border:1.5px solid;font-size:13px;pointer-events:all;box-shadow:0 12px 30px rgba(0, 0, 0, 0.8);}
+.toast-error{background:#220c0c;border-color:#ef4444;color:#fecaca;}
+.toast-success{background:#092214;border-color:#00e676;color:#a7f3d0;}
+.toast-info{background:#21130a;border-color:#ff5414;color:#fed7aa;}
+.toast-title{font-weight:800;font-size:13.5px;margin-bottom:2px;}
+.toast-msg{font-size:12.5px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0, 0, 0, 0.84);display:none;align-items:center;justify-content:center;padding:16px;z-index:10000;}
+.modal-card{background:#141824;border:1.5px solid var(--border-strong);border-radius:24px;width:100%;max-width:410px;padding:22px 18px;text-align:center;box-shadow:0 25px 60px rgba(0, 0, 0, 0.95);}
+.spinner-ring{width:46px;height:46px;border:3.5px solid rgba(255, 84, 20, 0.22);border-top-color:var(--brand-orange);border-radius:50%;animation:spin 0.85s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}
+}
+.modal-title{font-size:19px;font-weight:900;color:var(--text-pure);margin-bottom:6px;}
+.modal-msg{font-size:13.5px;color:var(--text-mid);margin-bottom:14px;}
+.countdown-pill{display:inline-block;background:rgba(255, 84, 20, 0.16);border:1.5px solid rgba(255, 84, 20, 0.45);color:#ff7a47;font-size:21px;font-weight:900;padding:4px 18px;border-radius:12px;margin-bottom:12px;}
+.btn-resend{width:100%;height:44px;background:rgba(255, 255, 255, 0.07);border:1.5px solid var(--border-strong);color:var(--text-pure);border-radius:12px;font-size:13.5px;font-weight:800;cursor:pointer;margin-bottom:10px;display:none;align-items:center;justify-content:center;gap:6px;}
+.fallback-box{background:rgba(255, 255, 255, 0.03);border:1.5px solid var(--border-glass);border-radius:15px;padding:13px;margin-top:10px;text-align:left;}
+.fallback-box strong{font-size:13px;color:var(--text-pure);display:block;margin-bottom:3px;}
+.fallback-box p{font-size:12px;color:var(--text-mid);margin-bottom:8px;}
+.modal-close-btn{background:none;border:none;color:var(--text-muted);font-size:13px;font-weight:700;cursor:pointer;margin-top:12px;padding:6px 12px;}
+</style>
+</head>
+<body>
+<div class="toast-container" id="toast-container"></div>
+<div class="container">
+<!-- Brand Header -->
+<div class="brand-header">
+<div class="brand-pill-row">
+<span class="edition-badge">HOSTEL HIGH-SPEED WI-FI</span>
+<div class="network-badge">
+ <span class="pulse-dot"></span>
+ <span id="status-text">50 MBPS SAFARICOM 5G</span>
+</div>
+</div>
+<h1 class="hero-title">Makoyocart <span>CampusNet</span></h1>
+<p class="hero-subtext">Fast, non-stop Wi-Fi • Connect in <strong>3 simple taps</strong></p>
+</div>
+<!-- Welcome Back One-Tap Reconnect Banner (Auto-shown for returning students) -->
+<div class="welcome-banner" id="welcome-banner">
+<div class="welcome-title">
+<span id="wb-heading">✨ Welcome Back!</span>
+<span id="wb-badge" style="font-size:11px; color:#ffffff; background:rgba(0,0,0,0.35); padding:2px 8px; border-radius:999px;">Saved Device</span>
+</div>
+<p class="welcome-sub" id="wb-subtext">Tap below to reconnect your active Wi-Fi pass without paying again.</p>
+<button type="button" class="btn-one-tap-reconnect" id="btn-wb-reconnect" onclick="handleOneTapReconnect()">
+<span>⚡</span> <span id="wb-btn-label">Tap to Reconnect Now</span>
+</button>
+</div>
+<!-- Error Banner -->
+<div id="error-banner" class="alert-box">
+<span>⚠️</span>
+<span id="error-banner-text">Error message</span>
+</div>
+<!-- MikroTik RouterOS Error Variable Hook -->
+<div id="mt-error-container" style="display:none;">
+$(if error)
+<div id="mt-raw-error">$(error)</div>
+$(endif)
+</div>
+<!-- STEP 1: Pick Your Wi-Fi Pass -->
+<div class="step-header">
+<div class="step-badge-title">
+<span class="step-num">1</span>
+<span>Tap a Wi-Fi Pass</span>
+</div>
+<span class="step-hint">Continuous wall-clock time • No pausing</span>
+</div>
+<div class="packages-grid" id="packages-list">
+<!-- 1 Hour Flash Pass -->
+<div class="pkg-card" onclick="selectPackage('pkg_1h', 10, '1 Hour Flash Pass', true)" id="card-pkg_1h">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">1 Hour Flash Pass</span>
+ <span class="pkg-tag tag-amber">Quick Sprint ⚡</span>
+ </div>
+ <span class="pkg-desc">1 hour continuous high-speed Wi-Fi from activation</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 10</span>
+ <span class="pkg-unit">1 Hour</span>
+</div>
+</div>
+<!-- 3 Hours Study Sprint -->
+<div class="pkg-card" onclick="selectPackage('pkg_3h', 20, '3 Hours Study Sprint', true)" id="card-pkg_3h">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">3 Hours Study Sprint</span>
+ <span class="pkg-tag tag-cyan">Study Sprint 📚</span>
+ </div>
+ <span class="pkg-desc">3 hours continuous high-speed Wi-Fi from activation</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 20</span>
+ <span class="pkg-unit">3 Hours</span>
+</div>
+</div>
+<!-- 12 Hours Night Owl -->
+<div class="pkg-card" onclick="selectPackage('pkg_12h', 30, '12 Hours Night Owl', true)" id="card-pkg_12h">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">12 Hours Night Owl</span>
+ <span class="pkg-tag tag-purple" id="tag-pkg_12h">6PM–6AM Special 🌙</span>
+ </div>
+ <span class="pkg-desc" id="desc-pkg_12h">12 hours continuous overnight Wi-Fi (Sold 6PM – 6AM EAT)</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 30</span>
+ <span class="pkg-unit">12 Hours</span>
+</div>
+</div>
+<!-- 24 Hours Unlimited (Default Active) -->
+<div class="pkg-card active" onclick="selectPackage('pkg_24h', 50, '24 Hours Unlimited', true)" id="card-pkg_24h">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">24 Hours Unlimited</span>
+ <span class="pkg-tag tag-orange">Most Popular 🔥</span>
+ </div>
+ <span class="pkg-desc">24 hours continuous high-speed Wi-Fi from activation</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 50</span>
+ <span class="pkg-unit">24 Hours</span>
+</div>
+</div>
+<!-- 3 Days Mega Pack -->
+<div class="pkg-card" onclick="selectPackage('pkg_3d', 100, '3 Days Mega Pack', true)" id="card-pkg_3d">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">3 Days Mega Pack</span>
+ <span class="pkg-tag tag-cyan">Weekend Special ⚡</span>
+ </div>
+ <span class="pkg-desc">3 days (72h) continuous high-speed Wi-Fi from activation</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 100</span>
+ <span class="pkg-unit">3 Days</span>
+</div>
+</div>
+<!-- 7 Days Mega Pack -->
+<div class="pkg-card" onclick="selectPackage('pkg_7d', 180, '7 Days Mega Pack', true)" id="card-pkg_7d">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">7 Days Mega Pack</span>
+ <span class="pkg-tag tag-green">Best Value 🚀</span>
+ </div>
+ <span class="pkg-desc">7 days (168h) continuous high-speed Wi-Fi from activation</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 180</span>
+ <span class="pkg-unit">7 Days</span>
+</div>
+</div>
+<!-- 30 Days VIP Resident -->
+<div class="pkg-card" onclick="selectPackage('pkg_30d', 500, '30 Days VIP Resident', true)" id="card-pkg_30d">
+<div class="pkg-left">
+ <div class="pkg-title-row">
+ <span class="pkg-name">30 Days VIP Resident</span>
+ <span class="pkg-tag tag-amber">VIP Monthly 👑</span>
+ </div>
+ <span class="pkg-desc">30 days full month continuous high-speed Wi-Fi from activation</span>
+</div>
+<div class="pkg-right">
+ <span class="pkg-price">KSh 500</span>
+ <span class="pkg-unit">30 Days</span>
+</div>
+</div>
+</div>
+<!-- STEP 2 & 3: Choose Network, Enter Phone & Pay -->
+<form id="payment-form" onsubmit="handlePaymentSubmit(event)">
+<div class="step-header">
+<div class="step-badge-title">
+ <span class="step-num">2</span>
+ <span>Select Network & Phone Number</span>
+</div>
+<span class="step-hint" id="detected-net-label">M-Pesa Selected</span>
+</div>
+<!-- M-Pesa / Airtel Money 1-Tap Switcher Pills -->
+<div class="network-pills">
+<button type="button" id="pill-mpesa" class="net-pill active-mpesa" onclick="setProviderManual('mpesa')">
+ <span class="net-dot dot-mpesa"></span>
+ <span>M-Pesa</span>
+</button>
+<button type="button" id="pill-airtel" class="net-pill" onclick="setProviderManual('atl')">
+ <span class="net-dot dot-airtel"></span>
+ <span>Airtel Money</span>
+</button>
+</div>
+<div class="input-group">
+<div class="input-wrapper">
+ <span class="input-icon">📱</span>
+ <input
+ type="tel"
+ id="phone-input"
+ class="input-box"
+ placeholder="07XXXXXXXX or 01XXXXXXXX"
+ inputmode="numeric"
+ required
+ autocomplete="tel"
+ oninput="handlePhoneTyping(this.value)"
+ >
+</div>
+</div>
+<div class="step-header" style="margin-top:8px;">
+<div class="step-badge-title">
+ <span class="step-num">3</span>
+ <span>Tap Pay & Enter PIN on Phone</span>
+</div>
+</div>
+<button type="submit" id="btn-pay" class="btn-cta">
+<span>⚡ Pay KSh <span id="btn-amount-display">50</span> via <span id="btn-net-display">M-Pesa</span></span>
+</button>
+</form>
+<!-- Prominent Reconnect & Code Actions -->
+<div class="reconnect-box">
+<button type="button" class="btn-secondary" onclick="openRestoreModal()">
+<span>🔄</span> Already Paid? Reconnect
+</button>
+<button type="button" class="btn-secondary" onclick="openCodeVerifyModal()">
+<span>🎟️</span> Use SMS Receipt / Code
+</button>
+</div>
+<!-- Verified Support Footer -->
+<div class="support-footer">
+<strong>Makoyocart Ventures Wifi</strong> • Reg: BN-WLSP9KP9 • Kisii
+<div>
+<div class="support-callout">
+ <span>📞 Help:</span>
+ <a href="tel:0794877125">0794877125</a>
+ <span>•</span>
+ <a href="https://wa.me/254794877125?text=Hello%20Makoyocart%20WiFi%20Support,%20I%20need%20help%20connecting" target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>
+</div>
+</div>
+</div>
+</div>
+<!-- MikroTik Native Login Form (Hidden Auto-Submitter) -->
+<form name="sendin" action="$(link-login-only)" method="post" style="display:none;">
+<input type="hidden" name="username" id="mk-user" value="$(username)" />
+<input type="hidden" name="password" id="mk-pass" />
+<input type="hidden" name="dst" value="$(link-orig)" />
+<input type="hidden" name="popup" value="true" />
+</form>
+<!-- Modal: STK Push Waiting + Resend + Receipt Fallback -->
+<div class="modal-overlay" id="stk-modal">
+<div class="modal-card">
+<div class="spinner-ring" id="modal-spinner"></div>
+<h3 class="modal-title" id="modal-heading">Check Your Phone Screen</h3>
+<p class="modal-msg" id="modal-subtext">We sent a PIN prompt to your phone. Unlock your screen and enter your PIN to connect.</p>
+<div class="countdown-pill" id="timer-display">60s</div>
+<button type="button" class="btn-resend" id="btn-resend-stk" onclick="resendStkPrompt()">
+<span>🔄</span> Didn't see the popup? Resend PIN Prompt
+</button>
+<div class="fallback-box" id="modal-fallback">
+<strong>Already entered PIN or got SMS receipt?</strong>
+<p>Paste your M-Pesa / Airtel SMS code (or voucher code) below to connect immediately:</p>
+<input type="tel" id="manual-phone-input" class="input-box" placeholder="Phone used (07XXXXXXXX)" style="height:42px; margin-bottom:7px; font-size:14px; padding-left:14px;">
+<input type="text" id="manual-code-input" class="input-box" placeholder="SMS Code e.g. RKT8492KL" style="height:42px; margin-bottom:8px; text-transform:uppercase; font-size:14px; padding-left:14px;">
+<button type="button" class="btn-cta" style="height:44px; font-size:14px;" onclick="verifyManualCode()">Verify & Connect Now</button>
+</div>
+<button type="button" class="modal-close-btn" onclick="closeModal()">Close Window</button>
+</div>
+</div>
+<!-- Modal: 1-Step Phone Session Restore -->
+<div class="modal-overlay" id="restore-modal">
+<div class="modal-card">
+<h3 class="modal-title">🔄 Reconnect Active Pass</h3>
+<p class="modal-msg">Got signed out or switched devices? Enter the phone number you paid with to reconnect immediately for free:</p>
+<input type="tel" id="restore-phone" class="input-box" placeholder="07XXXXXXXX or 01XXXXXXXX" inputmode="numeric" style="margin-bottom:12px; padding-left:14px;">
+<button type="button" class="btn-cta" style="height:48px; font-size:15px;" onclick="submitSessionRestore()">Reconnect My Device Now</button>
+<button type="button" class="modal-close-btn" onclick="closeRestoreModal()">Close</button>
+</div>
+</div>
+<script>
+const BACKEND_BASE_URL = "https://imageke-api.onrender.com/api/campusnet";
+const CLIENT_MAC = "$(mac)" || "00:00:00:00:00:00";
+const CLIENT_IP = "$(ip)" || "10.10.0.10";
+let selectedPackageId = "pkg_24h";
+let selectedAmount = 50;
+let selectedProvider = "mpesa"; // 'mpesa' or 'atl'
+let manualProviderOverride = false;
+let pollInterval = null;
+let countdownInterval = null;
+let secondsLeft = 60;
+let cachedActiveSession = null;
+(function initRouterErrors() {
+var rawErr = document.getElementById('mt-raw-error');
+if (rawErr) {
+var msg = rawErr.innerText.trim();
+if (msg && msg.indexOf('$(') === -1) {
+ var lower = msg.toLowerCase();
+ var friendly = msg;
+ if (lower.includes('simultaneous session limit') || lower.includes('no more sessions')) {
+ friendly = "Your pass is active on another device or your phone changed its Wi-Fi MAC address. Tap 'Already Paid? Reconnect' below to switch to this phone.";
+ } else if (lower.includes('uptime limit') || lower.includes('session timeout')) {
+ friendly = "Your previous Wi-Fi pass has finished. Please select a new pass below to continue browsing.";
+ } else if (lower.includes('invalid username or password')) {
+ friendly = "Session expired or reset. If you still have active time, tap 'Already Paid? Reconnect' below.";
+ }
+ showError(friendly);
+}
+}
+})();
+function isNightOwlWindowOpenLocal() {
+var now = new Date();
+var eatMs = now.getTime() + (3 * 60 * 60 * 1000);
+var eatHour = new Date(eatMs).getUTCHours();
+return (eatHour >= 18 || eatHour < 6);
+}
+function updateNightOwlCardBadge() {
+var open = isNightOwlWindowOpenLocal();
+var card = document.getElementById('card-pkg_12h');
+var tag = document.getElementById('tag-pkg_12h');
+var desc = document.getElementById('desc-pkg_12h');
+if (!card) return;
+if (!open) {
+card.classList.add('pkg-disabled');
+if (tag) tag.innerText = 'Opens at 6:00 PM 🌙';
+if (desc) desc.innerText = 'Available every evening from 6:00 PM to 6:00 AM EAT';
+} else {
+card.classList.remove('pkg-disabled');
+if (tag) tag.innerText = 'Available Now 🌙';
+if (desc) desc.innerText = '12 hours continuous overnight Wi-Fi from activation';
+}
+}
+function detectProviderFromPhone(rawPhone) {
+var digits = String(rawPhone || '').replace(/\D/g, '');
+var local = digits;
+if (digits.startsWith('254') && digits.length >= 6) {
+local = '0' + digits.slice(3);
+} else if ((digits.startsWith('7') || digits.startsWith('1')) && digits.length >= 3) {
+local = '0' + digits;
+}
+if (local.length >= 4) {
+var p3 = parseInt(local.slice(1, 4), 10);
+var isAirtel =
+ (p3 >= 730 && p3 <= 739) ||
+ (p3 >= 750 && p3 <= 756) ||
+ p3 === 762 ||
+ (p3 >= 780 && p3 <= 789) ||
+ (p3 >= 100 && p3 <= 109);
+return isAirtel ? 'atl' : 'mpesa';
+}
+return selectedProvider;
+}
+function updateProviderUI(provider) {
+selectedProvider = provider === 'atl' ? 'atl' : 'mpesa';
+var mpesaPill = document.getElementById('pill-mpesa');
+var airtelPill = document.getElementById('pill-airtel');
+var label = document.getElementById('detected-net-label');
+var btnNet = document.getElementById('btn-net-display');
+if (selectedProvider === 'atl') {
+mpesaPill.className = 'net-pill';
+airtelPill.className = 'net-pill active-airtel';
+if (label) label.innerText = 'Airtel Money Selected';
+if (btnNet) btnNet.innerText = 'Airtel Money';
+} else {
+mpesaPill.className = 'net-pill active-mpesa';
+airtelPill.className = 'net-pill';
+if (label) label.innerText = 'M-Pesa Selected';
+if (btnNet) btnNet.innerText = 'M-Pesa';
+}
+}
+function setProviderManual(provider) {
+manualProviderOverride = true;
+updateProviderUI(provider);
+}
+function handlePhoneTyping(val) {
+if (!manualProviderOverride || val.replace(/\D/g, '').length <= 4) {
+var detected = detectProviderFromPhone(val);
+updateProviderUI(detected);
+}
+}
+function selectPackage(pkgId, amount, name, availableNow) {
+if (pkgId === 'pkg_12h' && availableNow !== false && !isNightOwlWindowOpenLocal()) {
+showToast('info', 'Night Owl (6PM – 6AM)', 'Night Owl KSh 30 pass opens at 6:00 PM EAT. Pick 1 Hour (KSh 10), 3 Hours (KSh 20), or 24 Hours (KSh 50) right now.');
+return;
+}
+selectedPackageId = pkgId;
+selectedAmount = amount;
+document.querySelectorAll('.pkg-card').forEach(function(c) { c.classList.remove('active'); });
+var activeCard = document.getElementById('card-' + pkgId);
+if (activeCard) activeCard.classList.add('active');
+document.getElementById('btn-amount-display').innerText = selectedAmount;
+}
+async function initWelcomeBackAndPackages() {
+updateNightOwlCardBadge();
+var savedPhone = '';
+try {
+savedPhone = localStorage.getItem('cn_saved_phone') || '';
+} catch (e) {}
+if (savedPhone) {
+var phoneInput = document.getElementById('phone-input');
+var restoreInput = document.getElementById('restore-phone');
+var manualPhone = document.getElementById('manual-phone-input');
+if (phoneInput && !phoneInput.value) phoneInput.value = savedPhone;
+if (restoreInput && !restoreInput.value) restoreInput.value = savedPhone;
+if (manualPhone && !manualPhone.value) manualPhone.value = savedPhone;
+updateProviderUI(detectProviderFromPhone(savedPhone));
+var wb = document.getElementById('welcome-banner');
+var wbLabel = document.getElementById('wb-btn-label');
+if (wb && wbLabel) {
+ wb.style.display = 'block';
+ wbLabel.innerText = 'Reconnect My Pass (' + savedPhone + ')';
+}
+}
+try {
+var query = savedPhone
+ ? 'phone=' + encodeURIComponent(savedPhone)
+ : (CLIENT_MAC && CLIENT_MAC.indexOf('$(') === -1 ? 'mac=' + encodeURIComponent(CLIENT_MAC) : '');
+if (query) {
+ var sRes = await fetch(BACKEND_BASE_URL + '/session/status?' + query);
+ if (sRes.ok) {
+ var sData = await sRes.json();
+ if (sData.active && sData.username && sData.password) {
+ cachedActiveSession = sData;
+ var wbBanner = document.getElementById('welcome-banner');
+ document.getElementById('wb-heading').innerText = '✨ Active ' + (sData.package_name || 'Wi-Fi Pass') + ' Ready!';
+ document.getElementById('wb-badge').innerText = sData.time_left || 'Active';
+ document.getElementById('wb-subtext').innerText = 'Your pass is still valid! Tap below to connect immediately in 1 second:';
+ document.getElementById('wb-btn-label').innerText = 'Connect Now (' + (sData.time_left || 'Active') + ')';
+ wbBanner.style.display = 'block';
+ }
+ }
+}
+} catch (e) {}
+try {
+var pRes = await fetch(BACKEND_BASE_URL + '/packages');
+if (pRes.ok) {
+ var pData = await pRes.json();
+ if (Array.isArray(pData.packages) && pData.packages.length > 0) {
+ renderServerPackages(pData.packages);
+ }
+}
+} catch (e) {}
+}
+function renderServerPackages(pkgs) {
+var container = document.getElementById('packages-list');
+if (!container) return;
+container.innerHTML = '';
+pkgs.forEach(function(p) {
+var isSelected = p.id === selectedPackageId;
+var isNightClosed = p.available_now === false;
+var card = document.createElement('div');
+card.className = 'pkg-card' + (isSelected ? ' active' : '') + (isNightClosed ? ' pkg-disabled' : '');
+card.id = 'card-' + p.id;
+card.onclick = function() {
+ if (isNightClosed) {
+ showToast('info', p.name, p.sale_window_reason || 'Available between 6:00 PM and 6:00 AM EAT.');
+ return;
+ }
+ selectPackage(p.id, p.amount, p.name, true);
+};
+var tagClass = 'tag-orange';
+if (p.id === 'pkg_1h' || p.id === 'pkg_30d') tagClass = 'tag-amber';
+if (p.id === 'pkg_3h' || p.id === 'pkg_3d') tagClass = 'tag-cyan';
+if (p.id === 'pkg_12h') tagClass = 'tag-purple';
+if (p.id === 'pkg_7d') tagClass = 'tag-green';
+var tagText = isNightClosed ? 'Opens 6:00 PM 🌙' : (p.tag || 'Pass');
+card.innerHTML =
+ '<div class="pkg-left">' +
+ '<div class="pkg-title-row">' +
+ '<span class="pkg-name">' + p.name + '</span>' +
+ '<span class="pkg-tag ' + tagClass + '">' + tagText + '</span>' +
+ '</div>' +
+ '<span class="pkg-desc">' + p.description + '</span>' +
+ '</div>' +
+ '<div class="pkg-right">' +
+ '<span class="pkg-price">KSh ' + p.amount + '</span>' +
+ '<span class="pkg-unit">' + (p.uptime_limit || '') + '</span>' +
+ '</div>';
+container.appendChild(card);
+if (isSelected) {
+ selectedAmount = p.amount;
+ document.getElementById('btn-amount-display').innerText = selectedAmount;
+}
+});
+}
+async function handleOneTapReconnect() {
+if (cachedActiveSession && cachedActiveSession.username && cachedActiveSession.password) {
+openStkModal(document.getElementById('phone-input').value || 'Saved Device');
+handlePaymentSuccess(cachedActiveSession.username, cachedActiveSession.password);
+return;
+}
+var savedPhone = '';
+try { savedPhone = localStorage.getItem('cn_saved_phone') || ''; } catch (e) {}
+var phoneToRestore = savedPhone || document.getElementById('phone-input').value.trim();
+if (!phoneToRestore) {
+openRestoreModal();
+return;
+}
+document.getElementById('restore-phone').value = phoneToRestore;
+await submitSessionRestore();
+}
+async function handlePaymentSubmit(e) {
+if (e) e.preventDefault();
+hideError();
+await triggerStkRequest(false);
+}
+async function resendStkPrompt() {
+await triggerStkRequest(true);
+}
+async function triggerStkRequest(isResend) {
+var phone = document.getElementById('phone-input').value.trim();
+if (!phone || phone.replace(/\D/g, '').length < 9) {
+showError("Please enter your 10-digit Safaricom or Airtel phone number (e.g. 0712345678).");
+return;
+}
+try {
+localStorage.setItem('cn_saved_phone', phone);
+} catch (e) {}
+var manualPhoneEl = document.getElementById('manual-phone-input');
+if (manualPhoneEl) manualPhoneEl.value = phone;
+var netLabel = selectedProvider === 'atl' ? 'Airtel Money' : 'M-Pesa';
+openStkModal(phone, netLabel);
+document.getElementById('modal-heading').innerText = isResend ? ("Resending " + netLabel + " Prompt...") : ("Sending " + netLabel + " Prompt...");
+document.getElementById('modal-subtext').innerText = "Contacting " + netLabel + " for " + phone + ". Please keep your phone screen unlocked.";
+try {
+var controller = new AbortController();
+var timeoutId = setTimeout(function() { controller.abort(); }, 20000);
+var response = await fetch(BACKEND_BASE_URL + '/pay/stk', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ signal: controller.signal,
+ body: JSON.stringify({
+ phone: phone,
+ mac_address: CLIENT_MAC,
+ ip_address: CLIENT_IP,
+ package_id: selectedPackageId,
+ provider: selectedProvider,
+ resend: Boolean(isResend)
+ })
+});
+clearTimeout(timeoutId);
+var result = await response.json();
+if (response.ok && result.reference) {
+ var pLabel = result.provider_label || netLabel;
+ document.getElementById('modal-heading').innerText = "Enter Your " + pLabel + " PIN";
+ document.getElementById('modal-subtext').innerText = result.message || ("We sent a " + pLabel + " prompt to " + phone + ". Enter your PIN on your phone to connect.");
+ startStatusPolling(result.reference);
+} else {
+ showModalError(result.error || ("Could not trigger " + netLabel + " prompt. Unlock your phone and tap Resend Prompt below."));
+}
+} catch (err) {
+document.getElementById('modal-heading').innerText = "Check Your Phone Screen";
+document.getElementById('modal-subtext').innerText = "If the PIN prompt appeared on your phone, enter your PIN. Otherwise tap Resend Prompt or enter your SMS receipt code below.";
+document.getElementById('btn-resend-stk').style.display = 'flex';
+}
+}
+function startStatusPolling(reference) {
+if (pollInterval) clearInterval(pollInterval);
+if (countdownInterval) clearInterval(countdownInterval);
+secondsLeft = 60;
+updateTimerDisplay();
+var extraPolls = 0;
+countdownInterval = setInterval(function() {
+secondsLeft--;
+updateTimerDisplay();
+if (secondsLeft <= 45) {
+ document.getElementById('btn-resend-stk').style.display = 'flex';
+}
+if (secondsLeft <= 0) {
+ clearInterval(countdownInterval);
+ document.getElementById('modal-heading').innerText = "Waiting for Confirmation...";
+ document.getElementById('modal-subtext').innerText = "If you already entered your PIN, paste your SMS confirmation code below or wait a few seconds.";
+}
+}, 1000);
+pollInterval = setInterval(async function() {
+try {
+ if (secondsLeft <= 0) {
+ extraPolls++;
+ if (extraPolls > 20) {
+ clearInterval(pollInterval);
+ return;
+ }
+ }
+ var res = await fetch(BACKEND_BASE_URL + '/pay/status/' + encodeURIComponent(reference));
+ var data = await res.json();
+ if (data.status === 'completed' || data.status === 'success') {
+ clearInterval(pollInterval);
+ clearInterval(countdownInterval);
+ handlePaymentSuccess(data.username || data.voucher_code, data.password || data.voucher_password);
+ } else if (data.status === 'failed') {
+ clearInterval(pollInterval);
+ clearInterval(countdownInterval);
+ showModalError(data.error || "Payment prompt was cancelled or failed. Tap Resend PIN Prompt to try again.");
+ }
+} catch (e) {}
+}, 2500);
+}
+function handlePaymentSuccess(username, password) {
+try {
+localStorage.setItem('cn_last_voucher', JSON.stringify({ u: username, p: password, t: Date.now() }));
+} catch (e) {}
+document.getElementById('modal-spinner').style.display = 'none';
+document.getElementById('modal-heading').innerText = "✓ Connected! Enjoy 50 Mbps Wi-Fi";
+document.getElementById('modal-heading').style.color = "#00e676";
+document.getElementById('modal-subtext').innerText = "Signing your device into the hostel network right now...";
+document.getElementById('timer-display').style.display = 'none';
+document.getElementById('btn-resend-stk').style.display = 'none';
+document.getElementById('modal-fallback').style.display = 'none';
+document.getElementById('mk-user').value = username || CLIENT_MAC;
+document.getElementById('mk-pass').value = password || CLIENT_MAC;
+showToast('success', 'Wi-Fi Activated!', 'Connecting your device now...');
+setTimeout(function() {
+document.sendin.submit();
+}, 700);
+}
+async function submitSessionRestore() {
+var phone = document.getElementById('restore-phone').value.trim();
+if (!phone || phone.replace(/\D/g, '').length < 9) {
+showToast('error', 'Phone Required', 'Enter the 10-digit phone number you used to pay.');
+return;
+}
+try {
+localStorage.setItem('cn_saved_phone', phone);
+} catch (e) {}
+try {
+var res = await fetch(BACKEND_BASE_URL + '/session/restore', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ phone: phone, new_mac: CLIENT_MAC })
+});
+var data = await res.json();
+if (res.ok && data.success) {
+ closeRestoreModal();
+ openStkModal(phone, 'Reconnect');
+ handlePaymentSuccess(data.username, data.password);
+} else {
+ showToast('error', 'No Active Pass Found', data.error || 'No active pass found for this phone number. Please pick a pass to connect.');
+}
+} catch (e) {
+showToast('error', 'Connection Error', 'Could not reach server. Please try again.');
+}
+}
+async function verifyManualCode() {
+var code = document.getElementById('manual-code-input').value.trim();
+var phoneVal = (
+(document.getElementById('manual-phone-input') && document.getElementById('manual-phone-input').value.trim()) ||
+(document.getElementById('phone-input') && document.getElementById('phone-input').value.trim()) ||
+''
+);
+if (!phoneVal || phoneVal.replace(/\D/g, '').length < 9) {
+showToast('error', 'Phone Number Required', 'Please enter the phone number that paid for this code.');
+return;
+}
+if (!code || code.length < 6) {
+showToast('error', 'Code Required', 'Please enter your M-Pesa/Airtel SMS confirmation code or voucher code.');
+return;
+}
+try {
+localStorage.setItem('cn_saved_phone', phoneVal);
+} catch (e) {}
+try {
+var res = await fetch(BACKEND_BASE_URL + '/pay/verify-code', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({
+ code: code,
+ phone: phoneVal,
+ mac_address: CLIENT_MAC,
+ package_id: selectedPackageId
+ })
+});
+var data = await res.json();
+if (res.ok && data.success) {
+ showToast('success', 'Verified!', 'Connecting your device now...');
+ handlePaymentSuccess(data.username, data.password);
+} else {
+ showToast('error', 'Verification Failed', data.error || 'Could not verify that code. Check your phone number and SMS code.');
+}
+} catch (e) {
+showToast('error', 'Network Error', 'Could not reach verification server. Please try again.');
+}
+}
+function openStkModal(phone, netLabel) {
+var label = netLabel || (selectedProvider === 'atl' ? 'Airtel Money' : 'M-Pesa');
+document.getElementById('stk-modal').style.display = 'flex';
+document.getElementById('modal-heading').innerText = "Check Your Phone Screen";
+document.getElementById('modal-heading').style.color = "#ffffff";
+document.getElementById('modal-subtext').innerText = "We sent a " + label + " PIN prompt to " + phone + ". Enter your PIN to connect.";
+document.getElementById('modal-spinner').style.display = 'block';
+document.getElementById('timer-display').style.display = 'inline-block';
+document.getElementById('btn-resend-stk').style.display = 'none';
+document.getElementById('modal-fallback').style.display = 'block';
+}
+function closeModal() {
+if (pollInterval) clearInterval(pollInterval);
+if (countdownInterval) clearInterval(countdownInterval);
+document.getElementById('stk-modal').style.display = 'none';
+}
+function showModalError(msg) {
+document.getElementById('modal-spinner').style.display = 'none';
+document.getElementById('modal-heading').innerText = "Prompt Not Completed";
+document.getElementById('modal-heading').style.color = "#fca5a5";
+document.getElementById('modal-subtext').innerText = msg;
+document.getElementById('btn-resend-stk').style.display = 'flex';
+document.getElementById('modal-fallback').style.display = 'block';
+}
+function openRestoreModal() {
+var mainPhone = document.getElementById('phone-input').value.trim();
+var restorePhone = document.getElementById('restore-phone');
+if (mainPhone && restorePhone && !restorePhone.value) restorePhone.value = mainPhone;
+document.getElementById('restore-modal').style.display = 'flex';
+}
+function closeRestoreModal() {
+document.getElementById('restore-modal').style.display = 'none';
+}
+function openCodeVerifyModal() {
+var mainPhone = document.getElementById('phone-input').value.trim();
+var manualPhone = document.getElementById('manual-phone-input');
+if (mainPhone && manualPhone) manualPhone.value = mainPhone;
+openStkModal(mainPhone || "your phone", "");
+document.getElementById('modal-spinner').style.display = 'none';
+document.getElementById('timer-display').style.display = 'none';
+document.getElementById('modal-heading').innerText = "Use SMS Receipt or Voucher Code";
+document.getElementById('modal-subtext').innerText = "Enter the phone number that paid and your M-Pesa/Airtel SMS confirmation code below:";
+}
+function showToast(type, title, msg) {
+var c = document.getElementById('toast-container');
+var t = document.createElement('div');
+t.className = 'toast toast-' + type;
+t.innerHTML = '<div><div class="toast-title">' + title + '</div><div class="toast-msg">' + msg + '</div></div>';
+c.appendChild(t);
+setTimeout(function() { t.remove(); }, 4500);
+}
+function showError(msg) {
+var b = document.getElementById('error-banner');
+var txt = document.getElementById('error-banner-text');
+if (txt) txt.innerText = msg;
+b.style.display = 'flex';
+}
+function hideError() {
+document.getElementById('error-banner').style.display = 'none';
+}
+function updateTimerDisplay() {
+var d = document.getElementById('timer-display');
+if (d) d.innerText = Math.max(0, secondsLeft) + 's';
+}
+window.onload = initWelcomeBackAndPackages;
+</script>
+</body>
+</html>

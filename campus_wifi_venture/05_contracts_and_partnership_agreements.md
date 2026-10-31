@@ -75,5 +75,30 @@ The Custodian agrees to host the network equipment (router, modem, power supply)
 * All installed equipment remains the exclusive property of Duncan Makoyo and may be inspected, upgraded, or removed by Duncan Makoyo at any time with 24 hours' notice.
 
 ---
-**Custodian Signature:** ____________________ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **Date:** ____________  
-**Owner Signature:** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Duncan Makoyo &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **Date:** ____________  
+
+## 3. Agreement C: Infrastructure Partner & Revenue-Share Joint Venture Agreement
+
+*(Specifically executed between **Duncan Makoyo** and **Sam Chonjo** for the 60/40 Net Profit Sharing Model with KRA Tax Withholding and Upstream ISP Cost Recovery).*
+
+---
+
+### INFRASTRUCTURE HOSTING & REVENUE-SHARE JOINT VENTURE AGREEMENT
+
+**Between:**
+1. **Duncan Makoyo** (Makoyocart Ventures, Reg: `BN-WLSP9KP9`) — Technology Operator & Sole Owner
+2. **Sam Chonjo** — Infrastructure & Capital Partner
+
+#### Summary of Binding Terms:
+1. **Asset Segregation**: Duncan Makoyo owns 100% of MikroTik router, software, captive portal, backend API, database, merchant accounts, and IP. Sam Chonjo owns 100% of the 5G modem gateway.
+2. **The 5-Tier Waterfall**:
+   * Tier 1: Gateway fees (~1.5% Paystack/M-Pesa)
+   * Tier 2: **3.0% Statutory KRA Tax Reserve** (withheld at source for Duncan's KRA compliance)
+   * Tier 3: **100% Line Cost Recovery** (First KES 3,000/= remitted directly to Sam Chonjo)
+   * Tier 4: **60% Net Distributable Profit** to Duncan Makoyo
+   * Tier 5: **40% Net Distributable Profit** to Sam Chonjo
+3. **Shortfall Protection**: If revenue < KES 3,000, all net revenue goes to the ISP line; neither draws profit.
+4. **Indemnity**: Sam Chonjo explicitly indemnifies Duncan Makoyo against tax liabilities from Sam's share.
+5. **Non-Circumvention**: 6-month non-compete within 100m; Sam cannot duplicate or share router scripts or portal code.
+6. **Exit**: 14 days written notice; Duncan retrieves MikroTik; Sam retains 5G modem.
+
+*(Full PDF version compiled and saved at [`Makoyocart_Infrastructure_Joint_Venture_Agreement.pdf`](file:///c:/Users/USER/Desktop/Duncan%20Makoyo/Y3/Makoyocart_Infrastructure_Joint_Venture_Agreement.pdf)).*

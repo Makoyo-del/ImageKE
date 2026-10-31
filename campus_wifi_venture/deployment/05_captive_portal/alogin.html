@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Connected — Makoyocart CampusNet</title>
+    <meta http-equiv="refresh" content="2; url=$(link-orig)">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #090a0e;
+            --bg-card: rgba(17, 19, 26, 0.94);
+            --brand-orange: #ff5414;
+            --brand-orange-hover: #ff6f38;
+            --brand-orange-glow: rgba(255, 84, 20, 0.45);
+            --brand-ember: #e03a00;
+            --profit-green: #00e676;
+            --profit-green-bg: rgba(0, 230, 118, 0.14);
+            --text-pure: #ffffff;
+            --text-high: #f1f5f9;
+            --text-mid: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-glass: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-canvas);
+            background-image: 
+                radial-gradient(circle at 80% 20%, rgba(255, 84, 20, 0.22) 0%, transparent 60%),
+                radial-gradient(circle at 20% 80%, rgba(0, 230, 118, 0.16) 0%, transparent 50%);
+            color: var(--text-high);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-card);
+            backdrop-filter: blur(28px);
+            border: 1.5px solid var(--border-glass);
+            border-radius: 28px;
+            padding: 38px 26px;
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.9);
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 25%;
+            right: 25%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--profit-green), transparent);
+        }
+
+        .success-icon-box {
+            width: 72px;
+            height: 72px;
+            background: var(--profit-green-bg);
+            border: 2px solid var(--profit-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 34px;
+            color: var(--profit-green);
+            box-shadow: 0 0 25px rgba(0, 230, 118, 0.4);
+            animation: bounceIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes bounceIn {
+            from { transform: scale(0.6); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            color: var(--text-pure);
+        }
+
+        .sub {
+            font-size: 14px;
+            color: var(--text-mid);
+            line-height: 1.55;
+            margin-bottom: 26px;
+        }
+
+        .sub strong {
+            color: var(--text-pure);
+        }
+
+        .btn-browse {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            height: 52px;
+            background: linear-gradient(135deg, var(--brand-ember) 0%, var(--brand-orange) 100%);
+            border: none;
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 15.5px;
+            font-weight: 800;
+            text-decoration: none;
+            box-shadow: 0 10px 25px -4px var(--brand-orange-glow);
+            transition: all 0.2s;
+        }
+
+        .btn-browse:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px -4px rgba(255, 84, 20, 0.6);
+        }
+
+        .support-line {
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .support-line a {
+            color: var(--brand-orange);
+            text-decoration: none;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="success-icon-box">✓</div>
+    <h1 class="title">Access Granted!</h1>
+    <p class="sub">You are now connected to <strong>Makoyocart CampusNet</strong> at full 50 Mbps speed. Redirecting you to the web...</p>
+
+    <a id="redirect-link" href="$(link-orig)" class="btn-browse">
+        ⚡ Start Browsing Now
+    </a>
+
+    <div class="support-line">
+        Support Helpline: <a href="tel:0794877125">0794877125</a> • Kisii
+    </div>
+</div>
+
+<script>
+    (function() {
+        var btn = document.getElementById('redirect-link');
+        var href = btn.getAttribute('href');
+        if (!href || href.indexOf('$(') !== -1) {
+            btn.setAttribute('href', 'https://www.google.com');
+        }
+    })();
+</script>
+
+</body>
+</html>

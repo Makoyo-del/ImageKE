@@ -82,14 +82,15 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const isLocalCaptive = /^https?:\/\/(10\.10\.\d+\.\d+|192\.168\.\d+\.\d+|campusnet\.local)(:\d+)?$/.test(origin || '');
+      if (!origin || allowedOrigins.includes(origin) || isLocalCaptive) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin ${origin} not allowed`));
       }
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Router-Token'],
   })
 );
 
