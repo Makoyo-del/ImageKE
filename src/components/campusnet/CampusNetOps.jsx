@@ -121,10 +121,12 @@ export function CampusNetOps({ onNavigate }) {
   useEffect(() => {
     fetchOverview();
     fetchPromos();
-    // Auto-poll live database every 30 seconds
+    // Egress Optimized: Auto-poll only when tab is visible and throttled to 60s
     const poll = setInterval(() => {
-      fetchOverview(true);
-    }, 30000);
+      if (!document.hidden) {
+        fetchOverview(true);
+      }
+    }, 60000);
     return () => clearInterval(poll);
   }, []);
 

@@ -1323,30 +1323,47 @@ const authenticateAdmin = async (req, res, next) => {
   return res.status(401).json({ error: 'Unauthorized admin access' });
 };
 
+// In-memory cache for admin overview to prevent Supabase egress exhaustion
+let cachedOverview = null;
+let lastOverviewFetch = 0;
+const OVERVIEW_CACHE_TTL_MS = 60000; // 60 seconds TTL
+
 // ─── GET /api/campusnet/admin/overview ─────────────────────────────────────────
 // Master Real-Time Console Endpoint:
 // Provides active sessions, voucher pool stock, today's revenue, and full loyalty stars leaderboard
 router.get('/admin/overview', authenticateAdmin, async (req, res) => {
   try {
+    const nowTime = Date.now();
+    const isForce = req.query.force === 'true';
+
+    // Serve from Node memory cache if within TTL (Saves thousands of Supabase egress calls)
+    if (!isForce && cachedOverview && (nowTime - lastOverviewFetch < OVERVIEW_CACHE_TTL_MS)) {
+      return res.json(cachedOverview);
+    }
+
     const now = new Date();
     const nowIso = now.toISOString();
 
-    // 1. Fetch all live sessions from campusnet_sessions
+    // 1. Fetch only active or recent sessions (not infinite history)
     const { data: sessions, error: sessErr } = await supabase
       .from('campusnet_sessions')
       .select('*')
-      .order('valid_until', { ascending: false });
+      .order('valid_until', { ascending: false })
+      .limit(100);
 
-    // 2. Fetch all vouchers to calculate real-time pool stock
+    // 2. Fetch vouchers for stock tally (minimal columns)
     const { data: vouchers, error: vErr } = await supabase
       .from('campusnet_vouchers')
-      .select('package_id, status, amount, assigned_phone');
+      .select('package_id, status')
+      .eq('status', 'available');
 
-    // 3. Fetch completed transactions
+    // 3. Fetch recent transactions (last 60 days max for aggregations, not all-time)
+    const sixtyDaysAgo = new Date(nowTime - 60 * 24 * 60 * 60 * 1000).toISOString();
     const { data: txs, error: txErr } = await supabase
       .from('campusnet_transactions')
       .select('id, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code, paystack_reference')
       .in('status', ['completed', 'SUCCESS'])
+      .gte('created_at', sixtyDaysAgo)
       .order('created_at', { ascending: false });
 
     // Voucher stock tally

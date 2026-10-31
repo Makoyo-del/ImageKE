@@ -1,64 +1,146 @@
 ---
 name: frontend-design
-description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults.
-license: Complete terms in LICENSE.txt
+description: Distinctive, anti-cookie-cutter frontend visual engineering, high-craft UI architecture, stateful components, and production React/Vite implementations.
+---
+# Frontend Visual Engineering & Architecture Engine (v4.0 — Enterprise Edition)
+
+Use this skill whenever building or refactoring modern frontend interfaces, web applications, dashboards, or high-converting landing pages. Enforces distinctive art direction, stateful resilience (loading skeletons, error boundaries, empty states), and zero-placeholder production code.
+
 ---
 
-# Frontend Design
+## 🚨 1. CORE MANDATE & INTEGRITY RULES (ZERO EXCEPTIONS)
+1. **ZERO-PLACEHOLDER PRODUCTION CODE**: Never output mock `Lorem Ipsum`, `// TODO: implement later`, or dummy `[TBD]` strings. All interfaces must render real systems copy, real metrics, and operational logic.
+2. **COMPLETE 4-STATE RESILIENCE**: Every data-driven component must explicitly handle 4 operational states:
+   - **Default State**: Rich interactive presentation.
+   - **Loading State**: Shimmer skeleton with matching layout bounds.
+   - **Empty State**: Clear call-to-action inviting user action.
+   - **Error State**: Graceful Error Boundary with actionable recovery.
+3. **ZERO TEMPLATED CLICHÉS**: Avoid generic AI web design tropes. Implement custom spatial hierarchy, curated typography pairings, and tactile micro-interactions.
 
-Approach this as the design lead at a small studio known for giving every client a visual identity that could not be mistaken for anyone else's. This client has already rejected proposals that felt templated, and is paying for a distinctive point of view: make deliberate, opinionated choices about palette, typography, and layout that are specific to this brief, and take one real aesthetic risk you can justify.
+---
 
-## Ground it in the subject
+## 🎨 2. DYNAMIC FRONTEND ARCHETYPES & MODES
 
-If the brief does not pin down what the product or subject is, pin it yourself before designing: name one concrete subject, its audience, and the page's single job, and state your choice. If there's any information in your memory about the human's preferences, context about what they're building, or designs you've made before – use that as a hint. The subject's own world, its materials, instruments, artifacts, and vernacular, is where distinctive choices come from. Build with the brief's real content and subject matter throughout.
+### Archetype 1: `TECHNICAL_CONSOLE` (HookBunker, Developer Tools, API Gateways)
+- **Aesthetic**: Linear / Stripe Developer aesthetic. Dark obsidian surfaces (`#09090B`), subtle border highlights, glowing status badges, monospace tabular data (`JetBrains Mono`).
+- **Signature Element**: Interactive live webhook simulator or payload inspection pane with syntax coloring.
 
-## Design principles
+### Archetype 2: `EXECUTIVE_FINTECH` (Equity Bank ATS Simulator, Financial OS, High-Trust Portals)
+- **Aesthetic**: Apple Keynote / Stripe Press clarity. Cool Alabaster canvas (`#F8FAFC`), crisp white cards with multi-layered micro-shadows, Royal Blue (`#2563EB`) and Emerald accents.
+- **Signature Element**: Live interactive scoring dials, step-by-step audit pipelines, and vector SVG comparison flows.
 
-For web designs, the hero is a thesis. Open with the most characteristic thing in the subject's world, in whatever form makes sense for it: a headline, an image, an animation, a live demo, an interactive moment. Be deliberate with your choice: a big number with a small label, supporting stats, and a gradient accent is the template answer, only use if that's truly the best option.
+### Archetype 3: `HIGH_CONVERSION_SAAS` (WhatsApp Autonomous Commerce, Product Landing Pages)
+- **Aesthetic**: High contrast, bold value thesis, sticky floating action bars, social proof strips, animated interactive demos.
+- **Signature Element**: 0-second simulated chat checkout or interactive ROI/pricing calculator.
 
-Typography carries the personality of the page. Pair the display and body faces deliberately, not the same families you would reach for on any other project, and set a clear type scale with intentional weights, widths, and spacing. Make the type treatment itself a memorable part of the design, not a neutral delivery vehicle for the content.
+---
 
-Structure is information. Structural devices, numbering, eyebrows, dividers, labels, should encode something true about the content, not decorate it. Many generic designs use numbered markers (01 / 02 / 03), but that's only appropriate if the content actually is a sequence - like a real process or a typed timeline where order carries information the reader needs. Question if choices like numbered markers actually make sense before incorporating them.
+## 📐 3. STRICT TECHNICAL & PERFORMANCE GUARDRAILS
+1. **Layout & Responsiveness**:
+   - Zero horizontal scroll between `360px` (small mobile) and `2560px` (ultra-wide desktop).
+   - Use CSS clamp math for responsive typography: `font-size: clamp(2rem, 5vw + 1rem, 4.5rem)`.
+   - Grid-gap rhythm: strictly 16px, 24px, or 32px based on the 8-point system.
+2. **Performance Budgets**:
+   - Main thread interaction budget: Micro-interactions must execute in `<100ms`.
+   - Cumulative Layout Shift (CLS): `< 0.05`. Use explicit width/height or aspect ratios on media and skeletons.
+3. **Touch & Keyboard Accessibility**:
+   - Interactive targets: minimum `44px × 44px`.
+   - Visible focus indicator: `focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`.
 
-Leverage motion deliberately. Think about where and if animation can serve the subject: a page-load sequence, a scroll-triggered reveal, hover micro-interactions, ambient atmosphere. An orchestrated moment usually lands harder than scattered effects; choose what the direction calls for. However, sometimes less is more, and extra animation contributes to the feeling that the design is AI-generated.
+---
 
-Match complexity to the vision. Maximalist directions need elaborate execution; minimal directions need precision in spacing, type, and detail. Elegance is executing the chosen vision well.
+## 🧩 4. REUSABLE PRODUCTION PRIMITIVES (REACT + TAILWIND)
 
-Consider written content carefully. Often a design brief may not contain real content, and it's up to you to come up with copy. Copy can make a design feel as templated as the design itself. See the below section on writing for more guidance.
+### A. Shimmer Skeleton Primitive (`components/ui/skeleton.tsx`)
+```tsx
+import { cn } from "@/lib/utils"
 
-## Process: brainstorm, explore, plan, critique, build, critique again
+export function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-muted/60 relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent", className)}
+      {...props}
+    />
+  )
+}
+```
 
-For calibration: AI-generated design right now clusters around three looks: (1) a warm cream background (near #F4F1EA) with a high-contrast serif display and a terracotta accent; (2) a near-black background with a single bright acid-green or vermilion accent; (3) a broadsheet-style layout with hairline rules, zero border-radius, and dense newspaper-like columns. All three are legitimate for some briefs, but they are defaults rather than choices, and they appear regardless of subject. Where the brief pins down a visual direction, follow it exactly — the brief's own words always win, including when it asks for one of these looks. Where it leaves an axis free, don't spend that freedom on one of these defaults. Just like a human designer who's hired, there's often a careful balance between doing what you're good at and taking each project as a chance to experiment and learn.
+### B. Standard Error Boundary Component (`components/common/ErrorBoundary.jsx`)
+```jsx
+import React from 'react'
 
-Work in two passes. First, brainstorm a short design plan based on the human's design brief: create a compact token system with color, type, layout, and signature. Color: describe the palette as 4–6 named hex values. Type: the typefaces for 2+ roles (a characterful display face that's used with restraint, a complementary body face, and a utility face for captions or data if needed). Layout: a layout concept, using one-sentence prose descriptions and ASCII wireframes to ideate and compare. Signature: the single unique element this page will be remembered by that embodies the brief in an appropriate way.
+export class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
 
-Then review that plan against the brief before building: if any part of it reads like the generic default you would produce for any similar page (work through a similar prompt to see if you arrive somewhere similar) rather than a choice made for this specific brief — revise that part, say what you changed and why. Only after you've confirmed the relative uniqueness of your design plan should you start to write the code, following the revised plan exactly and deriving every color and type decision from it.
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
 
-When writing the code, be careful of structuring your CSS selector specificities. It's easy to generate CSS classes that cancel each other out (especially with a type-based selector like .section and a element-based selector like .cta). This can happen often with paddings/margins between sections.
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo)
+  }
 
-Try to do a lot of this planning and iteration in your thinking, and only show ideas to the user when you have higher confidence it'll delight them.
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 rounded-xl border border-destructive/20 bg-destructive/10 text-destructive my-4">
+          <h3 className="font-semibold text-lg">Component Rendering Failure</h3>
+          <p className="text-sm mt-1 text-muted-foreground">{this.state.error?.message || "An unexpected error occurred."}</p>
+          <button
+            onClick={() => this.setState({ hasError: false })}
+            className="mt-3 px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm font-medium hover:bg-destructive/90"
+          >
+            Retry Component
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+```
 
-## Restraint and self-critique
+### C. Stateful Empty State Blueprint
+```tsx
+export function EmptyState({ title, description, actionText, onAction }: { title: string; description: string; actionText?: string; onAction?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-center rounded-xl border border-dashed border-border bg-card/50">
+      <div className="size-12 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground">
+        <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+      </div>
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-sm">{description}</p>
+      {actionText && onAction && (
+        <button onClick={onAction} className="mt-4 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90">
+          {actionText}
+        </button>
+      )}
+    </div>
+  )
+}
+```
 
-Spend your boldness in one place. Let the signature element be the one memorable thing, keep everything around it quiet and disciplined, and cut any decoration that does not serve the brief. Not taking a risk can be a risk itself! Build to a quality floor without announcing it: responsive down to mobile, visible keyboard focus, reduced motion respected. Critique your own work as you build, taking screenshots if your environment supports it – a picture is worth 1000 tokens. Consider Chanel's advice: before leaving the house, take a look in the mirror and remove one accessory. Human creators have memory and always try to do something new, so if you have a space to quickly jot down notes about what you've tried, it can help you in future passes.
+---
 
-**CRITICAL LAYOUT CRITIQUE:**
-- **Zero Text Clipping:** Maintain a 10-15% safety margin on all sides of the canvas. Scale down font size or wrap text to ensure no words cut off at container boundaries.
-- **Typography Over Image Safety (Legibility Rule):** Ensure a contrast ratio of at least 4.5:1 for text. Use solid/semi-transparent backings or gradient scrims if placing text near/over images.
-- **Zero Overlapping:** Layout text blocks so they dynamically clear and wrap around image containers and photography.
-- **Photo Crop Integrity:** Avoid strict circular masks that cut off the top of the subject's head. Use high-quality rounded rectangles, clean borders, or custom geometric masks (pill/arched shapes).
-- **Integrated UI Containers:** Treat images as assets inside mockups (e.g. an active window, an IDE panel, or terminal node) where appropriate.
-- **Contrast Check:** Guarantee footer links, URLs, and secondary CTAs are highly visible against background fields. Never use low-opacity or overly dark text on dark backgrounds.
-- **Negative Space & Composition:** Keep at least 30-40% of the canvas clear of heavy graphical noise to provide breathing room. Establish a clear visual hierarchy (hook -> secondary details -> CTA).
+## 🔗 5. CROSS-SKILL SYNCHRONIZATION
+- **Consumes from `design-system`**: Strictly adopts CSS tokens and variables (`var(--bg-canvas)`, `var(--text-primary)`).
+- **Integrates with `card-design`**: Utilizes modular card primitives for all dashboard views.
+- **Synchronized with `social-architect`**: Implements customer-facing tools (e.g. ATS simulator at `duncanmakoyo.com/#/ats` or HookBunker console) that text posts link to.
 
-## More on writing in design
+---
 
-Words appear in a design for one reason: to make it easier to understand, and therefore easier to use. They are design material, not decoration. Bring the same intentionality to copy that you would bring to spacing and color. Before writing anything, ask what the design needs to say, and how it can best be said to help the person navigate the experience.
-
-Write from the end user's side of the screen. Name things by what people control and recognize, never by how the system is built. A person manages notifications, not webhook config. Describe what something does in plain terms rather than selling it. Being specific is always better than being clever.
-
-Use active voice as default. A control should say exactly what happens when it's used: "Save changes," not "Submit." An action keeps the same name through the whole flow, so the button that says "Publish" produces a toast that says "Published." The vocabulary of an interface is the signposting for someone navigating the product. Cohesion and consistency are how people learn their way around.
-
-Treat failure and emptiness as moments for direction, not mood. Explain what went wrong and how to fix it, in the interface's voice rather than a person's. Errors don't apologize, and they are never vague about what happened. An empty screen is an invitation to act.
-
-Keep the register conversational and tuned: plain verbs, sentence case, no filler, with tone matched to the brand and the audience. Let each element do exactly one job. A label labels, an example demonstrates, and nothing quietly does double duty.
+## ⚙️ 6. MANDATORY AUTO-QA & VERIFICATION LOOP
+Never commit frontend updates without running this verification sequence:
+1. **Compilation & Build Test**:
+   Execute `npm run build` in the workspace root. Ensure `dist/` builds with 0 syntax errors.
+2. **Console & Reference Error Audit**:
+   Verify no undefined variable references exist (e.g. check for scope leaks or missing imports).
+3. **Viewport Responsiveness**:
+   Test rendering at `375px`, `768px`, and `1440px` widths. Confirm no horizontal overflow.
+4. **Contrast & Focus Verification**:
+   Ensure all buttons have visible focus rings and all text meets WCAG AA `4.5:1` contrast ratio.

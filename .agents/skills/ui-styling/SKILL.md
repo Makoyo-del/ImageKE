@@ -1,324 +1,175 @@
 ---
 name: ui-styling
-description: Create beautiful, accessible user interfaces with shadcn/ui components (built on Radix UI + Tailwind), Tailwind CSS utility-first styling, and canvas-based visual designs. Use when building user interfaces, implementing design systems, creating responsive layouts, adding accessible components (dialogs, dropdowns, forms, tables), customizing themes and colors, implementing dark mode, generating visual designs and posters, or establishing consistent styling patterns across applications.
-argument-hint: "[component or layout]"
-license: MIT
-metadata:
-  author: claudekit
-  version: "1.0.0"
+description: Production Tailwind CSS, shadcn/ui, and Radix UI engineering system implementing accessible primitives, CSS variable theming, and zero-runtime-overhead interfaces.
+---
+# UI Styling & Component Architecture Engine (v4.0 — Enterprise Edition)
+
+Use this skill whenever styling user interfaces, configuring Tailwind CSS (v3 or v4), integrating shadcn/ui and Radix primitives, implementing dark/light mode theming, or building accessible form and data-table components.
+
 ---
 
-# UI Styling Skill
+## 🚨 1. CORE MANDATE & INTEGRITY RULES (ZERO EXCEPTIONS)
+1. **ACCESSIBILITY-FIRST (WCAG 2.1 AA)**: All components must support full keyboard navigation (`Tab`, `Enter`, `Space`, `Escape`), visible focus rings, ARIA roles, and a minimum 4.5:1 text contrast ratio.
+2. **ZERO HARDCODED ARBITRARY CLASSES**: Do not litter code with arbitrary values like `bg-[#09090b]`. Bind every element to semantic CSS variables (`bg-background`, `text-foreground`, `border-border`, `bg-card`).
+3. **ZERO RUNTIME JANK**: Prioritize CSS transitions and hardware-accelerated transforms (`transform: translateZ(0)`). Prevent Cumulative Layout Shift (CLS) on interactive elements.
 
-Comprehensive skill for creating beautiful, accessible user interfaces combining shadcn/ui components, Tailwind CSS utility styling, and canvas-based visual design systems.
+---
 
-## Reference
+## 🎨 2. DYNAMIC THEMING & COMPONENT MODES
 
-- shadcn/ui: https://ui.shadcn.com/llms.txt
-- Tailwind CSS: https://tailwindcss.com/docs
+### Mode 1: `TAILWIND_V4_CSS` (Modern CSS-First Architecture)
+Utilizes `@theme` directives in `src/index.css` without requiring heavy JS configuration files:
+```css
+@import "tailwindcss";
 
-## When to Use This Skill
-
-Use when:
-- Building UI with React-based frameworks (Next.js, Vite, Remix, Astro)
-- Implementing accessible components (dialogs, forms, tables, navigation)
-- Styling with utility-first CSS approach
-- Creating responsive, mobile-first layouts
-- Implementing dark mode and theme customization
-- Building design systems with consistent tokens
-- Generating visual designs, posters, or brand materials
-- Rapid prototyping with immediate visual feedback
-- Adding complex UI patterns (data tables, charts, command palettes)
-
-## Core Stack
-
-### Component Layer: shadcn/ui
-- Pre-built accessible components via Radix UI primitives
-- Copy-paste distribution model (components live in your codebase)
-- TypeScript-first with full type safety
-- Composable primitives for complex UIs
-- CLI-based installation and management
-
-### Styling Layer: Tailwind CSS
-- Utility-first CSS framework
-- Build-time processing with zero runtime overhead
-- Mobile-first responsive design
-- Consistent design tokens (colors, spacing, typography)
-- Automatic dead code elimination
-
-### Visual Design Layer: Canvas
-- Museum-quality visual compositions
-- Philosophy-driven design approach
-- Sophisticated visual communication
-- Minimal text, maximum visual impact
-- Systematic patterns and refined aesthetics
-
-## Quick Start
-
-### Component + Styling Setup
-
-**Install shadcn/ui with Tailwind:**
-```bash
-npx shadcn@latest init
-```
-
-CLI prompts for framework, TypeScript, paths, and theme preferences. This configures both shadcn/ui and Tailwind CSS.
-
-**Add components:**
-```bash
-npx shadcn@latest add button card dialog form
-```
-
-**Use components with utility styling:**
-```tsx
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-
-export function Dashboard() {
-  return (
-    <div className="container mx-auto p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Analytics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">View your metrics</p>
-          <Button variant="default" className="w-full">
-            View Details
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
+@theme {
+  --color-canvas: #09090B;
+  --color-surface: #121215;
+  --color-surface-elevated: #18181C;
+  --color-emerald-neon: #10B981;
+  --color-indigo-electric: #6366F1;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 ```
 
-### Alternative: Tailwind-Only Setup
-
-**Vite projects:**
-```bash
-npm install -D tailwindcss @tailwindcss/vite
-```
-
+### Mode 2: `TAILWIND_V3_SEMANTIC` (`tailwind.config.js` with HSL CSS Variables)
+Configured to support dynamic opacity and real-time theme swapping:
 ```javascript
-// vite.config.ts
-import tailwindcss from '@tailwindcss/vite'
-export default { plugins: [tailwindcss()] }
+// tailwind.config.js
+module.exports = {
+  darkMode: ["class"],
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
 ```
 
-```css
-/* src/index.css */
-@import "tailwindcss";
+---
+
+## 📐 3. STRICT TECHNICAL & ACCESSIBILITY GUARDRAILS
+1. **Interactive Hit Areas**:
+   - All interactive controls (buttons, links, toggles) must maintain a minimum bounding box of `44px × 44px`.
+2. **Focus Management**:
+   - Every interactive element must feature non-destructive focus indicators:
+     `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`.
+3. **Form Validation & Error States**:
+   - Forms must couple with Zod and React Hook Form. Form errors must be announced with `aria-live="polite"` and visual warning badges.
+
+---
+
+## 🧩 4. REUSABLE PRODUCTION PRIMITIVES (SHADCN + RADIX)
+
+### A. Accessible Button Primitive (`components/ui/button.tsx`)
+```tsx
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3 text-xs",
+        lg: "h-11 rounded-md px-8 text-base",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button"
+
+export { Button, buttonVariants }
 ```
 
-## Component Library Guide
-
-**Comprehensive component catalog with usage patterns, installation, and composition examples.**
-
-See: `references/shadcn-components.md`
-
-Covers:
-- Form & input components (Button, Input, Select, Checkbox, Date Picker, Form validation)
-- Layout & navigation (Card, Tabs, Accordion, Navigation Menu)
-- Overlays & dialogs (Dialog, Drawer, Popover, Toast, Command)
-- Feedback & status (Alert, Progress, Skeleton)
-- Display components (Table, Data Table, Avatar, Badge)
-
-## Theme & Customization
-
-**Theme configuration, CSS variables, dark mode implementation, and component customization.**
-
-See: `references/shadcn-theming.md`
-
-Covers:
-- Dark mode setup with next-themes
-- CSS variable system
-- Color customization and palettes
-- Component variant customization
-- Theme toggle implementation
-
-## Accessibility Patterns
-
-**ARIA patterns, keyboard navigation, screen reader support, and accessible component usage.**
-
-See: `references/shadcn-accessibility.md`
-
-Covers:
-- Radix UI accessibility features
-- Keyboard navigation patterns
-- Focus management
-- Screen reader announcements
-- Form validation accessibility
-
-## Tailwind Utilities
-
-**Core utility classes for layout, spacing, typography, colors, borders, and shadows.**
-
-See: `references/tailwind-utilities.md`
-
-Covers:
-- Layout utilities (Flexbox, Grid, positioning)
-- Spacing system (padding, margin, gap)
-- Typography (font sizes, weights, alignment, line height)
-- Colors and backgrounds
-- Borders and shadows
-- Arbitrary values for custom styling
-
-## Responsive Design
-
-**Mobile-first breakpoints, responsive utilities, and adaptive layouts.**
-
-See: `references/tailwind-responsive.md`
-
-Covers:
-- Mobile-first approach
-- Breakpoint system (sm, md, lg, xl, 2xl)
-- Responsive utility patterns
-- Container queries
-- Max-width queries
-- Custom breakpoints
-
-## Tailwind Customization
-
-**Config file structure, custom utilities, plugins, and theme extensions.**
-
-See: `references/tailwind-customization.md`
-
-Covers:
-- @theme directive for custom tokens
-- Custom colors and fonts
-- Spacing and breakpoint extensions
-- Custom utility creation
-- Custom variants
-- Layer organization (@layer base, components, utilities)
-- Apply directive for component extraction
-
-## Visual Design System
-
-**Canvas-based design philosophy, visual communication principles, and sophisticated compositions.**
-
-See: `references/canvas-design-system.md`
-
-Covers:
-- Design philosophy approach
-- Visual communication over text
-- Systematic patterns and composition
-- Color, form, and spatial design
-- Minimal text integration
-- Museum-quality execution
-- Multi-page design systems
-
-## Utility Scripts
-
-**Python automation for component installation and configuration generation.**
-
-### shadcn_add.py
-Add shadcn/ui components with dependency handling:
-```bash
-python scripts/shadcn_add.py button card dialog
-```
-
-### tailwind_config_gen.py
-Generate tailwind.config.js with custom theme:
-```bash
-python scripts/tailwind_config_gen.py --colors brand:blue --fonts display:Inter
-```
-
-## Best Practices
-
-1. **Component Composition**: Build complex UIs from simple, composable primitives
-2. **Utility-First Styling**: Use Tailwind classes directly; extract components only for true repetition
-3. **Mobile-First Responsive**: Start with mobile styles, layer responsive variants
-4. **Accessibility-First**: Leverage Radix UI primitives, add focus states, use semantic HTML
-5. **Design Tokens**: Use consistent spacing scale, color palettes, typography system
-6. **Dark Mode Consistency**: Apply dark variants to all themed elements
-7. **Performance**: Leverage automatic CSS purging, avoid dynamic class names
-8. **TypeScript**: Use full type safety for better DX
-9. **Visual Hierarchy**: Let composition guide attention, use spacing and color intentionally
-10. **Expert Craftsmanship**: Every detail matters - treat UI as a craft
-
-## Reference Navigation
-
-**Component Library**
-- `references/shadcn-components.md` - Complete component catalog
-- `references/shadcn-theming.md` - Theming and customization
-- `references/shadcn-accessibility.md` - Accessibility patterns
-
-**Styling System**
-- `references/tailwind-utilities.md` - Core utility classes
-- `references/tailwind-responsive.md` - Responsive design
-- `references/tailwind-customization.md` - Configuration and extensions
-
-**Visual Design**
-- `references/canvas-design-system.md` - Design philosophy and canvas workflows
-
-**Automation**
-- `scripts/shadcn_add.py` - Component installation
-- `scripts/tailwind_config_gen.py` - Config generation
-
-## Common Patterns
-
-**Form with validation:**
+### B. Form Validation Schema Pattern (Zod + React Hook Form)
 ```tsx
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8)
+const formSchema = z.object({
+  phoneNumber: z.string().regex(/^(?:254|\+254|0)?(7|1)\d{8}$/, "Valid Kenyan Safaricom/Airtel number required"),
+  amount: z.number().min(10, "Minimum transaction is KSh 10"),
 })
 
-export function LoginForm() {
-  const form = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" }
-  })
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(console.log)} className="space-y-6">
-        <FormField control={form.control} name="email" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Email</FormLabel>
-            <FormControl>
-              <Input type="email" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <Button type="submit" className="w-full">Sign In</Button>
-      </form>
-    </Form>
-  )
-}
+export type FormValues = z.infer<typeof formSchema>
 ```
 
-**Responsive layout with dark mode:**
-```tsx
-<div className="min-h-screen bg-white dark:bg-gray-900">
-  <div className="container mx-auto px-4 py-8">
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="p-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Content
-          </h3>
-        </CardContent>
-      </Card>
-    </div>
-  </div>
-</div>
+---
+
+## 🛠️ 5. PYTHON AUTOMATION SCRIPTS
+Execute local automation helpers within the skill folder:
+```powershell
+# Add shadcn components automatically
+python .agents/skills/ui-styling/scripts/shadcn_add.py button dialog card
+
+# Generate custom Tailwind configuration
+python .agents/skills/ui-styling/scripts/tailwind_config_gen.py --colors brand:emerald --fonts display:PlusJakartaSans
 ```
 
-## Resources
+---
 
-- shadcn/ui Docs: https://ui.shadcn.com
-- Tailwind CSS Docs: https://tailwindcss.com
-- Radix UI: https://radix-ui.com
-- Tailwind UI: https://tailwindui.com
-- Headless UI: https://headlessui.com
-- v0 (AI UI Generator): https://v0.dev
+## 🔗 6. CROSS-SKILL SYNCHRONIZATION
+- **Consumes from `design-system`**: Integrates primitive and semantic tokens into Tailwind CSS classes.
+- **Supplies to `card-design` & `frontend-design`**: Provides standardized component variants and utility functions.
+- **Supports `linkedin-campaign-poster-design`**: Supplies clean HTML/CSS snippets for UI simulation cards.
+
+---
+
+## ⚙️ 7. MANDATORY AUTO-QA & BUILD VERIFICATION LOOP
+Before declaring styling work complete:
+1. **Compilation Check**: Run `npm run build` to confirm zero CSS syntax or PostCSS errors.
+2. **Keyboard Navigation Audit**: Verify all interactive elements are reachable via `Tab` with visible focus rings.
+3. **Responsive Breakpoint Verification**: Test layouts at mobile (`375px`), tablet (`768px`), and desktop (`1280px`).
+4. **Dark/Light Mode Check**: Toggle theme class to confirm zero unstyled or low-contrast elements.

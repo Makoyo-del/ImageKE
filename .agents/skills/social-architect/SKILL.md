@@ -1,67 +1,94 @@
 ---
 name: social-architect
-description: Founder-led branding, LinkedIn content architecture, 4-pillar growth strategy, and community engagement for professional growth.
+description: High-converting B2B LinkedIn content engine, technical founder authority architecture, visual-copy synchronization, and pipeline generation for Duncan Makoyo.
 ---
+# Social Architect — B2B Authority & Revenue Pipeline Engine (v4.0)
 
-# Social Architect — 4-Pillar LinkedIn Content Engine
-
-Use this skill whenever generating LinkedIn posts, personal branding content, or client acquisition copy for Duncan Makoyo.
-
-## 🚨 MANDATORY RULE: REAL DATA & ZERO INVENTED STORIES (STRICT)
-- **NO FABRICATED STORIES**: NEVER invent, hallucinate, or make up fake client names, fake backstories, fake metrics, or fake case studies.
-- **ASK DUNCAN FIRST FOR PILLAR 3 (PROOF STORIES)**: Whenever generating a **Pillar 3 (Before & After Proof Story)** post, the agent **MUST ASK DUNCAN FIRST** for the real client scenario, real before/after score numbers, or real interview outcome details. Do NOT draft a fictional story under any circumstances.
+Use this skill whenever generating LinkedIn posts, technical breakdowns, carousel scripts, or client acquisition copy for Duncan Makoyo.
 
 ---
 
-## 🎯 Core Operating Strategy: The 80/20 Revenue & Trust Engine
-- **80% Trust-Building Value**: High-utility breakdowns, ATS technical insights, actionable resume transformations. Never hard-pitch in value posts.
-- **20% Unambiguous Soft Offers**: Clear, transparent, high-ticket packages (Package A: Professional CV Rewrite, Package B: Executive Career Overhaul) with explicit deliverables and scarcity limits (4 client slots/week).
+## 🚨 1. CORE INTEGRITY & VOICE RULES (ZERO EXCEPTIONS)
+1. **NO FABRICATED PROOF**: Never invent client names, backstories, latency metrics, or revenue numbers.
+2. **THE PROOF INTERROGATION PROTOCOL**: If a post requires a client case study or before/after metric and none was provided in the prompt, STOP and ask Duncan for the raw numbers/scenario first, OR frame the post as an **Architectural Blueprint / System Benchmark** using verifiable engineering math.
+3. **VOICE PERSONA**: Write like a senior systems architect and pragmatic founder explaining a production bottleneck to a peer. Grounded, direct, zero hype, mechanically specific. Name actual protocols, payloads, and failure points (e.g., `HTTP 429`, `HMAC-SHA256`, `Daraja STK callback timeout`, `Workday XML parser`).
 
 ---
 
-## 🏛️ The 4 Mandatory Content Pillars
+## 🛑 2. THE ANTI-AI FIREWALL (VOCABULARY & SYNTAX)
 
-Every LinkedIn post generated must explicitly map to one of the following 4 pillars:
+### A. Banned Words
+NEVER use: `delve`, `testament`, `beacon`, `realm`, `supercharge`, `game-changer`, `tapestry`, `in conclusion`, `navigate`, `revolutionize`, `unleash`, `harness`, `at the end of the day`, `paradigm shift`, `synergy`, `foster`, `bespoke`, `holistic`, `furthermore`, `moreover`, `crucial`, `pivotal`, `seamless`, `skyrocket`.
 
-### Pillar 1: The Deep Teardown (100% Value / Zero Pitch)
-- **Goal**: Replaces passive resume language ("responsible for") with metric-driven STAR impact bullets.
-- **Format**: Bad Example ➔ Good Example ➔ Step-by-Step Rule ➔ Anchor Identity + Follow Hook.
-- **Tone**: Authoritative, educational, zero fluff.
-
-### Pillar 2: The ATS Engineering Insight (Technical Authority)
-- **Goal**: Teaches candidates how AI parsers (Gemini 3.6 Flash, Lever, Greenhouse) process resumes.
-- **Format**: Myth vs Reality ➔ Technical breakdown (multi-column risks, section syntax, embedded media) ➔ Free ATS tool link: `https://duncanmakoyo.com/#/ats`.
-
-### Pillar 3: The Before & After Proof Story (Trust & Social Proof)
-- **STRICT RULE**: **ASK DUNCAN FIRST FOR REAL CLIENT DATA BEFORE WRITING THIS POST.**
-- **Goal**: Demonstrates REAL client outcomes (e.g. real score jump, real interview callbacks).
-- **Format**: Real Client Backstory (provided by Duncan) ➔ Root Cause Diagnosis ➔ The Fix ➔ Real Outcome ➔ Soft CTA.
-
-### Pillar 4: The Unambiguous Offer (Direct Lead Capture)
-- **Goal**: Converts warm trust into paid client bookings (CV Rewrites & LinkedIn Overhauls).
-- **Format**: Scarcity Callout ("Taking 4 clients this week") ➔ Exact Deliverables ➔ Target Audience ➔ Direct Contact CTAs (`info@duncanmakoyo.com` / DM / WhatsApp).
+### B. Banned AI Sentence Structures (CRITICAL)
+1. **No Contrast Negation Clichés**: Never write *"It's not about X. It's about Y."* or *"Speed isn't a bonus. Speed is the entire sale."* State the mechanism directly instead.
+2. **No Meta-Announcements**: Never write *"Here is the brutal truth:"*, *"Let that sink in."*, *"Read that again."*, or *"Buckle up."*
+3. **No 2022 "Bro-etry" Staccato**: Do NOT write 15 single-sentence lines spaced out with blank lines. That triggers LinkedIn's low-quality classifier.
+4. **No Fake Vulnerability**: Never start with *"I used to struggle with..."* unless explicitly instructed. Start directly inside the technical or commercial problem.
 
 ---
 
-## 🚀 Out-of-Network Follow-Conversion Blueprint
-
-Every post must include these 3 conversion elements:
-1. **The Anchor Identity (Post Footer)**:
-   `👋 Hi, I'm Duncan Makoyo. I build AI resume engines and help high-performing professionals land top-tier roles.`
-2. **The Value-Staked Follow Hook**:
-   `🔔 Hit + Follow on my profile for weekly ATS teardowns, resume frameworks, and career strategy.`
-3. **The Unambiguous Link / Call-to-Action**:
-   `Test your resume live on our free ATS engine: https://duncanmakoyo.com/#/ats`
-   `For professional CV rewrites: Email info@duncanmakoyo.com or DM "REWRITE".`
+## 🔗 3. VISUAL-COPY SYNCHRONIZATION (WITH `linkedin-campaign-poster-design`)
+When generating a post that accompanies a poster or carousel:
+1. **Zero Headline Duplication**: The first 2 lines of the LinkedIn text post MUST NOT repeat the H1 title on the poster.
+   - *If the Poster shows*: The 4-step Daraja STK Push Architecture (`TECH_OBSIDIAN` theme).
+   - *The Text Hook attacks*: The financial cost of manual M-Pesa Till verification in WhatsApp chat.
+2. **Direct the Eye to the Asset**: Include one natural friction-reducer mid-post that drives dwell time on the graphic (e.g., *"Look at Step 03 in the diagram below—that retry queue is where 80% of webhook implementations silently drop orders."*).
 
 ---
 
-## 📦 Unambiguous Offer Deliverables Reference
-- **Package A — Professional CV Rewrite & ATS Audit**:
-  - 100% ATS-Optimized CV (85%+ score guaranteed)
-  - Custom Cover Letter Framework
-  - 48-Hour Turnaround
-- **Package B — Executive Career Overhaul**:
-  - Everything in Package A
-  - Complete LinkedIn Profile Rewrite (Headline, About, Skills, Keywords)
-  - 1-on-1 Interview Strategy Session
+## ⚡ 4. THE 210-CHARACTER HOOK ARCHITECTURE (BEATING THE MOBILE FOLD)
+LinkedIn mobile truncates text after ~210 characters (or 3 lines). Every post must open with a **2-Part Hook** (Line 1: Concrete Claim/Metric/Failure → Line 2: The Specific Mechanism or Tension) that forces the reader to tap `...more`.
+
+### The 5 High-Signal Hook Archetypes:
+1. **The Production Post-Mortem**:
+   *"We audited a WhatsApp ad funnel spending KSh 150,000/month that was losing 68% of buyers at the payment step. The culprit wasn't the product—it was a 14-minute manual M-Pesa confirmation delay."*
+2. **The Mechanical Teardown**:
+   *"When you upload a two-column Canva CV into Workday or Greenhouse, the optical parser doesn't read left-to-right. It flattens the DOM table and scrambles your job titles into your dates."*
+3. **The Unit-Economics Reality Check**:
+   *"Most Kenyan freelancers price their work based on what they think the client can afford. If you don't calculate your Floor Rate across billable utilization and tax drag, you're subsidizing your client's payroll."*
+4. **The Unpopular Engineering Trade-off**:
+   *"You don't need a $300/month SaaS middleware to run automated WhatsApp catalog checkouts. A lightweight webhook listener, Redis retry queue, and direct Meta Cloud API + Daraja integration costs pennies."*
+5. **The Side-by-Side Diff**:
+   *"Rejected CV bullet: 'Managed enterprise client onboarding and reduced churn.'
+   Shortlisted CV bullet: 'Engineered automated webhook onboarding pipeline for 40+ B2B accounts, cutting time-to-value from 14 days to 4 hours.'"*
+
+---
+
+## 📐 5. DWELL-TIME FORMATTING & CADENCE RULES
+To maximize "Read Ratio" (LinkedIn's #1 algorithmic weight):
+- **The 2-3-1 Rhythm**: Alternate between a 2–3 sentence technical paragraph, a tight structured list (`01.`, `02.`, `03.` or `→`), and a single punchy takeaway sentence.
+- **Concrete Specificity**: Replace adjectives with numbers, latency figures, or tool names (`240ms` instead of `blazingly fast`; `PostgreSQL dead-letter queue` instead of `reliable backup system`).
+- **Scannable Anchors**: Bold only the first 2–4 words of a bullet point (e.g., `→ **Idempotency keys:** Prevents duplicate M-Pesa STK charges when a user double-taps.`).
+
+---
+
+## 🏛️ 6. THE 4 DOMAIN PILLARS & FUNNEL MAPPING
+
+Every post must align with one of Duncan's 4 pillars AND specify its Funnel Stage:
+
+| Pillar | Core Technical Topics | Primary Conversion Asset |
+| :--- | :--- | :--- |
+| **1. Career & ATS Engineering** | Workday/Greenhouse/Lever parsing mechanics, keyword vector matching, quantified STAR rewrites, single-column DOM structure. | Live ATS Simulation Audit (`duncanmakoyo.com/#/ats`) or Executive CV Overhaul DM. |
+| **2. WhatsApp Autonomous Commerce** | Meta Cloud API, Click-to-WhatsApp ad conversion, 0-second catalog dispatch, Daraja M-Pesa STK push, automated order telemetry. | Custom Architecture DM or Live Demo Walkthrough. |
+| **3. Webhook & Dev Infrastructure (HookBunker)** | Third-party webhook failure rates, exponential backoff, HMAC signature verification, payload inspection, dead-letter queues. | Live Developer Console (`duncanmakoyo.com/#/academy/dashboard`). |
+| **4. Solopreneur Pricing & Financial OS** | Floor vs. Target Rate math, utilization caps, Debt Snowball vs. Avalanche modeling, cash-flow runway engineering. | Master Financial Spreadsheets (`duncanmakoyo.com/#/assets`). |
+
+---
+
+## 🎯 7. DYNAMIC CONVERSION & FIRST-COMMENT PROTOCOL (NO ROBOTIC FOOTERS)
+**NEVER** use the old `👋 Hi, I'm Duncan Makoyo... 🔔 Follow my profile...` boilerplate block. It triggers banner blindness.
+
+Instead, end every post using this **2-Step Conversion Architecture**:
+
+### Step A: Contextual Sign-Off (Inside Post Body)
+End the post with a sharp, topic-specific closing line that transitions naturally from the technical breakdown into one of two actions:
+- **For Lead Generation (BOFU)**: *"If your team is losing WhatsApp ad leads between chat inquiry and M-Pesa checkout, DM me **'PIPELINE'** and I'll send over the exact webhook architecture we deploy."*
+- **For Product/Tool Traffic (MOFU)**: *"Want to see how Workday's parser actually scores your current CV? I put the live simulation engine in the first comment below 👇"*
+- **For Pure Authority/Debate (TOFU)**: End with a polarizing, specific engineering or career question that forces senior practitioners to share their experience in the comments.
+
+### Step B: Mandatory "Pinned First Comment" Output
+Whenever generating a post that drives traffic to `duncanmakoyo.com`, keep raw URLs OUT of the main post body (to avoid LinkedIn's outbound link reach penalty) unless explicitly requested. Instead, automatically generate a **📌 Pinned First Comment** block at the bottom of your response for Duncan to paste immediately after publishing:
+
+> **📌 PINNED COMMENT TO POST:**
+> *"Here is the direct link to test the [ATS Parser / HookBunker Console / Financial OS] live (no signup wall): [Insert Exact URL] — let me know what score/output you get."*

@@ -40,6 +40,7 @@ import { CampusNetOps } from '../campusnet/CampusNetOps';
 import { DigitalStoreOps } from '../store/DigitalStoreOps';
 import { ShopBotOps } from '../shopbot/ShopBotOps';
 import './HookBunkerDashboard.css';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://imageke-api.onrender.com';
 // INGESTION_BASE is the public-facing URL shown to developers for their webhook endpoint.
@@ -879,11 +880,17 @@ export function HookBunkerDashboard({ onNavigate }) {
       </div>
 
       {activeOpsModule === 'campusnet' ? (
-        <CampusNetOps onNavigate={onNavigate} />
+        <ErrorBoundary title="CampusNet Hostel Wi-Fi Operations">
+          <CampusNetOps onNavigate={onNavigate} />
+        </ErrorBoundary>
       ) : activeOpsModule === 'shopbot' ? (
-        <ShopBotOps onNavigate={onNavigate} />
+        <ErrorBoundary title="WhatsApp ShopBot Commerce Operations">
+          <ShopBotOps onNavigate={onNavigate} />
+        </ErrorBoundary>
       ) : activeOpsModule === 'store' ? (
-        <DigitalStoreOps onNavigate={onNavigate} />
+        <ErrorBoundary title="Digital Store & Product Vault Operations">
+          <DigitalStoreOps onNavigate={onNavigate} />
+        </ErrorBoundary>
       ) : (
         <div>
           {/* RENDER VIEW 1: Overview Dashboard (selectedProj is null) */}

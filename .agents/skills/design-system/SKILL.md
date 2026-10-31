@@ -1,244 +1,146 @@
 ---
 name: design-system
-description: Token architecture, component specifications, and slide generation. Three-layer tokens (primitive→semantic→component), CSS variables, spacing/typography scales, component specs, strategic slide creation. Use for design tokens, systematic design, brand-compliant presentations.
-argument-hint: "[component or token]"
-license: MIT
-metadata:
-  author: claudekit
-  version: "1.0.0"
+description: Three-layer design token architecture, CSS variable engines, modular typography scales, and multi-theme design tokens for enterprise applications and marketing visuals.
+---
+# Design System & Token Architecture Engine (v4.0 — Enterprise Edition)
+
+Use this skill whenever architecting, generating, or validating design tokens (primitives, semantics, component tokens), CSS custom properties, spacing scales, and multi-theme configurations (`TECH_OBSIDIAN`, `APPLE_DAYLIGHT`, `SWISS_EDITORIAL`).
+
 ---
 
-# Design System
+## 🚨 1. CORE MANDATE & INTEGRITY RULES (ZERO EXCEPTIONS)
+1. **THREE-LAYER TOKEN ARCHITECTURE ONLY**: Never bind components directly to raw hex values. All styles must follow: `Primitive (Raw Value) → Semantic (Intent/Role) → Component (Contextual Application)`.
+2. **MULTI-THEME COMPATIBILITY**: Every token set must declare both light and dark theme mappings using CSS custom properties with alpha-channel support (`hsl(var(--primary) / <alpha>)` or CSS color-mix).
+3. **ZERO HARDCODED MAGIC NUMBERS**: Spacing, radii, shadows, and font sizes must strictly derive from the defined modular scales.
 
-Token architecture, component specifications, systematic design, slide generation.
+---
 
-## When to Use
+## 🎨 2. THE 3 WORKSPACE SYSTEM THEMES
 
-- Design token creation
-- Component state definitions
-- CSS variable systems
-- Spacing/typography scales
-- Design-to-code handoff
-- Tailwind theme configuration
-- **Slide/presentation generation**
-
-## Token Architecture
-
-Load: `references/token-architecture.md`
-
-### Three-Layer Structure
-
-```
-Primitive (raw values)
-       ↓
-Semantic (purpose aliases)
-       ↓
-Component (component-specific)
-```
-
-**Example:**
+### Theme 1: `TECH_OBSIDIAN` (Default for AI, Automation, APIs, HookBunker)
 ```css
-/* Primitive */
---color-blue-600: #2563EB;
+:root[data-theme="tech-obsidian"], .theme-obsidian {
+  --bg-canvas: #09090B;
+  --bg-surface: #121215;
+  --bg-surface-elevated: #18181C;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-highlight: rgba(255, 255, 255, 0.15);
+  
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  
+  --accent-primary: #10B981; /* Neon Emerald */
+  --accent-secondary: #6366F1; /* Electric Indigo */
+  --accent-alert: #EF4444; /* Crimson */
 
-/* Semantic */
---color-primary: var(--color-blue-600);
-
-/* Component */
---button-bg: var(--color-primary);
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+}
 ```
 
-## Quick Start
-
-**Generate tokens:**
-```bash
-node scripts/generate-tokens.cjs --config tokens.json -o tokens.css
-```
-
-**Validate usage:**
-```bash
-node scripts/validate-tokens.cjs --dir src/
-```
-
-## References
-
-| Topic | File |
-|-------|------|
-| Token Architecture | `references/token-architecture.md` |
-| Primitive Tokens | `references/primitive-tokens.md` |
-| Semantic Tokens | `references/semantic-tokens.md` |
-| Component Tokens | `references/component-tokens.md` |
-| Component Specs | `references/component-specs.md` |
-| States & Variants | `references/states-and-variants.md` |
-| Tailwind Integration | `references/tailwind-integration.md` |
-
-## Component Spec Pattern
-
-| Property | Default | Hover | Active | Disabled |
-|----------|---------|-------|--------|----------|
-| Background | primary | primary-dark | primary-darker | muted |
-| Text | white | white | white | muted-fg |
-| Border | none | none | none | muted-border |
-| Shadow | sm | md | none | none |
-
-## Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `generate-tokens.cjs` | Generate CSS from JSON token config |
-| `validate-tokens.cjs` | Check for hardcoded values in code |
-| `search-slides.py` | BM25 search + contextual recommendations |
-| `slide-token-validator.py` | Validate slide HTML for token compliance |
-| `fetch-background.py` | Fetch images from Pexels/Unsplash |
-
-## Templates
-
-| Template | Purpose |
-|----------|---------|
-| `design-tokens-starter.json` | Starter JSON with three-layer structure |
-
-## Integration
-
-**With brand:** Extract primitives from brand colors/typography
-**With ui-styling:** Component tokens → Tailwind config
-
-**Skill Dependencies:** brand, ui-styling
-**Primary Agents:** ui-ux-designer, frontend-developer
-
-## Slide System
-
-Brand-compliant presentations using design tokens + Chart.js + contextual decision system.
-
-### Source of Truth
-
-| File | Purpose |
-|------|---------|
-| `docs/brand-guidelines.md` | Brand identity, voice, colors |
-| `assets/design-tokens.json` | Token definitions (primitive→semantic→component) |
-| `assets/design-tokens.css` | CSS variables (import in slides) |
-| `assets/css/slide-animations.css` | CSS animation library |
-
-### Slide Search (BM25)
-
-```bash
-# Basic search (auto-detect domain)
-python scripts/search-slides.py "investor pitch"
-
-# Domain-specific search
-python scripts/search-slides.py "problem agitation" -d copy
-python scripts/search-slides.py "revenue growth" -d chart
-
-# Contextual search (Premium System)
-python scripts/search-slides.py "problem slide" --context --position 2 --total 9
-python scripts/search-slides.py "cta" --context --position 9 --prev-emotion frustration
-```
-
-### Decision System CSVs
-
-| File | Purpose |
-|------|---------|
-| `data/slide-strategies.csv` | 15 deck structures + emotion arcs + sparkline beats |
-| `data/slide-layouts.csv` | 25 layouts + component variants + animations |
-| `data/slide-layout-logic.csv` | Goal → Layout + break_pattern flag |
-| `data/slide-typography.csv` | Content type → Typography scale |
-| `data/slide-color-logic.csv` | Emotion → Color treatment |
-| `data/slide-backgrounds.csv` | Slide type → Image category (Pexels/Unsplash) |
-| `data/slide-copy.csv` | 25 copywriting formulas (PAS, AIDA, FAB) |
-| `data/slide-charts.csv` | 25 chart types with Chart.js config |
-
-### Contextual Decision Flow
-
-```
-1. Parse goal/context
-        ↓
-2. Search slide-strategies.csv → Get strategy + emotion beats
-        ↓
-3. For each slide:
-   a. Query slide-layout-logic.csv → layout + break_pattern
-   b. Query slide-typography.csv → type scale
-   c. Query slide-color-logic.csv → color treatment
-   d. Query slide-backgrounds.csv → image if needed
-   e. Apply animation class from slide-animations.css
-        ↓
-4. Generate HTML with design tokens
-        ↓
-5. Validate with slide-token-validator.py
-```
-
-### Pattern Breaking (Duarte Sparkline)
-
-Premium decks alternate between emotions for engagement:
-```
-"What Is" (frustration) ↔ "What Could Be" (hope)
-```
-
-System calculates pattern breaks at 1/3 and 2/3 positions.
-
-### Slide Requirements
-
-**ALL slides MUST:**
-1. Import `assets/design-tokens.css` - single source of truth
-2. Use CSS variables: `var(--color-primary)`, `var(--slide-bg)`, etc.
-3. Use Chart.js for charts (NOT CSS-only bars)
-4. Include navigation (keyboard arrows, click, progress bar)
-5. Center align content
-6. Focus on persuasion/conversion
-
-### Chart.js Integration
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-<canvas id="revenueChart"></canvas>
-<script>
-new Chart(document.getElementById('revenueChart'), {
-    type: 'line',
-    data: {
-        labels: ['Sep', 'Oct', 'Nov', 'Dec'],
-        datasets: [{
-            data: [5, 12, 28, 45],
-            borderColor: '#FF6B6B',  // Use brand coral
-            backgroundColor: 'rgba(255, 107, 107, 0.1)',
-            fill: true,
-            tension: 0.4
-        }]
-    }
-});
-</script>
-```
-
-### Token Compliance
-
+### Theme 2: `APPLE_DAYLIGHT` (Default for FinTech, Executive CVs, Career Tools)
 ```css
-/* CORRECT - uses token */
-background: var(--slide-bg);
-color: var(--color-primary);
-font-family: var(--typography-font-heading);
+:root[data-theme="apple-daylight"], .theme-daylight {
+  --bg-canvas: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F1F5F9;
+  --border-subtle: #E2E8F0;
+  --border-highlight: #CBD5E1;
+  
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  
+  --accent-primary: #2563EB; /* Royal Tech Blue */
+  --accent-secondary: #059669; /* Trust Emerald */
+  --accent-alert: #DC2626;
 
-/* WRONG - hardcoded */
-background: #0D0D0D;
-color: #FF6B6B;
-font-family: 'Space Grotesk';
+  --font-heading: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-card: 20px;
+  --radius-pill: 9999px;
+}
 ```
 
-### Reference Implementation
+### Theme 3: `SWISS_EDITORIAL` (Default for Contrarian Manifestos, Print Art)
+```css
+:root[data-theme="swiss-editorial"], .theme-editorial {
+  --bg-canvas: #F4F4EE;
+  --bg-surface: #ECECE4;
+  --bg-surface-elevated: #E4E4DC;
+  --border-subtle: #111111;
+  --border-highlight: #111111;
+  
+  --text-primary: #111111;
+  --text-secondary: #262626;
+  --text-muted: #525252;
+  
+  --accent-primary: #D61A3C; /* Editorial Crimson */
+  --accent-secondary: #002FA7; /* Klein Blue */
+  --accent-alert: #D61A3C;
 
-Working example with all features:
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --radius-card: 0px; /* Sharp Swiss Brutalism */
+  --radius-pill: 0px;
+}
 ```
-assets/designs/slides/claudekit-pitch-251223.html
+
+---
+
+## 📐 3. STRICT MODULAR SCALES & MATHEMATICAL BUDGETS
+1. **8-Point Spacing Grid Scale**:
+   - `space-1`: `4px`
+   - `space-2`: `8px`
+   - `space-3`: `12px`
+   - `space-4`: `16px`
+   - `space-6`: `24px`
+   - `space-8`: `32px`
+   - `space-12`: `48px`
+   - `space-16`: `64px`
+2. **Modular Typography Scale (1.250 Major Third)**:
+   - `text-xs`: `12px` (`0.75rem`), line-height: `16px`
+   - `text-sm`: `14px` (`0.875rem`), line-height: `20px`
+   - `text-base`: `16px` (`1.0rem`), line-height: `24px`
+   - `text-lg`: `20px` (`1.25rem`), line-height: `28px`
+   - `text-xl`: `25px` (`1.563rem`), line-height: `32px`
+   - `text-2xl`: `31px` (`1.953rem`), line-height: `38px`
+   - `text-3xl`: `39px` (`2.441rem`), line-height: `46px`
+   - `text-4xl`: `49px` (`3.052rem`), line-height: `56px`
+
+---
+
+## 🧩 4. REUSABLE TOKEN GENERATOR & VALIDATOR SCRIPTS
+
+### A. Token Compilation (`scripts/generate-tokens.cjs`)
+Reads JSON token tree and outputs production CSS custom properties:
+```powershell
+node .agents/skills/design-system/scripts/generate-tokens.cjs --config assets/design-tokens.json -o assets/design-tokens.css
 ```
 
-### Command
-
-```bash
-/slides:create "10-slide investor pitch for ClaudeKit Marketing"
+### B. Anti-Hardcode Token Linting Script
+Scan source code to identify and reject raw hardcoded hex codes:
+```powershell
+node .agents/skills/design-system/scripts/validate-tokens.cjs --dir src/
 ```
 
-## Best Practices
+---
 
-1. Never use raw hex in components - always reference tokens
-2. Semantic layer enables theme switching (light/dark)
-3. Component tokens enable per-component customization
-4. Use HSL format for opacity control
-5. Document every token's purpose
-6. **Slides must import design-tokens.css and use var() exclusively**
+## 🔗 5. CROSS-SKILL SYNCHRONIZATION PROTOCOL
+- **Receives from `brand`**: Consumes core color swatches and typography families.
+- **Supplies to `ui-styling` & `card-design`**: Feeds Tailwind CSS variables and `@theme` configuration.
+- **Powers `linkedin-campaign-poster-design` & `banner-design`**: Injects dynamic CSS variables directly into HTML poster rendering pipelines.
+
+---
+
+## ⚙️ 6. MANDATORY AUTO-QA & TOKEN AUDIT LOOP
+Before approving any code or design update:
+1. **Token Reference Check**: Verify that zero component CSS declarations contain raw hex values (e.g. `#10B981`); all must use `var(--accent-primary)`.
+2. **Theme Switching Audit**: Test interface switching between `tech-obsidian` and `apple-daylight` to ensure all foreground text and border lines remain legible.
+3. **Contrast Score**: Run WCAG AA evaluation to guarantee all semantic color combinations achieve at least `4.5:1` contrast for text.

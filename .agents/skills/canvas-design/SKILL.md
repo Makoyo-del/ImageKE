@@ -1,144 +1,134 @@
 ---
 name: canvas-design
-description: Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user asks to create a poster, piece of art, design, or other static piece. Create original visual designs, never copying existing artists' work to avoid copyright violations.
-license: Complete terms in LICENSE.txt
+description: Autonomous vector art, technical infographics, architectural blueprints, and museum-grade PDF/PNG document generation engine with deterministic layout math.
 ---
+# Canvas & Visual Art Engine (v4.0 — Enterprise Edition)
 
-These are instructions for creating design philosophies - aesthetic movements that are then EXPRESSED VISUALLY. Output only .md files, .pdf files, and .png files.
-
-Complete this in two steps:
-1. Design Philosophy Creation (.md file)
-2. Express by creating it on a canvas (.pdf file or .png file)
-
-First, undertake this task:
-
-## DESIGN PHILOSOPHY CREATION
-
-To begin, create a VISUAL PHILOSOPHY (not layouts or templates) that will be interpreted through:
-- Form, space, color, composition
-- Images, graphics, shapes, patterns
-- Minimal text as visual accent
-
-### THE CRITICAL UNDERSTANDING
-- What is received: Some subtle input or instructions by the user that should be taken into account, but used as a foundation; it should not constrain creative freedom.
-- What is created: A design philosophy/aesthetic movement.
-- What happens next: Then, the same version receives the philosophy and EXPRESSES IT VISUALLY - creating artifacts that are 90% visual design, 10% essential text.
-
-Consider this approach:
-- Write a manifesto for an art movement
-- The next phase involves making the artwork
-
-The philosophy must emphasize: Visual expression. Spatial communication. Artistic interpretation. Minimal words.
-
-### HOW TO GENERATE A VISUAL PHILOSOPHY
-
-**Name the movement** (1-2 words): "Brutalist Joy" / "Chromatic Silence" / "Metabolist Dreams"
-
-**Articulate the philosophy** (4-6 paragraphs - concise but complete):
-
-To capture the VISUAL essence, express how the philosophy manifests through:
-- Space and form
-- Color and material
-- Scale and rhythm
-- Composition and balance
-- Visual hierarchy
-
-**CRITICAL GUIDELINES:**
-- **Avoid redundancy**: Each design aspect should be mentioned once. Avoid repeating points about color theory, spatial relationships, or typographic principles unless adding new depth.
-- **Emphasize craftsmanship REPEATEDLY**: The philosophy MUST stress multiple times that the final work should appear as though it took countless hours to create, was labored over with care, and comes from someone at the absolute top of their field. This framing is essential - repeat phrases like "meticulously crafted," "the product of deep expertise," "painstaking attention," "master-level execution."
-- **Leave creative space**: Remain specific about the aesthetic direction, but concise enough that the next Claude has room to make interpretive choices also at a extremely high level of craftmanship.
-
-The philosophy must guide the next version to express ideas VISUALLY, not through text. Information lives in design, not paragraphs.
-
-### PHILOSOPHY EXAMPLES
-
-**"Concrete Poetry"**
-Philosophy: Communication through monumental form and bold geometry.
-Visual expression: Massive color blocks, sculptural typography (huge single words, tiny labels), Brutalist spatial divisions, Polish poster energy meets Le Corbusier. Ideas expressed through visual weight and spatial tension, not explanation. Text as rare, powerful gesture - never paragraphs, only essential words integrated into the visual architecture. Every element placed with the precision of a master craftsman.
-
-**"Chromatic Language"**
-Philosophy: Color as the primary information system.
-Visual expression: Geometric precision where color zones create meaning. Typography minimal - small sans-serif labels letting chromatic fields communicate. Think Josef Albers' interaction meets data visualization. Information encoded spatially and chromatically. Words only to anchor what color already shows. The result of painstaking chromatic calibration.
-
-**"Analog Meditation"**
-Philosophy: Quiet visual contemplation through texture and breathing room.
-Visual expression: Paper grain, ink bleeds, vast negative space. Photography and illustration dominate. Typography whispered (small, restrained, serving the visual). Japanese photobook aesthetic. Images breathe across pages. Text appears sparingly - short phrases, never explanatory blocks. Each composition balanced with the care of a meditation practice.
-
-**"Organic Systems"**
-Philosophy: Natural clustering and modular growth patterns.
-Visual expression: Rounded forms, organic arrangements, color from nature through architecture. Information shown through visual diagrams, spatial relationships, iconography. Text only for key labels floating in space. The composition tells the story through expert spatial orchestration.
-
-**"Geometric Silence"**
-Philosophy: Pure order and restraint.
-Visual expression: Grid-based precision, bold photography or stark graphics, dramatic negative space. Typography precise but minimal - small essential text, large quiet zones. Swiss formalism meets Brutalist material honesty. Structure communicates, not words. Every alignment the work of countless refinements.
-
-*These are condensed examples. The actual design philosophy should be 4-6 substantial paragraphs.*
-
-### ESSENTIAL PRINCIPLES
-- **VISUAL PHILOSOPHY**: Create an aesthetic worldview to be expressed through design
-- **MINIMAL TEXT**: Always emphasize that text is sparse, essential-only, integrated as visual element - never lengthy
-- **SPATIAL EXPRESSION**: Ideas communicate through space, form, color, composition - not paragraphs
-- **ARTISTIC FREEDOM**: The next Claude interprets the philosophy visually - provide creative room
-- **PURE DESIGN**: This is about making ART OBJECTS, not documents with decoration
-- **EXPERT CRAFTSMANSHIP**: Repeatedly emphasize the final work must look meticulously crafted, labored over with care, the product of countless hours by someone at the top of their field
-
-**The design philosophy should be 4-6 paragraphs long.** Fill it with poetic design philosophy that brings together the core vision. Avoid repeating the same points. Keep the design philosophy generic without mentioning the intention of the art, as if it can be used wherever. Output the design philosophy as a .md file.
+Use this skill whenever designing or generating standalone visual artwork, architectural blueprints, technical infographics, executive report covers, or museum-grade documents in PNG or PDF format.
 
 ---
 
-## DEDUCING THE SUBTLE REFERENCE
-
-**CRITICAL STEP**: Before creating the canvas, identify the subtle conceptual thread from the original request.
-
-**THE ESSENTIAL PRINCIPLE**:
-The topic is a **subtle, niche reference embedded within the art itself** - not always literal, always sophisticated. Someone familiar with the subject should feel it intuitively, while others simply experience a masterful abstract composition. The design philosophy provides the aesthetic language. The deduced topic provides the soul - the quiet conceptual DNA woven invisibly into form, color, and composition.
-
-This is **VERY IMPORTANT**: The reference must be refined so it enhances the work's depth without announcing itself. Think like a jazz musician quoting another song - only those who know will catch it, but everyone appreciates the music.
+## 🚨 1. CORE MANDATE & INTEGRITY RULES (ZERO EXCEPTIONS)
+1. **DETERMINISTIC CRAFTSMANSHIP**: Every piece must look meticulously engineered, labored over by an elite systems architect and generative designer. No lazy templates or disjointed clip-art.
+2. **MATHEMATICAL PRECISION**: Strict spatial budgets. 30–40% breathing room (negative space) is mandatory. Text and visual elements must never overlap or bleed into outer safety boundaries.
+3. **ZERO PLACEHOLDER TEXT**: Never output `Lorem Ipsum` or filler copy. All typography must serve as structural information encoding real systems, data protocols, or mathematical logic.
 
 ---
 
-## CANVAS CREATION
+## 🎨 2. DYNAMIC CONTEXT & AESTHETIC ROUTER
+Select the canvas mode that embodies the subject's conceptual soul:
 
-With both the philosophy and the conceptual framework established, express it on a canvas. Take a moment to gather thoughts and clear the mind. Use the design philosophy created and the instructions below to craft a masterpiece, embodying all aspects of the philosophy with expert craftsmanship.
+### Mode 1: `TECHNICAL_BLUEPRINT` (System Architecture, Cloud Topologies, Engineering Schematics)
+- **Palette**: Deep Blueprint Navy (`#0A1128`) or Obsidian (`#09090B`) with Neon Cyan (`#00F2FE`), Emerald (`#10B981`), and Cadence White (`#F8FAFC`).
+- **Texture**: Fine engineering coordinate grid (24px or 32px), subtle measurement callout lines (`dim: 420px`), dimension markers, and node-link network traces.
+- **Typography**: `JetBrains Mono` or `Space Mono` for technical callouts; `Plus Jakarta Sans` for titles.
 
-**IMPORTANT**: For any type of content, even if the user requests something for a movie/game/book, the approach should still be sophisticated. Never lose sight of the idea that this should be art, not something that's cartoony or amateur.
+### Mode 2: `BAUHAUS_SWISS` (Executive Manifestos, Contrarian Essays, High-Contrast Editorial Art)
+- **Palette**: Warm Alabaster Paper (`#F4F4EE`), Deep Carbon Black (`#111111`), Editorial Vermilion (`#D61A3C`), International Klein Blue (`#002FA7`).
+- **Structure**: Rigid asymmetrical Swiss grid, zero border-radius (`0px`), thick hairline dividers (`1.5px solid #111111`).
+- **Typography**: `Playfair Display` (Ultra-heavy 900) paired with razor-sharp `Inter` and `Space Mono`.
 
-To create museum or magazine quality work, use the design philosophy as the foundation. Create one single page, highly visual, design-forward PDF or PNG output (unless asked for more pages). Generally use repeating patterns and perfect shapes. Treat the abstract philosophical design as if it were a scientific bible, borrowing the visual language of systematic observation—dense accumulation of marks, repeated elements, or layered patterns that build meaning through patient repetition and reward sustained viewing. Add sparse, clinical typography and systematic reference markers that suggest this could be a diagram from an imaginary discipline, treating the invisible subject with the same reverence typically reserved for documenting observable phenomena. Anchor the piece with simple phrase(s) or details positioned subtly, using a limited color palette that feels intentional and cohesive. Embrace the paradox of using analytical visual language to express ideas about human experience: the result should feel like an artifact that proves something ephemeral can be studied, mapped, and understood through careful attention. This is true art. 
+### Mode 3: `KINETIC_DATA_SYSTEMS` (Telemetry, Financial Math, Flowcharts, Algorithmic Visuals)
+- **Palette**: Dark Slate (`#0B0F19`), Amber Pulse (`#F59E0B`), Electric Violet (`#8B5CF6`), Emerald Delta (`#10B981`).
+- **Structure**: SVG sparklines, concentric circle radar meters, connected pipeline nodes with latency tags.
+- **Typography**: `Inter` Bold headings + `JetBrains Mono` tabular figures.
 
-**Text as a contextual element**: Text is always minimal and visual-first, but let context guide whether that means whisper-quiet labels or bold typographic gestures. A punk venue poster might have larger, more aggressive type than a minimalist ceramics studio identity. Most of the time, font should be thin. All use of fonts must be design-forward and prioritize visual communication. 
-
-**CRITICAL LAYOUT & SPATIAL RULES:**
-- **Safety Margins:** Maintain a minimum 10-15% safety margin on all edges of the canvas. No text or critical visual elements should bleed into this outer boundary. Scale down font tracking or size dynamically to respect boundaries.
-- **Typography Over Image Safety (Legibility Rule):** Never place raw text directly over photographic backgrounds unless there is a contrast ratio of at least 4.5:1. Use overlay techniques:
-    * *Solid/Semi-Transparent Backing:* Place text inside a structured, high-contrast card or capsule.
-    * *Gradient Scrims:* Apply subtle dark/light directional gradients beneath text layers.
-    * *Strict Partitioning:* Isolate the image to its own sector, keeping text on a clean, solid background.
-- **Zero Overlapping:** Text blocks must never overlap with image containers, photos, or other text blocks. Layout elements must dynamically clear and wrap around photography.
-- **Advanced Portrait Masking & Crop Safety:** Avoid strict circular masks that cut off the top of the subject's head. Use high-quality rounded rectangles, clean borders, or custom geometric masks (pill/arched shapes). If using transparent backgrounds (subject isolation), ensure the figure subtly overlays behind text or steps out of borders for depth.
-- **Integrated UI Containers:** Treat images as assets inside operating system mockups (e.g. an active window, an IDE panel, or terminal node) where appropriate.
-- **High-Contrast Readability:** Ensure all footer text, URLs, and secondary call-to-actions are highly legible. Never overlay dark/low-opacity text on dark backgrounds or light text on light backgrounds.
-- **Negative Space & Composition:** Keep at least 30-40% of the canvas clear of heavy graphical noise to provide breathing room. Establish a clear visual hierarchy (hook -> secondary details -> CTA).
-
-**IMPORTANT: Use different fonts if writing text. Search the `./canvas-fonts` directory. Regardless of approach, sophistication is non-negotiable.**
-
-Download and use whatever fonts are needed to make this a reality. Get creative by making the typography actually part of the art itself -- if the art is abstract, bring the font onto the canvas, not typeset digitally.
-
-To push boundaries, follow design instinct/intuition while using the philosophy as a guiding principle. Embrace ultimate design freedom and choice. Push aesthetics and design to the frontier. 
-
-**CRITICAL**: To achieve human-crafted quality (not AI-generated), create work that looks like it took countless hours. Make it appear as though someone at the absolute top of their field labored over every detail with painstaking care. Ensure the composition, spacing, color choices, typography - everything screams expert-level craftsmanship. Double-check that nothing overlaps, formatting is flawless, every detail perfect. Create something that could be shown to people to prove expertise and rank as undeniably impressive.
-
-Output the final result as a single, downloadable .pdf or .png file, alongside the design philosophy used as a .md file.
+### Mode 4: `ANALOG_MINIMALISM` (High-End Publications, Strategic Whitepapers, Coffee-Table Decks)
+- **Palette**: Cool Alabaster (`#F8FAFC`), Soft Graphite (`#334155`), Muted Slate (`#64748B`), Accent Bronze (`#92400E`).
+- **Structure**: Generous negative space (50%+), subtle grain texture, restrained hairline typography.
+- **Typography**: `Instrument Serif` or `Outfit` with wide letter spacing (`letter-spacing: 0.15em`).
 
 ---
 
-## FINAL STEP
+## 📐 3. STRICT MATHEMATICAL GUARDRAILS
+1. **Canvas Dimension Standards**:
+   - Portrait Mobile / Poster: `1080px × 1350px` (4:5 Aspect Ratio).
+   - Widescreen / Landscape: `1920px × 1080px` (16:9 Aspect Ratio) or `2560px × 1440px`.
+   - Print Quality / Multi-page: `2480px × 3508px` (A4 @ 300 DPI) for PDF generation.
+2. **Spatial Safety & Negative Space**:
+   - Outer Safety Margin: Strict `10% to 15%` padding along all 4 edges (no critical marks inside the margin).
+   - Negative Space Budget: Minimum `35%` of the canvas must remain empty of dense graphical marks to allow eye rest.
+   - Text Overlap Prevention: Text containers must have solid or scrim backgrounds when positioned near dense SVG vectors. Contrast ratio must exceed `4.5:1`.
 
-**IMPORTANT**: The user ALREADY said "It isn't perfect enough. It must be pristine, a masterpiece if craftsmanship, as if it were about to be displayed in a museum."
+---
 
-**CRITICAL**: To refine the work, avoid adding more graphics; instead refine what has been created and make it extremely crisp, respecting the design philosophy and the principles of minimalism entirely. Rather than adding a fun filter or refactoring a font, consider how to make the existing composition more cohesive with the art. If the instinct is to call a new function or draw a new shape, STOP and instead ask: "How can I make what's already here more of a piece of art?"
+## 🧩 4. REUSABLE SVG & PROCEDURAL CANVAS PATTERNS
 
-Take a second pass. Go back to the code and refine/polish further to make this a philosophically designed masterpiece.
+### High-DPI Procedural SVG Blueprint Pattern:
+```html
+<svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg" style="background:#09090B;">
+  <defs>
+    <!-- 32px Grid Pattern -->
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+    <!-- Glowing Node Gradients -->
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="blurFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+    </filter>
+  </defs>
 
-## MULTI-PAGE OPTION
+  <!-- Background Grid -->
+  <rect width="1080" height="1350" fill="#09090B"/>
+  <rect width="1080" height="1350" fill="url(#grid)"/>
 
-To create additional pages when requested, create more creative pages along the same lines as the design philosophy but distinctly different as well. Bundle those pages in the same .pdf or many .pngs. Treat the first page as just a single page in a whole coffee table book waiting to be filled. Make the next pages unique twists and memories of the original. Have them almost tell a story in a very tasteful way. Exercise full creative freedom.
+  <!-- Subtle Radial Ambient Light -->
+  <circle cx="540" cy="300" r="400" fill="url(#neonGlow)" filter="url(#blurFilter)" opacity="0.12"/>
+
+  <!-- Architectural Vector Nodes & Connectors -->
+  <g stroke="rgba(255,255,255,0.15)" stroke-width="1.5" fill="none">
+    <path d="M 180 350 L 540 350 L 900 350" stroke-dasharray="6,6"/>
+    <circle cx="180" cy="350" r="6" fill="#10B981"/>
+    <circle cx="540" cy="350" r="8" fill="#6366F1"/>
+    <circle cx="900" cy="350" r="6" fill="#10B981"/>
+  </g>
+</svg>
+```
+
+---
+
+## 💻 5. PLAYWRIGHT RETINA EXPORT SCRIPT
+Always render canvas outputs via Playwright with double-resolution (`deviceScaleFactor: 2`) for crisp print and digital presentation:
+
+```python
+import sys
+from playwright.sync_api import sync_playwright
+
+def render_canvas(html_path, output_png, width=1080, height=1350):
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(
+            viewport={"width": width, "height": height},
+            device_scale_factor=2 # Produces 2160x2700 Retina output
+        )
+        page.goto(f"file:///{html_path}")
+        page.wait_for_load_state("networkidle")
+        page.evaluate("() => document.fonts.ready")
+        page.screenshot(path=output_png, full_page=False)
+        browser.close()
+        print(f"✓ Canvas rendered to: {output_png}")
+
+if __name__ == "__main__":
+    if len(sys.argv) > 2:
+        render_canvas(sys.argv[1], sys.argv[2])
+```
+
+---
+
+## 🔗 6. CROSS-SKILL SYNCHRONIZATION
+- **Sync with `brand`**: Consumes brand token palettes, logo glyphs, and typography constraints.
+- **Sync with `linkedin-campaign-poster-design`**: Supplies underlying geometric vector patterns and architectural diagrams.
+- **Sync with `slides`**: Exports cover slides, section dividers, and high-impact infographic illustrations into HTML presentation decks.
+
+---
+
+## ⚙️ 7. MANDATORY AUTO-QA & SELF-CORRECTION LOOP
+Before declaring a canvas artifact complete:
+1. **Safety Margin Inspection**: Ensure all typography, logos, and critical node pins are positioned at least `10%` inward from the outer edges.
+2. **Text Overlap Check**: Ensure no text lines collide with background vectors or image elements.
+3. **Font Rendering Validation**: Verify Google Fonts loaded successfully; fallback fonts (Times New Roman or Arial) are strictly prohibited.
+4. **Resolution Verification**: Verify final exported PNG is rendered at minimum `2x` Retina resolution.

@@ -679,7 +679,7 @@ router.patch('/projects/:id/toggle', authenticateUser, async (req, res) => {
   }
 });
 
-// Project logs
+// Project logs (Optimized for Egress: Excludes large raw payload/headers in list view)
 router.get('/projects/:id/logs', authenticateUser, async (req, res) => {
   const { id } = req.params;
   
@@ -692,12 +692,13 @@ router.get('/projects/:id/logs', authenticateUser, async (req, res) => {
 
   if (!project) return res.status(404).json({ error: 'Project not found.' });
 
+  // Only query lightweight display columns + deliveries summary to minimize egress
   const { data: logs, error } = await supabase
     .from('webhooks')
-    .select('*, deliveries(*)')
+    .select('id, project_id, event, gateway, status, latency_ms, status_code, ip_address, created_at, currency, amount, attempts, deliveries(id, status, status_code, latency_ms, created_at)')
     .eq('project_id', id)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(50);
 
   if (error) return res.status(500).json({ error: error.message });
 
@@ -708,6 +709,24 @@ router.get('/projects/:id/logs', authenticateUser, async (req, res) => {
   }));
 
   res.json(enrichedLogs);
+});
+
+// Single webhook details (Loads heavy raw payload & headers ONLY on demand when user inspects)
+router.get('/webhooks/:webhookId/detail', authenticateUser, async (req, res) => {
+  const { webhookId } = req.params;
+
+  const { data: webhook, error } = await supabase
+    .from('webhooks')
+    .select('*, projects(user_id), deliveries(*)')
+    .eq('id', webhookId)
+    .maybeSingle();
+
+  if (error || !webhook) return res.status(404).json({ error: 'Webhook not found.' });
+  if (webhook.projects?.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Unauthorized.' });
+  }
+
+  res.json(webhook);
 });
 
 // Manual retry of single webhook

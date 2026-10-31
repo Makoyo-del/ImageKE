@@ -456,6 +456,65 @@ export function DigitalStoreOps({ onNavigate }) {
   const orders = data?.orders || [];
   const products = data?.products || DEFAULT_PRODUCTS;
 
+  const periodLabels = {
+    today: 'Today',
+    week: 'This Week',
+    month: 'This Month',
+    all: 'All Time'
+  };
+
+  const activeBreakdown = (() => {
+    if (metrics.time_breakdowns?.[timeFilter]) {
+      return metrics.time_breakdowns[timeFilter];
+    }
+    if (timeFilter === 'all') {
+      return {
+        grossUsd: metrics.grossRevenueUsd ?? 0,
+        grossKes: metrics.grossRevenueKes ?? 0,
+        paidOrders: metrics.paidOrders ?? 0,
+        downloads: metrics.totalDownloads ?? 0,
+        totalOrders: metrics.totalOrders ?? 0
+      };
+    }
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const threshold = timeFilter === 'today' ? startOfToday : timeFilter === 'week' ? startOfWeek : startOfMonth;
+
+    let grossUsd = 0;
+    let grossKes = 0;
+    let paidOrders = 0;
+    let downloads = 0;
+    let totalOrders = 0;
+
+    orders.forEach((o) => {
+      const orderDate = new Date(o.createdAt || o.created_at);
+      if (orderDate >= threshold) {
+        totalOrders++;
+        const isPaid = o.paymentStatus === 'SUCCESS' || o.fulfillmentStatus === 'FULFILLED' || o.payment_status === 'SUCCESS' || o.fulfillment_status === 'FULFILLED';
+        const amt = Number(o.amountPaid || o.amount_paid || 0);
+        const dl = Number(o.downloadCount || o.download_count || 0);
+        downloads += dl;
+        if (isPaid) {
+          paidOrders++;
+          if (o.currency === 'USD') grossUsd += amt;
+          else grossKes += amt;
+        }
+      }
+    });
+
+    return {
+      grossUsd: Number(grossUsd.toFixed(2)),
+      grossKes: Number(grossKes.toFixed(2)),
+      paidOrders,
+      downloads,
+      totalOrders
+    };
+  })();
+
   const filteredOrders = orders.filter((o) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
