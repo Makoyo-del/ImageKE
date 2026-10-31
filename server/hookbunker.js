@@ -692,13 +692,13 @@ router.get('/projects/:id/logs', authenticateUser, async (req, res) => {
 
   if (!project) return res.status(404).json({ error: 'Project not found.' });
 
-  // Only query lightweight display columns + deliveries summary to minimize egress
+  // Query exact valid columns + payload/deliveries capped at 25 items for safe egress
   const { data: logs, error } = await supabase
     .from('webhooks')
-    .select('id, project_id, event, gateway, status, latency_ms, status_code, ip_address, created_at, currency, amount, attempts, deliveries(id, status, status_code, latency_ms, created_at)')
+    .select('id, project_id, gateway, status, transaction_code, amount, phone, email, payment_method, currency, headers, payload, created_at, deliveries(id, attempt_number, response_status, response_body, error_message, duration_ms, created_at)')
     .eq('project_id', id)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(25);
 
   if (error) return res.status(500).json({ error: error.message });
 
