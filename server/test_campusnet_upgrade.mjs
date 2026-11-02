@@ -530,6 +530,72 @@ describe('Phase 2.2: Payment Happy Path (M-Pesa + Airtel), Idempotency & Concurr
     assert.equal(assignedVouchers.length, 1, 'Idempotency must guarantee only 1 voucher is assigned');
   });
 
+  test('Concurrent Webhook + Status Polling race does NOT claim duplicate vouchers or double-stack session duration', async () => {
+    // Setup clean 7-day vouchers
+    mockDb.tables.campusnet_vouchers = [
+      { id: 'v_7d_1', code: 'M7D_TEST1', password: '111', package_id: 'pkg_7d', duration_hours: 168, amount: 180, status: 'available' },
+      { id: 'v_7d_2', code: 'M7D_TEST2', password: '222', package_id: 'pkg_7d', duration_hours: 168, amount: 180, status: 'available' }
+    ];
+
+    const ref = 'CN_RACE_TEST_7D';
+    const phone = '254792999888';
+    mockDb.tables.campusnet_transactions.push({
+      id: 'tx_race_7d',
+      reference: ref,
+      phone,
+      mac_address: 'C6:83:E6:78:A4:27',
+      package_id: 'pkg_7d',
+      amount: 180,
+      status: 'pending'
+    });
+
+    const webhookBody = JSON.stringify({
+      event: 'charge.success',
+      data: {
+        id: 777777,
+        reference: ref,
+        amount: 18000, // KSh 180.00
+        status: 'success',
+        gateway_response: 'RKT_RACE_7D'
+      }
+    });
+    const hmac = crypto.createHmac('sha512', TEST_PAYSTACK_SECRET).update(webhookBody).digest('hex');
+
+    // Fire webhook and status polling SIMULTANEOUSLY
+    const [whRes, statusRes] = await Promise.all([
+      fetch(`${BASE_URL}/webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-paystack-signature': hmac
+        },
+        body: webhookBody
+      }),
+      fetch(`${BASE_URL}/pay/status/${ref}`)
+    ]);
+
+    assert.equal(whRes.status, 200);
+    const statusJson = await statusRes.json();
+    assert.equal(statusJson.status, 'completed');
+
+    // Crucial assertions:
+    // 1. Exactly ONE voucher must be assigned
+    const assignedVouchers = mockDb.tables.campusnet_vouchers.filter((v) => v.status === 'assigned');
+    assert.equal(assignedVouchers.length, 1, 'Concurrency race must NOT burn 2 vouchers');
+
+    // 2. The second voucher in pool must still be available (not assigned or orphaned)
+    const secondVoucher = mockDb.tables.campusnet_vouchers.find((v) => v.code === 'M7D_TEST2');
+    assert.ok(secondVoucher, 'Second voucher must exist');
+    assert.equal(secondVoucher.status, 'available', 'Second voucher must remain available in pool');
+
+    // 3. The session duration must be exactly 7 days (168 hours), NOT 14 days!
+    const session = mockDb.tables.campusnet_sessions.find((s) => s.phone === phone);
+    assert.ok(session, 'Session must exist');
+    const validUntilDate = new Date(session.valid_until);
+    const sessionHours = (validUntilDate.getTime() - NIGHT_OPEN_DATE.getTime()) / (3600 * 1000);
+    assert.equal(Math.round(sessionHours), 168, 'Session validity must be exactly 7 days (168h), NOT stacked to 14 days (336h)');
+  });
+
   test('10 parallel payers simultaneously claim 10 distinct vouchers with truthful paid amounts', async () => {
     const payers = Array.from({ length: 10 }, (_, idx) => {
       const ref = `CN_PARALLEL_${idx + 1}`;

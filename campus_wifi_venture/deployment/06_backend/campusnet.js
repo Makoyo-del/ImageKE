@@ -67,6 +67,7 @@ export function resetCampusNetInternalState() {
   lastPaystackPollByRef.clear();
   pendingRouterCommands.length = 0;
   inFlightVoucherClaims.clear();
+  inFlightActivationsByRef.clear();
   cachedOverview = null;
   lastOverviewFetch = 0;
 }
@@ -76,6 +77,7 @@ const recentStkByPhone = new Map(); // phone -> { reference, timestamp, packageI
 const lastPaystackPollByRef = new Map(); // reference -> timestamp
 const pendingRouterCommands = []; // [{ id, command, created_at }]
 const inFlightVoucherClaims = new Set(); // candidate voucher IDs currently being claimed in-process
+const inFlightActivationsByRef = new Map(); // reference -> Promise<activationResult>
 
 export function queueRouterCommand(command) {
   if (!command || typeof command !== 'string') return null;
@@ -373,7 +375,30 @@ router.post('/pay/stk', async (req, res) => {
  * - Strictly continuous wall-clock validity (`now + duration_hours`).
  * - Records paid amount truthfully.
  */
-export async function activateVoucherForTransaction({
+export async function activateVoucherForTransaction(params) {
+  const reference = params?.reference;
+  if (reference) {
+    const inFlight = inFlightActivationsByRef.get(reference);
+    if (inFlight) {
+      return await inFlight;
+    }
+  }
+
+  const activationPromise = _doActivateVoucherForTransaction(params);
+  if (reference) {
+    inFlightActivationsByRef.set(reference, activationPromise);
+  }
+
+  try {
+    return await activationPromise;
+  } finally {
+    if (reference) {
+      inFlightActivationsByRef.delete(reference);
+    }
+  }
+}
+
+async function _doActivateVoucherForTransaction({
   reference,
   phone,
   macAddress,
@@ -392,12 +417,15 @@ export async function activateVoucherForTransaction({
   const recordedAmount = paidAmountKes !== null && paidAmountKes !== undefined ? Number(paidAmountKes) : pkg.amount;
 
   // 1. Idempotency check by transaction reference
+  let existingTx = null;
   if (reference) {
-    const { data: existingTx } = await deps.supabase
+    const { data: txRow } = await deps.supabase
       .from('campusnet_transactions')
       .select('*')
       .eq('reference', reference)
       .maybeSingle();
+
+    existingTx = txRow;
 
     if (existingTx && existingTx.status === 'completed' && existingTx.voucher_code) {
       const { data: existingVoucher } = await deps.supabase
@@ -406,15 +434,20 @@ export async function activateVoucherForTransaction({
         .eq('code', existingTx.voucher_code)
         .maybeSingle();
 
-      if (existingVoucher) {
-        return {
-          voucherCode: existingVoucher.code,
-          voucherPassword: existingVoucher.password,
-          validUntil: existingVoucher.expires_at,
-          package: getPackageById(existingTx.package_id) || pkg,
-          idempotent: true
-        };
-      }
+      const { data: existingSession } = await deps.supabase
+        .from('campusnet_sessions')
+        .select('*')
+        .eq('voucher_code', existingTx.voucher_code)
+        .maybeSingle();
+
+      return {
+        voucherCode: existingTx.voucher_code,
+        voucherPassword: existingVoucher?.password || existingSession?.voucher_password || '',
+        validUntil: existingVoucher?.expires_at || existingSession?.valid_until || new Date(new Date(existingTx.created_at).getTime() + durationHours * 3600 * 1000).toISOString(),
+        package: getPackageById(existingTx.package_id) || pkg,
+        paidAmountKes: existingTx.amount,
+        idempotent: true
+      };
     }
   }
 
@@ -486,19 +519,75 @@ export async function activateVoucherForTransaction({
   // Non-blocking background check to keep pool stocked
   ensureVoucherPoolStock(pkg.id, 25, 50).catch(() => {});
 
-  // 3. Mark transaction completed with exact paid amount
+  // 3. Mark transaction completed with exact paid amount (with race-safety guard if existingTx exists)
   if (reference) {
-    await deps.supabase
-      .from('campusnet_transactions')
-      .update({
-        status: 'completed',
-        paystack_reference: paystackId ? String(paystackId) : null,
-        mpesa_receipt: mpesaReceipt || null,
-        voucher_code: voucherCode,
-        package_id: pkg.id,
-        amount: recordedAmount
-      })
-      .eq('reference', reference);
+    if (existingTx) {
+      const { data: updatedRows } = await deps.supabase
+        .from('campusnet_transactions')
+        .update({
+          status: 'completed',
+          paystack_reference: paystackId ? String(paystackId) : null,
+          mpesa_receipt: mpesaReceipt || null,
+          voucher_code: voucherCode,
+          package_id: pkg.id,
+          amount: recordedAmount
+        })
+        .eq('reference', reference)
+        .eq('status', 'pending')
+        .select();
+
+      const updated = Array.isArray(updatedRows) ? updatedRows[0] : updatedRows;
+      // If another concurrent process completed the transaction in the meantime:
+      if (!updated && existingTx.status === 'pending') {
+        // Rollback this candidate voucher back to available pool
+        await deps.supabase
+          .from('campusnet_vouchers')
+          .update({
+            status: 'available',
+            assigned_phone: null,
+            assigned_mac: null,
+            activated_at: null,
+            expires_at: null
+          })
+          .eq('code', voucherCode);
+
+        // Fetch winner's voucher
+        const { data: winnerTx } = await deps.supabase
+          .from('campusnet_transactions')
+          .select('*')
+          .eq('reference', reference)
+          .maybeSingle();
+
+        if (winnerTx && winnerTx.voucher_code) {
+          const { data: winnerVoucher } = await deps.supabase
+            .from('campusnet_vouchers')
+            .select('*')
+            .eq('code', winnerTx.voucher_code)
+            .maybeSingle();
+
+          return {
+            voucherCode: winnerTx.voucher_code,
+            voucherPassword: winnerVoucher?.password || '',
+            validUntil: winnerVoucher?.expires_at || validUntil.toISOString(),
+            package: getPackageById(winnerTx.package_id) || pkg,
+            paidAmountKes: winnerTx.amount,
+            idempotent: true
+          };
+        }
+      }
+    } else {
+      await deps.supabase
+        .from('campusnet_transactions')
+        .update({
+          status: 'completed',
+          paystack_reference: paystackId ? String(paystackId) : null,
+          mpesa_receipt: mpesaReceipt || null,
+          voucher_code: voucherCode,
+          package_id: pkg.id,
+          amount: recordedAmount
+        })
+        .eq('reference', reference);
+    }
   }
 
   // 4. Upsert active phone session (with remaining time stacking if extending an active pass)
@@ -516,7 +605,8 @@ export async function activateVoucherForTransaction({
 
       if (existingSession && existingSession.valid_until) {
         const existingExpiry = new Date(existingSession.valid_until);
-        if (existingExpiry > now) {
+        // CRITICAL GUARD: Only stack if existing session is unexpired AND it belongs to a DIFFERENT voucher
+        if (existingExpiry > now && existingSession.voucher_code !== voucherCode) {
           const stackedDate = new Date(existingExpiry.getTime() + durationHours * 3600 * 1000);
           if (existingExpiry > validUntil && existingSession.voucher_code) {
             sessionVoucherCode = existingSession.voucher_code;
