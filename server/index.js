@@ -76,13 +76,17 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://10.10.0.1',
-  'http://campusnet.local'
+  'http://10.20.0.1',
+  'http://campusnet.local',
+  'https://campusnet.local',
+  'http://wifi.makoyocart.com',
+  'https://wifi.makoyocart.com'
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      const isLocalCaptive = /^https?:\/\/(10\.10\.\d+\.\d+|192\.168\.\d+\.\d+|campusnet\.local)(:\d+)?$/.test(origin || '');
+      const isLocalCaptive = /^https?:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|campusnet\.local|.*makoyocart\.com)(:\d+)?$/.test(origin || '');
       if (!origin || allowedOrigins.includes(origin) || isLocalCaptive) {
         callback(null, true);
       } else {
