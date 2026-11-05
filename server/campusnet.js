@@ -1373,6 +1373,10 @@ router.post('/pay/verify-code', async (req, res) => {
 // ─── GET /api/campusnet/sync (+ /sync/live & /sync/pool) ──────────────────────
 // Outbound MikroTik L009 Pull-Sync & Remote Command API (Works through Safaricom CGNAT).
 // Emits ONLY strictly validated RouterOS lines (`isValidRouterIdentifier`).
+let cachedLiveSync = null;
+let lastLiveSyncTime = 0;
+const LIVE_SYNC_CACHE_TTL_MS = 45000; // 45s cache to protect Supabase egress
+
 async function handleRouterSync(req, res, forcedMode = null) {
   const token = req.query.token || req.headers['x-router-token'];
   const expectedKey = deps.getRouterSyncKey();
@@ -1382,6 +1386,13 @@ async function handleRouterSync(req, res, forcedMode = null) {
 
   const mode = (forcedMode || req.query.mode || 'all').toLowerCase();
   const now = deps.now();
+  const nowTime = now.getTime();
+
+  // Serve from memory cache if pulled within 45s (protects egress)
+  if (mode === 'live' && cachedLiveSync && (nowTime - lastLiveSyncTime < LIVE_SYNC_CACHE_TTL_MS)) {
+    return res.type('text/plain').send(cachedLiveSync);
+  }
+
   const nowIso = now.toISOString();
 
   try {
@@ -1474,6 +1485,10 @@ async function handleRouterSync(req, res, forcedMode = null) {
       }
     }
 
+    if (mode === 'live') {
+      cachedLiveSync = rsc;
+      lastLiveSyncTime = nowTime;
+    }
     return res.type('text/plain').send(rsc);
   } catch (err) {
     return res.status(500).send('# Sync generation error\n');
@@ -1626,7 +1641,7 @@ router.post('/admin/router-command', authenticateAdmin, (req, res) => {
 // ─── GET /api/campusnet/admin/overview ─────────────────────────────────────────
 let cachedOverview = null;
 let lastOverviewFetch = 0;
-const OVERVIEW_CACHE_TTL_MS = 30000;
+const OVERVIEW_CACHE_TTL_MS = 60000; // 60s cache TTL to minimize Supabase egress
 
 router.get('/admin/overview', authenticateAdmin, async (req, res) => {
   try {
@@ -1640,22 +1655,26 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
 
     const nowIso = now.toISOString();
 
+    // 1. Slim Sessions: select only essential fields (50 max) to minimize egress
     const { data: sessions } = await deps.supabase
       .from('campusnet_sessions')
-      .select('*')
+      .select('id, phone, voucher_code, package_id, valid_until, created_at')
       .order('valid_until', { ascending: false })
-      .limit(100);
+      .limit(50);
 
+    // 2. Slim Voucher Pool: select only package_id
     const { data: vouchers } = await deps.supabase
       .from('campusnet_vouchers')
-      .select('package_id, status')
+      .select('package_id')
       .eq('status', 'available');
 
-    const sixtyDaysAgo = new Date(nowTime - 60 * 24 * 60 * 60 * 1000).toISOString();
+    // 3. Slim Transactions: 30 days window with minimal column set
+    const thirtyDaysAgoDate = new Date(nowTime - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgoIso = thirtyDaysAgoDate.toISOString();
     const { data: allTxs } = await deps.supabase
       .from('campusnet_transactions')
-      .select('id, reference, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code, paystack_reference')
-      .gte('created_at', sixtyDaysAgo)
+      .select('id, reference, phone, amount, package_id, created_at, status, mpesa_receipt, gateway_response, paystack_reference')
+      .gte('created_at', thirtyDaysAgoIso)
       .order('created_at', { ascending: false });
 
     const rawTxs = allTxs || [];
@@ -1740,8 +1759,7 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
     }
 
     // 30-Day Conversion & Recovery Analytics
-    const thirtyDaysAgo = new Date(nowTime - 30 * 24 * 60 * 60 * 1000);
-    const txs30d = rawTxs.filter(t => new Date(t.created_at) >= thirtyDaysAgo);
+    const txs30d = rawTxs.filter(t => new Date(t.created_at) >= thirtyDaysAgoDate);
     const completed30d = txs30d.filter(t => t.status === 'completed' || t.status === 'SUCCESS');
     const failed30d = txs30d.filter(t => t.status === 'failed');
     const pending30d = txs30d.filter(t => t.status === 'pending');

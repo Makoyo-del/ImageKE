@@ -6,8 +6,8 @@ import { cfg } from './config.js';
 
 export const pool = new pg.Pool({
   connectionString: cfg.databaseUrl || undefined,
-  max: 8,
-  idleTimeoutMillis: 30_000,
+  max: 2,
+  idleTimeoutMillis: 10_000,
   application_name: 'shopbot-app',
   ssl: cfg.databaseUrl && !cfg.databaseUrl.includes('localhost') ? { rejectUnauthorized: false } : false,
 });

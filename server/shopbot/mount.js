@@ -178,6 +178,11 @@ export async function mountShopBot(app) {
   // Always mount the shopBotRouter so Meta GET webhook handshake and health checks are immediately responsive
   app.use('/api/shopbot', shopBotRouter(() => bossInstance, () => lastError));
 
+  if (process.env.SHOPBOT_DORMANT === 'true') {
+    console.log('💤 [shopbot] Dormant mode active via SHOPBOT_DORMANT=true. Supabase egress: 0 bytes.');
+    return null;
+  }
+
   if (!cfg.databaseUrl || !cfg.wa.token) {
     console.warn('[shopbot] DATABASE_URL or WHATSAPP_API_TOKEN not set. WhatsApp Commerce Bot is in dormant mode.');
     return null;

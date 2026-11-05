@@ -216,11 +216,13 @@ async function processReaper(boss) {
 
 // ─── registration ───────────────────────────────────────────────────────────
 export async function startWorkers(boss) {
-  // pg-boss v10 hands handlers an array; batchSize 1 keeps retry semantics per-message.
-  const opts = { batchSize: 1, pollingIntervalSeconds: 0.5 };
+  // Respect memory queue or throttled pg-boss polling
+  const pollInterval = Number(process.env.SHOPBOT_POLL_INTERVAL || 15);
+  const opts = { batchSize: 1, pollingIntervalSeconds: pollInterval };
 
   // N parallel pollers => N users processed simultaneously (per-user order kept by advisory lock).
-  for (let i = 0; i < cfg.workerConcurrency; i++) {
+  const concurrency = Number(process.env.WORKER_CONCURRENCY || 1);
+  for (let i = 0; i < concurrency; i++) {
     await boss.work(Q.INBOUND, opts, async ([job]) => processInbound(job, boss));
     await boss.work(Q.PAYMENT, opts, async ([job]) => processPaymentCheck(job, boss));
     await boss.work(Q.NOTIFY, opts, async ([job]) => processNotify(job));
