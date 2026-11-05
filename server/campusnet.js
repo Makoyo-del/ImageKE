@@ -749,7 +749,6 @@ router.post('/webhook', async (req, res) => {
         .from('campusnet_transactions')
         .update({
           status: 'failed',
-          gateway_response: failureReason,
           mpesa_receipt: failureReason
         })
         .eq('reference', reference)
@@ -1655,25 +1654,25 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
 
     const nowIso = now.toISOString();
 
-    // 1. Slim Sessions: select only essential fields (50 max) to minimize egress
+    // 1. Sessions: select valid columns in campusnet_sessions (package_id resolved from voucher_code)
     const { data: sessions } = await deps.supabase
       .from('campusnet_sessions')
-      .select('id, phone, voucher_code, package_id, valid_until, created_at')
+      .select('id, phone, voucher_code, voucher_password, valid_until, created_at')
       .order('valid_until', { ascending: false })
       .limit(50);
 
-    // 2. Slim Voucher Pool: select only package_id
+    // 2. Voucher Pool: select package_id, status
     const { data: vouchers } = await deps.supabase
       .from('campusnet_vouchers')
-      .select('package_id')
+      .select('package_id, status')
       .eq('status', 'available');
 
-    // 3. Slim Transactions: 30 days window with minimal column set
+    // 3. Transactions: select valid columns in campusnet_transactions (30 days window)
     const thirtyDaysAgoDate = new Date(nowTime - 30 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgoIso = thirtyDaysAgoDate.toISOString();
     const { data: allTxs } = await deps.supabase
       .from('campusnet_transactions')
-      .select('id, reference, phone, amount, package_id, created_at, status, mpesa_receipt, gateway_response, paystack_reference')
+      .select('id, reference, phone, package_id, amount, status, mpesa_receipt, paystack_reference, voucher_code, created_at')
       .gte('created_at', thirtyDaysAgoIso)
       .order('created_at', { ascending: false });
 

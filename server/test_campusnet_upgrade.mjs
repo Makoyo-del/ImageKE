@@ -1286,7 +1286,7 @@ describe('Phase 6: Failed Payment Resilience, Instant Polling & Audit Retention'
     assert.equal(res.status, 200);
     const updated = mockDb.tables.campusnet_transactions.find((t) => t.reference === 'cn_test_ref_101');
     assert.equal(updated.status, 'failed');
-    assert.equal(updated.gateway_response, 'No response from user');
+    assert.equal(updated.mpesa_receipt, 'No response from user');
   });
 
   test('6.3 /pay/status/:reference immediately detects Paystack failure and returns status: failed', async () => {

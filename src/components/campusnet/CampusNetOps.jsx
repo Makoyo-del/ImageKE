@@ -103,13 +103,25 @@ export function CampusNetOps({ onNavigate }) {
 
   useEffect(() => {
     fetchOverview();
+
+    // Listen for auth state change so once Supabase session hydrates from storage, overview is fetched
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        fetchOverview();
+      }
+    });
+
     // Auto-poll only when tab is visible, throttled to 60s
     const poll = setInterval(() => {
       if (!document.hidden) {
         fetchOverview(true);
       }
     }, 60000);
-    return () => clearInterval(poll);
+
+    return () => {
+      authListener?.subscription?.unsubscribe?.();
+      clearInterval(poll);
+    };
   }, []);
 
   const handlePrune = async () => {
