@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import https from 'node:https';
 import { supabase as defaultSupabase } from './supabase.js';
 import {
   PACKAGES,
@@ -15,6 +16,14 @@ import {
 } from './campusnet/catalog.js';
 
 dotenv.config();
+
+// Persistent Keep-Alive HTTPS Agent for Paystack API (prevents socket hang ups & cold TLS drops)
+const paystackHttpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  keepAliveMsecs: 10000,
+  timeout: 15000
+});
 
 export { PACKAGES, formatPhone, detectMobileMoneyProvider, isWithinSaleWindow };
 
@@ -219,10 +228,11 @@ router.post('/pay/stk', async (req, res) => {
   const clientMac = (mac_address && mac_address !== '$(mac)') ? String(mac_address).trim() : '00:00:00:00:00:00';
   const clientIp = (ip_address && ip_address !== '$(ip)') ? String(ip_address).trim() : '10.10.0.10';
 
-  // Duplicate-Prompt Guard (within 10 seconds for same phone + package unless explicit resend)
+  // Duplicate-Prompt & Velocity Guard (35 seconds active USSD window unless previous failed)
   const nowMs = now.getTime();
   const prevStk = recentStkByPhone.get(cleanPhone);
-  if (!resend && prevStk && prevStk.packageId === pkg.id && (nowMs - prevStk.timestamp) < 10000) {
+  const STK_COOLDOWN_MS = 35000;
+  if (!resend && prevStk && prevStk.packageId === pkg.id && (nowMs - prevStk.timestamp) < STK_COOLDOWN_MS) {
     return res.json({
       success: true,
       deduplicated: true,
@@ -232,6 +242,15 @@ router.post('/pay/stk', async (req, res) => {
       provider: prevStk.provider,
       provider_label: prevStk.providerLabel,
       message: `${prevStk.providerLabel} PIN prompt already sent to ${cleanPhone}. Check your phone screen.`
+    });
+  }
+
+  // If explicit resend requested within 10 seconds, advise waiting to avoid Safaricom USSD clash
+  if (resend && prevStk && (nowMs - prevStk.timestamp) < 10000) {
+    return res.status(429).json({
+      success: false,
+      code: 'PROMPT_COOLDOWN',
+      error: `Please wait ${Math.ceil((10000 - (nowMs - prevStk.timestamp)) / 1000)}s before requesting a new prompt so your mobile network does not lock your session.`
     });
   }
 
@@ -288,6 +307,7 @@ router.post('/pay/stk', async (req, res) => {
               Authorization: `Bearer ${paystackKey}`,
               'Content-Type': 'application/json'
             },
+            httpsAgent: paystackHttpsAgent,
             timeout: 10000
           });
           lastChargeErr = null;
@@ -301,6 +321,7 @@ router.post('/pay/stk', async (req, res) => {
       }
 
       if (lastChargeErr) {
+        recentStkByPhone.delete(cleanPhone);
         const errData = lastChargeErr.response?.data;
         const chargeStatus = errData?.data?.status;
         const rawMsg = errData?.data?.gateway_response || errData?.message || lastChargeErr.message || '';
@@ -308,12 +329,22 @@ router.post('/pay/stk', async (req, res) => {
 
         await deps.supabase
           .from('campusnet_transactions')
-          .update({ status: 'failed' })
+          .update({
+            status: 'failed',
+            mpesa_receipt: rawMsg || 'STK prompt rejected by upstream'
+          })
           .eq('reference', reference);
+
+        let userFriendlyError = `Could not trigger ${netInfo.label} prompt on ${cleanPhone}. Please unlock your phone screen, close any open USSD popup, verify your number is registered on ${netInfo.label}, and tap Try Again.`;
+        if (rawMsg.includes('Duplicated MSISDN') || rawMsg.includes('existing USSD')) {
+          userFriendlyError = `Your phone has an open USSD/M-Pesa session. Please unlock your phone screen, dismiss any open prompts, and wait 30 seconds before trying again.`;
+        } else if (rawMsg.includes('Fraud')) {
+          userFriendlyError = `Too many rapid payment attempts detected. Please wait 1 minute before retrying.`;
+        }
 
         return res.status(400).json({
           success: false,
-          error: `Could not trigger ${netInfo.label} prompt on ${cleanPhone}. Please unlock your phone screen, close any open USSD popup, verify your number is registered on ${netInfo.label}, and tap Try Again.`,
+          error: userFriendlyError,
           provider: netInfo.provider,
           provider_label: netInfo.label,
           detail: rawMsg
@@ -323,14 +354,19 @@ router.post('/pay/stk', async (req, res) => {
       const pBody = paystackRes?.data;
       const pData = pBody?.data || {};
       if (pBody?.status === false || pData.status === 'failed') {
+        recentStkByPhone.delete(cleanPhone);
+        const failMsg = pData.gateway_response || pBody?.message || `Could not initiate ${netInfo.label} prompt. Please try again.`;
         await deps.supabase
           .from('campusnet_transactions')
-          .update({ status: 'failed' })
+          .update({
+            status: 'failed',
+            mpesa_receipt: failMsg
+          })
           .eq('reference', reference);
 
         return res.status(400).json({
           success: false,
-          error: pData.gateway_response || pBody?.message || `Could not initiate ${netInfo.label} prompt. Please try again.`,
+          error: failMsg,
           provider: netInfo.provider,
           provider_label: netInfo.label
         });
@@ -705,6 +741,24 @@ router.post('/webhook', async (req, res) => {
     return res.status(400).json({ error: 'Invalid webhook signature or verification failed.' });
   }
 
+  // Handle failed or abandoned charges from Paystack
+  if (event.event === 'charge.failed' || event.event === 'charge.abandoned') {
+    if (reference) {
+      const failureReason = data.gateway_response || data.message || 'Payment prompt cancelled or failed.';
+      await deps.supabase
+        .from('campusnet_transactions')
+        .update({
+          status: 'failed',
+          gateway_response: failureReason,
+          mpesa_receipt: failureReason
+        })
+        .eq('reference', reference)
+        .eq('status', 'pending');
+      console.log(`[CampusNet Webhook] Marked transaction ${reference} as failed: ${failureReason}`);
+    }
+    return res.status(200).json({ status: 'ok', received: true, event: event.event });
+  }
+
   if (event.event === 'charge.success') {
     const effectiveData = verifiedPaystackData || data;
     const paidAmt = Math.round(Number(effectiveData.amount || 0) / 100);
@@ -801,7 +855,8 @@ router.get('/pay/status/:reference', async (req, res) => {
     if (tx && tx.status === 'failed') {
       return res.json({
         status: 'failed',
-        error: 'Mobile money prompt failed or was cancelled. Please try again.'
+        error: tx.mpesa_receipt || 'Mobile money prompt failed or was cancelled. Please try again.',
+        gateway_response: tx.mpesa_receipt || null
       });
     }
 
@@ -821,6 +876,7 @@ router.get('/pay/status/:reference', async (req, res) => {
           `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
           {
             headers: { Authorization: `Bearer ${paystackKey}` },
+            httpsAgent: paystackHttpsAgent,
             timeout: 4500
           }
         );
@@ -856,6 +912,25 @@ router.get('/pay/status/:reference', async (req, res) => {
               amount: paidAmt
             });
           }
+        } else if (pData && (pData.status === 'failed' || pData.status === 'abandoned')) {
+          const failureReason = pData.gateway_response || pData.message || 'Mobile money prompt failed or was cancelled.';
+          await deps.supabase
+            .from('campusnet_transactions')
+            .update({
+              status: 'failed',
+              mpesa_receipt: failureReason
+            })
+            .eq('reference', reference)
+            .eq('status', 'pending');
+
+          recentStkByPhone.delete(tx.phone);
+
+          return res.json({
+            status: 'failed',
+            error: failureReason,
+            gateway_response: failureReason,
+            amount: tx.amount || 0
+          });
         }
       } catch (_pErr) {
         // Still awaiting user PIN
@@ -1486,11 +1561,12 @@ router.get('/stats', authenticateAdmin, async (_req, res) => {
   }
 });
 
-// ─── Automated Database Pruner (72h Retention for Auditability) ───────────────
+// ─── Automated Database Pruner (Audit-Preserving Retention) ──────────────────
 export const pruneExpiredRecords = async () => {
   try {
     const now = deps.now();
     const retention72h = new Date(now.getTime() - 72 * 60 * 60 * 1000).toISOString();
+    const retention30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const { count: prunedSessions } = await deps.supabase
       .from('campusnet_sessions')
@@ -1503,11 +1579,13 @@ export const pruneExpiredRecords = async () => {
       .in('status', ['assigned', 'expired'])
       .lt('expires_at', retention72h);
 
+    // Auditability & Failure Retention: Never delete failed transaction history.
+    // Only prune orphaned pending transactions older than 30 days.
     const { count: prunedAbandoned } = await deps.supabase
       .from('campusnet_transactions')
       .delete({ count: 'exact' })
-      .in('status', ['pending', 'failed'])
-      .lt('created_at', retention72h);
+      .eq('status', 'pending')
+      .lt('created_at', retention30d);
 
     return {
       success: true,
@@ -1574,12 +1652,14 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
       .eq('status', 'available');
 
     const sixtyDaysAgo = new Date(nowTime - 60 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: txs } = await deps.supabase
+    const { data: allTxs } = await deps.supabase
       .from('campusnet_transactions')
-      .select('id, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code, paystack_reference')
-      .in('status', ['completed', 'SUCCESS'])
+      .select('id, reference, phone, amount, package_id, created_at, status, mpesa_receipt, voucher_code, paystack_reference')
       .gte('created_at', sixtyDaysAgo)
       .order('created_at', { ascending: false });
+
+    const rawTxs = allTxs || [];
+    const txs = rawTxs.filter(t => t.status === 'completed' || t.status === 'SUCCESS');
 
     const voucherStock = {
       pkg_1h: 0,
@@ -1625,7 +1705,7 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
     let paystackVerifiedRevenue = 0;
     const customersSet = new Set();
 
-    (txs || []).forEach((t) => {
+    txs.forEach((t) => {
       const amt = Number(t.amount || 0);
       if (amt <= 0) return;
       totalRevenue += amt;
@@ -1658,6 +1738,76 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
       timeBreakdowns[k].net_kes = Math.round(timeBreakdowns[k].gross_kes * 0.985);
       timeBreakdowns[k].fee_kes = Math.round(timeBreakdowns[k].gross_kes * 0.015);
     }
+
+    // 30-Day Conversion & Recovery Analytics
+    const thirtyDaysAgo = new Date(nowTime - 30 * 24 * 60 * 60 * 1000);
+    const txs30d = rawTxs.filter(t => new Date(t.created_at) >= thirtyDaysAgo);
+    const completed30d = txs30d.filter(t => t.status === 'completed' || t.status === 'SUCCESS');
+    const failed30d = txs30d.filter(t => t.status === 'failed');
+    const pending30d = txs30d.filter(t => t.status === 'pending');
+
+    const completedPhones30d = new Set(completed30d.map(t => t.phone).filter(Boolean));
+    const failedByPhone30d = new Map();
+    const failureReasonsMap = new Map();
+
+    failed30d.forEach(t => {
+      const reason = t.mpesa_receipt || 'Payment cancelled or prompt expired';
+      const rKey = reason.trim();
+      failureReasonsMap.set(rKey, (failureReasonsMap.get(rKey) || 0) + 1);
+
+      if (t.phone && !completedPhones30d.has(t.phone)) {
+        const cur = failedByPhone30d.get(t.phone) || {
+          phone: t.phone,
+          attempts: 0,
+          raw_kes: 0,
+          latest_amount: Number(t.amount || 0),
+          last_reason: reason,
+          last_attempt: t.created_at,
+          package_id: t.package_id
+        };
+        cur.attempts++;
+        cur.raw_kes += Number(t.amount || 0);
+        cur.last_reason = reason;
+        cur.last_attempt = t.created_at;
+        failedByPhone30d.set(t.phone, cur);
+      }
+    });
+
+    const unrecoveredBuyers = Array.from(failedByPhone30d.values()).map(b => {
+      const pkg = getPackageById(b.package_id) || resolvePackageFromVoucherCode('');
+      const { clean: cleanPhone, local: localPhone } = formatPhone(b.phone);
+      return {
+        ...b,
+        phone: cleanPhone,
+        local_phone: localPhone,
+        package_name: pkg.name,
+        whatsapp_link: `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Habari! Noticed your Makoyocart Wi-Fi pass (${pkg.name}) had an M-Pesa delay. Can I assist you to connect?`)}`,
+        tel_link: `tel:${localPhone}`
+      };
+    }).sort((a, b) => b.latest_amount - a.latest_amount);
+
+    const missedRevenueKes = unrecoveredBuyers.reduce((sum, b) => sum + (b.latest_amount || 0), 0);
+    const topFailureReasons = Array.from(failureReasonsMap.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const totalAttempts30d = txs30d.length;
+    const conversionRatePercent = totalAttempts30d > 0 ? Math.round((completed30d.length / totalAttempts30d) * 100) : 100;
+
+    const formattedRecentTransactions = rawTxs.slice(0, 100).map(t => {
+      const pkg = getPackageById(t.package_id) || resolvePackageFromVoucherCode(t.voucher_code);
+      const { clean: cleanPhone, local: localPhone } = formatPhone(t.phone);
+      const isUnrecovered = (t.status === 'failed' || t.status === 'pending') && !completedPhones30d.has(t.phone);
+      return {
+        ...t,
+        phone: cleanPhone,
+        local_phone: localPhone,
+        package_name: pkg.name,
+        is_unrecovered: isUnrecovered,
+        whatsapp_link: `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Habari! Noticed your Makoyocart Wi-Fi pass (${pkg.name}) had an M-Pesa delay. Can I assist you to connect?`)}`,
+        tel_link: `tel:${localPhone}`
+      };
+    });
 
     const formattedSessions = (sessions || []).map((s) => {
       const validUntil = new Date(s.valid_until);
@@ -1719,9 +1869,22 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
         estimated_net_revenue_kes: Math.round(totalRevenue * 0.985),
         total_customers_count: customersSet.size,
         unclaimed_rewards_count: 0,
-        time_breakdowns: timeBreakdowns
+        time_breakdowns: timeBreakdowns,
+        conversion_metrics: {
+          total_attempts_30d: totalAttempts30d,
+          completed_count_30d: completed30d.length,
+          failed_count_30d: failed30d.length,
+          pending_count_30d: pending30d.length,
+          conversion_rate_percent: conversionRatePercent,
+          missed_revenue_kes: missedRevenueKes,
+          unrecovered_buyers_count: unrecoveredBuyers.length,
+          top_failure_reasons: topFailureReasons,
+          unrecovered_buyers: unrecoveredBuyers
+        }
       },
       sessions: formattedSessions,
+      recent_transactions: formattedRecentTransactions,
+      unrecovered_buyers: unrecoveredBuyers,
       loyalty: [],
       packages: PACKAGES,
       timestamp: nowIso
@@ -1732,6 +1895,126 @@ router.get('/admin/overview', authenticateAdmin, async (req, res) => {
     return res.json(payload);
   } catch (err) {
     console.error('[CampusNet Admin Overview Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── POST /api/campusnet/admin/reconcile-paystack ────────────────────────────
+// Reconciles pending/failed transactions directly against live Paystack API.
+// Syncs true status (completed/failed), resolves gateway failure responses,
+// and ensures Supabase perfectly matches the Paystack payment ledger.
+router.post('/admin/reconcile-paystack', authenticateAdmin, async (_req, res) => {
+  const paystackKey = deps.getPaystackSecretKey();
+  if (!paystackKey || paystackKey.startsWith('sk_test_placeholder')) {
+    return res.status(400).json({ error: 'Paystack secret key is not configured.' });
+  }
+
+  try {
+    const pRes = await deps.axios.get('https://api.paystack.co/transaction?perPage=100', {
+      headers: { Authorization: `Bearer ${paystackKey}` },
+      httpsAgent: paystackHttpsAgent,
+      timeout: 10000
+    });
+
+    const paystackTxs = pRes.data?.data || [];
+    let updatedCompleted = 0;
+    let updatedFailed = 0;
+    let alreadySynced = 0;
+
+    for (const pTx of paystackTxs) {
+      const ref = pTx.reference;
+      if (!ref || !ref.startsWith('CN_')) continue;
+
+      const { data: dbTx } = await deps.supabase
+        .from('campusnet_transactions')
+        .select('*')
+        .eq('reference', ref)
+        .maybeSingle();
+
+      if (!dbTx) continue;
+
+      if (pTx.status === 'success' && dbTx.status !== 'completed') {
+        const paidAmt = Math.round(Number(pTx.amount || 0) / 100);
+        const resolvedPkg = resolvePackageFromPayment({
+          packageId: dbTx.package_id,
+          paidAmountKes: paidAmt
+        });
+        if (resolvedPkg) {
+          await activateVoucherForTransaction({
+            reference: ref,
+            phone: dbTx.phone,
+            macAddress: dbTx.mac_address || '00:00:00:00:00:00',
+            packageId: resolvedPkg.id,
+            paidAmountKes: paidAmt,
+            mpesaReceipt: pTx.gateway_response || pTx.reference,
+            paystackId: pTx.id ? String(pTx.id) : null
+          });
+          updatedCompleted++;
+        }
+      } else if ((pTx.status === 'failed' || pTx.status === 'abandoned') && dbTx.status === 'pending') {
+        const failureReason = pTx.gateway_response || pTx.message || 'Payment prompt cancelled or failed.';
+        await deps.supabase
+          .from('campusnet_transactions')
+          .update({
+            status: 'failed',
+            mpesa_receipt: failureReason
+          })
+          .eq('reference', ref);
+        updatedFailed++;
+      } else {
+        alreadySynced++;
+      }
+    }
+
+    cachedOverview = null;
+
+    return res.json({
+      success: true,
+      message: `Reconciliation complete. Updated ${updatedCompleted} completed, ${updatedFailed} failed.`,
+      scanned_paystack_count: paystackTxs.length,
+      updated_completed: updatedCompleted,
+      updated_failed: updatedFailed,
+      already_synced: alreadySynced
+    });
+  } catch (err) {
+    console.error('[CampusNet Reconcile Error]', err.message);
+    return res.status(500).json({ error: 'Failed to reconcile transactions with Paystack: ' + err.message });
+  }
+});
+
+// ─── GET /api/campusnet/admin/transactions ────────────────────────────────────
+// Dedicated transactions query endpoint with search and status filtering
+router.get('/admin/transactions', authenticateAdmin, async (req, res) => {
+  const { status, search, limit = 100 } = req.query;
+  try {
+    let query = deps.supabase
+      .from('campusnet_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(Number(limit) || 100);
+
+    if (status && status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw error;
+
+    const formatted = (rows || []).map(t => {
+      const pkg = getPackageById(t.package_id) || resolvePackageFromVoucherCode(t.voucher_code);
+      const { clean: cleanPhone, local: localPhone } = formatPhone(t.phone);
+      return {
+        ...t,
+        phone: cleanPhone,
+        local_phone: localPhone,
+        package_name: pkg.name,
+        whatsapp_link: `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Habari! Noticed your Makoyocart Wi-Fi pass (${pkg.name}) had an M-Pesa delay. Can I assist you to connect?`)}`,
+        tel_link: `tel:${localPhone}`
+      };
+    });
+
+    return res.json({ success: true, count: formatted.length, transactions: formatted });
+  } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 });

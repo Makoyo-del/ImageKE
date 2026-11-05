@@ -44,6 +44,7 @@
 .cn-card-orange::before { background: #ff5414; box-shadow: 0 0 12px #ff5414; }
 .cn-card-gold::before { background: #ffb703; box-shadow: 0 0 12px #ffb703; }
 .cn-card-cyan::before { background: #00d4ff; box-shadow: 0 0 12px #00d4ff; }
+.cn-card-rose::before { background: #f43f5e; box-shadow: 0 0 12px #f43f5e; }
 
 .cn-stat-header {
   display: flex;
@@ -639,4 +640,86 @@
   .cn-mcard-actions {
     grid-template-columns: 1fr;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   TRANSACTIONS & PAYMENT RECOVERY STYLES
+══════════════════════════════════════════════════════════════════════════════ */
+.cn-tx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cn-tx-pill-success {
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid rgba(0, 230, 118, 0.35);
+  color: #00e676;
+}
+
+.cn-tx-pill-failed {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.cn-tx-pill-pending {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fcd34d;
+}
+
+.cn-tx-unrecovered-badge {
+  background: rgba(244, 63, 94, 0.16);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  color: #f43f5e;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.02em;
+}
+
+.cn-tx-response {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  max-width: 240px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.cn-reconcile-btn {
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: #00d4ff;
+  padding: 0.45rem 0.95rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cn-reconcile-btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.22);
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #ffffff;
+}
+
+.cn-reconcile-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

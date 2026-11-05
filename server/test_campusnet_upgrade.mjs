@@ -1193,5 +1193,125 @@ describe('Phase 5: Voucher Restock Generator & Two-Stage Commit Verification (5.
   });
 });
 
+// ─── Phase 6: Failed Payment Handling & Paystack Resilience ──────────────────
+describe('Phase 6: Failed Payment Resilience, Instant Polling & Audit Retention', () => {
+  let mockDb;
+
+  beforeEach(() => {
+    resetCampusNetInternalState();
+    mockDb = createInMemorySupabase({
+      campusnet_transactions: [
+        {
+          id: 'tx_pending_1',
+          reference: 'cn_test_ref_101',
+          phone: '+254708843776',
+          amount: 180,
+          package_id: 'pkg_7d',
+          status: 'pending',
+          gateway_response: null,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'tx_failed_old',
+          reference: 'cn_test_ref_failed_102',
+          phone: '+254712345678',
+          amount: 50,
+          package_id: 'pkg_24h',
+          status: 'failed',
+          gateway_response: 'User cancelled',
+          created_at: new Date(Date.now() - 5 * 86400000).toISOString() // 5 days old
+        }
+      ]
+    });
+
+    setCampusNetTestDeps({
+      supabase: mockDb,
+      now: () => new Date(),
+      getPaystackSecretKey: () => TEST_PAYSTACK_SECRET,
+      getRouterSyncKey: () => TEST_SYNC_SECRET,
+      getAdminApiKey: () => TEST_ADMIN_SECRET,
+      getWebhookSecrets: () => [TEST_WEBHOOK_SECRET],
+      axios: {
+        get: async (url) => {
+          if (url.includes('cn_test_ref_failed_paystack')) {
+            return {
+              data: {
+                status: true,
+                data: {
+                  status: 'failed',
+                  gateway_response: 'The transaction was cancelled by user',
+                  reference: 'cn_test_ref_failed_paystack'
+                }
+              }
+            };
+          }
+          return { data: { status: true, data: { status: 'ongoing' } } };
+        }
+      }
+    });
+  });
+
+  test('6.1 pruneExpiredRecords retains failed transactions for forensic audit', async () => {
+    const res = await pruneExpiredRecords();
+    const failedRows = mockDb.tables.campusnet_transactions.filter((t) => t.status === 'failed');
+    assert.equal(failedRows.length, 1, 'Failed transaction must NOT be deleted by pruner');
+    assert.equal(failedRows[0].id, 'tx_failed_old');
+  });
+
+  test('6.2 Webhook charge.failed updates transaction status to failed and captures gateway response', async () => {
+    const webhookPayload = JSON.stringify({
+      event: 'charge.failed',
+      data: {
+        reference: 'cn_test_ref_101',
+        gateway_response: 'No response from user',
+        channel: 'mobile_money',
+        customer: { phone: '+254708843776' }
+      }
+    });
+
+    const signature = crypto
+      .createHmac('sha512', TEST_PAYSTACK_SECRET)
+      .update(webhookPayload)
+      .digest('hex');
+
+    const res = await fetch(`${BASE_URL}/webhook`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-paystack-signature': signature
+      },
+      body: webhookPayload
+    });
+
+    assert.equal(res.status, 200);
+    const updated = mockDb.tables.campusnet_transactions.find((t) => t.reference === 'cn_test_ref_101');
+    assert.equal(updated.status, 'failed');
+    assert.equal(updated.gateway_response, 'No response from user');
+  });
+
+  test('6.3 /pay/status/:reference immediately detects Paystack failure and returns status: failed', async () => {
+    mockDb.tables.campusnet_transactions.push({
+      id: 'tx_poll_fail',
+      reference: 'cn_test_ref_failed_paystack',
+      phone: '+254722000000',
+      amount: 50,
+      package_id: 'pkg_24h',
+      status: 'pending',
+      created_at: new Date().toISOString()
+    });
+
+    const res = await fetch(`${BASE_URL}/pay/status/cn_test_ref_failed_paystack`);
+    const json = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(json.status, 'failed');
+    assert.equal(json.gateway_response, 'The transaction was cancelled by user');
+
+    const updated = mockDb.tables.campusnet_transactions.find((t) => t.reference === 'cn_test_ref_failed_paystack');
+    assert.equal(updated.status, 'failed');
+  });
+});
+
+
 
 
